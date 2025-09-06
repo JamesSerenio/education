@@ -25,8 +25,7 @@
     "react": "19.0.0",
     "react-dom": "19.0.0",
     "react-router": "^5.3.4",
-    "react-router-dom": "^5.3.4",
-    "tailwindcss": "^4.1.13"
+    "react-router-dom": "^5.3.4"
   },
   "devDependencies": {
     "@testing-library/dom": ">=7.21.4",
@@ -37,6 +36,7 @@
     "@types/react-dom": "19.0.4",
     "@vitejs/plugin-legacy": "^5.0.0",
     "@vitejs/plugin-react": "^4.0.1",
+    "autoprefixer": "^10.4.21",
     "cypress": "^13.5.0",
     "eslint": "^9.20.1",
     "eslint-plugin-react": "^7.32.2",
@@ -45,6 +45,8 @@
     "gh-pages": "^6.3.0",
     "globals": "^15.15.0",
     "jsdom": "^22.1.0",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^4.1.13",
     "terser": "^5.4.0",
     "typescript": "^5.1.6",
     "typescript-eslint": "^8.24.0",

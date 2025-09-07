@@ -4,13 +4,14 @@ import {
   IonInput,
   IonButton,
   IonCheckbox,
-  IonLabel,
   IonIcon,
   IonText,
 } from "@ionic/react";
 import { useState } from "react";
 import { useHistory, Link } from "react-router-dom";
 import { personOutline, mailOutline, lockClosedOutline } from "ionicons/icons";
+import { supabase } from "../utils/supabaseClient"; // adjust path if needed
+import type { AuthError, Session, User } from "@supabase/supabase-js";
 
 const Register: React.FC = () => {
   const history = useHistory();
@@ -21,9 +22,10 @@ const Register: React.FC = () => {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [agreeTerms, setAgreeTerms] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
-  const handleRegister = (e: React.FormEvent) => {
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!lastname || !firstname || !email || !password || !confirmPassword) {
@@ -41,12 +43,40 @@ const Register: React.FC = () => {
       return;
     }
 
-    setError("");
+    setError(null);
+    setLoading(true);
 
-    // TODO: Implement registration logic here (e.g., API call)
+    try {
+      // Explicitly type the response to avoid editor/type errors
+      const response: {
+        data: { user: User | null; session: Session | null };
+        error: AuthError | null;
+      } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            firstname,
+            lastname,
+          },
+        },
+      });
 
-    // After successful registration, redirect to login page
-    history.push("/education/login");
+      const { error } = response;
+
+      if (error) {
+        setError(error.message);
+        console.error("Registration error:", error);
+      } else {
+        // Registration successful, redirect to login
+        history.push("/education/login");
+      }
+    } catch (err) {
+      setError("An unexpected error occurred. Please try again.");
+      console.error("Unexpected error:", err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -57,24 +87,26 @@ const Register: React.FC = () => {
             <h2 className="login-title">Register</h2>
 
             <form className="login-form" onSubmit={handleRegister}>
-              <div className="login-input">
-                <IonIcon icon={personOutline} />
-                <IonInput
-                  placeholder="Lastname"
-                  value={lastname}
-                  onIonChange={(e) => setLastname(e.detail.value!)}
-                  required
-                />
-              </div>
+              <div style={{ display: "flex", gap: "1rem", marginBottom: "1rem" }}>
+                <div className="login-input" style={{ flex: 1 }}>
+                  <IonIcon icon={personOutline} />
+                  <IonInput
+                    placeholder="Lastname"
+                    value={lastname}
+                    onIonChange={(e) => setLastname(e.detail.value ?? "")}
+                    required
+                  />
+                </div>
 
-              <div className="login-input">
-                <IonIcon icon={personOutline} />
-                <IonInput
-                  placeholder="Firstname"
-                  value={firstname}
-                  onIonChange={(e) => setFirstname(e.detail.value!)}
-                  required
-                />
+                <div className="login-input" style={{ flex: 1 }}>
+                  <IonIcon icon={personOutline} />
+                  <IonInput
+                    placeholder="Firstname"
+                    value={firstname}
+                    onIonChange={(e) => setFirstname(e.detail.value ?? "")}
+                    required
+                  />
+                </div>
               </div>
 
               <div className="login-input">
@@ -83,7 +115,7 @@ const Register: React.FC = () => {
                   type="email"
                   placeholder="Email"
                   value={email}
-                  onIonChange={(e) => setEmail(e.detail.value!)}
+                  onIonChange={(e) => setEmail(e.detail.value ?? "")}
                   required
                 />
               </div>
@@ -94,7 +126,7 @@ const Register: React.FC = () => {
                   type="password"
                   placeholder="Password"
                   value={password}
-                  onIonChange={(e) => setPassword(e.detail.value!)}
+                  onIonChange={(e) => setPassword(e.detail.value ?? "")}
                   required
                 />
               </div>
@@ -105,7 +137,7 @@ const Register: React.FC = () => {
                   type="password"
                   placeholder="Confirm Password"
                   value={confirmPassword}
-                  onIonChange={(e) => setConfirmPassword(e.detail.value!)}
+                  onIonChange={(e) => setConfirmPassword(e.detail.value ?? "")}
                   required
                 />
               </div>
@@ -116,9 +148,12 @@ const Register: React.FC = () => {
                   onIonChange={(e) => setAgreeTerms(e.detail.checked)}
                   id="terms-checkbox"
                 />
-                <IonLabel htmlFor="terms-checkbox" style={{ marginLeft: "0.5rem", fontSize: "0.875rem" }}>
+                <label
+                  htmlFor="terms-checkbox"
+                  style={{ marginLeft: "0.5rem", fontSize: "0.875rem", cursor: "pointer" }}
+                >
                   I agree to the terms and conditions
-                </IonLabel>
+                </label>
               </div>
 
               {error && (
@@ -127,8 +162,14 @@ const Register: React.FC = () => {
                 </IonText>
               )}
 
-              <IonButton expand="block" type="submit" className="login-button" style={{ marginTop: "1rem" }}>
-                Register
+              <IonButton
+                expand="block"
+                type="submit"
+                className="login-button"
+                style={{ marginTop: "1rem" }}
+                disabled={!agreeTerms || loading}
+              >
+                {loading ? "Registering..." : "Register"}
               </IonButton>
             </form>
 

@@ -33,7 +33,7 @@ const Home: React.FC = () => {
               <p>Explore the properties and problems of arithmetic sequences.</p>
               <IonButton
                 expand="block"
-                onClick={() => history.push("/dashboard_arithmetic")}
+                onClick={() => history.push("/education/dashboard_arithmetic")}
               >
                 Start
               </IonButton>
@@ -49,7 +49,7 @@ const Home: React.FC = () => {
               <p>Learn about uniform motion concepts and calculations.</p>
               <IonButton
                 expand="block"
-                onClick={() => history.push("/dashboard_motion")}
+                onClick={() => history.push("/education/dashboard_motion")}
               >
                 Start
               </IonButton>

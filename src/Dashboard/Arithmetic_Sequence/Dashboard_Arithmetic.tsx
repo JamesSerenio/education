@@ -18,7 +18,7 @@ import {
   logOutOutline,
   layersOutline,
   trophyOutline,
-  radarOutline,
+  navigateOutline,
 } from "ionicons/icons";
 
 const Dashboard_Arithmetic: React.FC = () => {
@@ -26,7 +26,7 @@ const Dashboard_Arithmetic: React.FC = () => {
     { name: "Home", url: "/education/Arithmetic_Home", icon: homeOutline },
     { name: "Module", url: "/education/Arithmetic_Module", icon: layersOutline },
     { name: "LeaderBoard", url: "/education/Arithmetic_Leaderboard", icon: trophyOutline },
-    { name: "Radar", url: "/education/Arithmetic_Radar", icon: radarOutline },
+    { name: "Radar", url: "/education/Arithmetic_Radar", icon: navigateOutline, },
   ];
 
   return (

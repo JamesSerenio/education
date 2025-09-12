@@ -1,129 +1,96 @@
 import {
-  IonContent,
-  IonHeader,
   IonPage,
-  IonTitle,
+  IonHeader,
   IonToolbar,
+  IonTitle,
+  IonContent,
 } from "@ionic/react";
 import { useEffect, useRef } from "react";
-import Chart from "chart.js/auto";
+import {
+  Chart as ChartJS,
+  RadialLinearScale,
+  PointElement,
+  LineElement,
+  Filler,
+  Tooltip,
+  Legend,
+} from "chart.js";
+
+ChartJS.register(
+  RadialLinearScale,
+  PointElement,
+  LineElement,
+  Filler,
+  Tooltip,
+  Legend
+);
 
 const Arithmetic_Radar: React.FC = () => {
-  const alumniRadarRef = useRef<HTMLCanvasElement | null>(null);
-  const programRadarRef = useRef<HTMLCanvasElement | null>(null);
-  const alumniChartInstance = useRef<Chart | null>(null);
-  const programChartInstance = useRef<Chart | null>(null);
+  const radarRef = useRef<HTMLCanvasElement | null>(null);
+  const chartInstance = useRef<ChartJS | null>(null);
 
-  useEffect(() => {
-    fetch("data.json")
-      .then((response) => response.json())
-      .then((data) => {
-        const commonOptions = {
-          responsive: true,
-          scales: {
-            r: {
-              angleLines: { display: true },
-              suggestedMin: 0,
-              suggestedMax: 100,
-              ticks: {
-                stepSize: 20,
-                backdropColor: "transparent",
-              },
-              pointLabels: {
-                font: {
-                  size: 14,
-                },
-              },
-            },
+useEffect(() => {
+  if (radarRef.current) {
+    const ctx = radarRef.current.getContext("2d");
+    if (!ctx) return;
+
+    if (chartInstance.current) {
+      chartInstance.current.destroy();
+    }
+
+    chartInstance.current = new ChartJS(ctx, {
+      type: "radar",
+      data: {
+        labels: [
+          "Eating",
+          "Drinking",
+          "Sleeping",
+          "Designing",
+          "Coding",
+          "Cycling",
+          "Running",
+        ],
+        datasets: [
+          {
+            label: "My First Dataset",
+            data: [65, 59, 90, 81, 56, 55, 40],
+            fill: true,
+            backgroundColor: "rgba(255, 99, 132, 0.2)",
+            borderColor: "rgb(255, 99, 132)",
           },
-          plugins: {
-            legend: {
-              position: "top" as const,
-            },
+          {
+            label: "My Second Dataset",
+            data: [28, 48, 40, 19, 96, 27, 100],
+            fill: true,
+            backgroundColor: "rgba(54, 162, 235, 0.2)",
+            borderColor: "rgb(54, 162, 235)",
           },
-        };
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+      },
+    });
+  }
 
-        if (alumniRadarRef.current) {
-          if (alumniChartInstance.current) {
-            alumniChartInstance.current.destroy();
-          }
-          alumniChartInstance.current = new Chart(alumniRadarRef.current, {
-            type: "radar",
-            data: {
-              labels: data.alumniChart.labels,
-              datasets: data.alumniChart.datasets,
-            },
-            options: commonOptions,
-          });
-        }
+  return () => {
+    chartInstance.current?.destroy();
+  };
+}, []);
 
-        if (programRadarRef.current) {
-          if (programChartInstance.current) {
-            programChartInstance.current.destroy();
-          }
-          programChartInstance.current = new Chart(programRadarRef.current, {
-            type: "radar",
-            data: {
-              labels: data.programChart.labels,
-              datasets: data.programChart.datasets,
-            },
-            options: commonOptions,
-          });
-        }
-      })
-      .catch((error) => console.error("Error loading chart data:", error));
-
-    // Cleanup charts on unmount
-    return () => {
-      alumniChartInstance.current?.destroy();
-      programChartInstance.current?.destroy();
-    };
-  }, []);
 
   return (
     <IonPage>
       <IonHeader>
         <IonToolbar>
-          <IonTitle>Arithmetic Radar Charts</IonTitle>
+          <IonTitle>Radar Chart Example</IonTitle>
         </IonToolbar>
       </IonHeader>
-      <IonContent fullscreen style={{ backgroundColor: "#f8f9fa" }}>
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "center",
-            flexWrap: "wrap",
-            padding: "1rem",
-          }}
-        >
-          <div
-            style={{
-              width: "45%",
-              margin: "10px",
-              padding: "20px",
-              backgroundColor: "#fff",
-              boxShadow: "0 0 10px rgba(0,0,0,0.1)",
-            }}
-          >
-            <h2 style={{ textAlign: "center", marginBottom: "30px" }}>
-              Alumni Characteristics Radar Chart
-            </h2>
-            <canvas ref={alumniRadarRef} />
-          </div>
-
-          <div
-            style={{
-              width: "45%",
-              margin: "10px",
-              padding: "20px",
-              backgroundColor: "#fff",
-              boxShadow: "0 0 10px rgba(0,0,0,0.1)",
-            }}
-          >
-            <h2 style={{ textAlign: "center", marginBottom: "30px" }}>
-              Program & Curriculum Contribution
-            </h2>
-            <canvas ref={programRadarRef} />
+      <IonContent fullscreen>
+        <div style={{ padding: "20px" }}>
+          <div style={{ width: "100%", height: "400px" }}>
+            <canvas ref={radarRef} />
           </div>
         </div>
       </IonContent>

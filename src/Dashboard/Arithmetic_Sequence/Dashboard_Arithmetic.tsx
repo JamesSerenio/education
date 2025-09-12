@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   IonButtons,
   IonButton,
@@ -10,7 +10,6 @@ import {
   IonMenuButton,
   IonMenuToggle,
   IonPage,
-  IonRouterOutlet,
   IonSplitPane,
   IonTitle,
   IonToolbar,
@@ -22,18 +21,39 @@ import {
   trophyOutline,
   navigateOutline,
 } from "ionicons/icons";
-import { Route, Redirect } from "react-router-dom";
+import { useHistory } from "react-router-dom";
+
 import ArithmeticModule from "./Arithmetic_Module";
 import ArithmeticLeaderboard from "./Arithmetic_Leaderboard";
 import ArithmeticRadar from "./Arithmetic_Radar";
 
 const Dashboard_Arithmetic: React.FC = () => {
-  const path = [
-    { name: "Home", url: "/education/dashboard_arithmetic", icon: homeOutline },
-    { name: "Module", url: "/education/Arithmetic_Module", icon: layersOutline },
-    { name: "LeaderBoard", url: "/education/Arithmetic_Leaderboard", icon: trophyOutline },
-    { name: "Radar", url: "/education/Arithmetic_Radar", icon: navigateOutline },
+  const history = useHistory(); // 👈 for navigation
+  const [activePage, setActivePage] = useState("dashboard");
+
+  const menuItems = [
+    { name: "Dashboard", key: "dashboard", icon: homeOutline },
+    { name: "Module", key: "module", icon: layersOutline },
+    { name: "Leaderboard", key: "leaderboard", icon: trophyOutline },
+    { name: "Radar", key: "radar", icon: navigateOutline },
   ];
+
+  const renderContent = () => {
+    switch (activePage) {
+      case "module":
+        return <ArithmeticModule />;
+      case "leaderboard":
+        return <ArithmeticLeaderboard />;
+      case "radar":
+        return <ArithmeticRadar />;
+      default:
+        return (
+          <h2 style={{ textAlign: "center", marginTop: "2rem" }}>
+            Welcome to Arithmetic Dashboard
+          </h2>
+        );
+    }
+  };
 
   return (
     <IonPage>
@@ -46,23 +66,25 @@ const Dashboard_Arithmetic: React.FC = () => {
             </IonToolbar>
           </IonHeader>
           <IonContent>
-            {path.map((item, index) => (
+            {menuItems.map((item, index) => (
               <IonMenuToggle key={index} autoHide={false}>
-                <IonItem routerLink={item.url} routerDirection="forward" button>
+                <IonItem
+                  button
+                  onClick={() => setActivePage(item.key)}
+                >
                   <IonIcon icon={item.icon} slot="start" />
                   {item.name}
                 </IonItem>
               </IonMenuToggle>
             ))}
 
-            {/* Logout Button with blue style */}
+            {/* Logout Button → Home */}
             <IonMenuToggle autoHide={false}>
               <IonButton
-                routerLink="/education/home"
-                routerDirection="back"
                 expand="block"
                 color="primary"
                 style={{ marginTop: "1rem" }}
+                onClick={() => history.push("/education/home")} // 👈 direct to Home
               >
                 <IonIcon icon={logOutOutline} slot="start" />
                 Logout
@@ -71,29 +93,21 @@ const Dashboard_Arithmetic: React.FC = () => {
           </IonContent>
         </IonMenu>
 
-        {/* Main Content Area */}
+        {/* Main Content */}
         <IonPage id="main">
           <IonHeader>
             <IonToolbar>
               <IonButtons slot="start">
                 <IonMenuButton />
               </IonButtons>
-              <IonTitle>Dashboard Arithmetic</IonTitle>
+              <IonTitle>
+                {menuItems.find((m) => m.key === activePage)?.name ||
+                  "Dashboard Arithmetic"}
+              </IonTitle>
             </IonToolbar>
           </IonHeader>
 
-          <IonContent>
-            <IonRouterOutlet>
-              <Route exact path="/education/Arithmetic_Home" component={Dashboard_Arithmetic} />
-              <Route exact path="/education/Arithmetic_Module" component={ArithmeticModule} />
-              <Route exact path="/education/Arithmetic_Leaderboard" component={ArithmeticLeaderboard} />
-              <Route exact path="/education/Arithmetic_Radar" component={ArithmeticRadar} />
-              {/* Default redirect to Home */}
-              <Route exact path="/education">
-                <Redirect to="/education/Arithmetic_Home" />
-              </Route>
-            </IonRouterOutlet>
-          </IonContent>
+          <IonContent>{renderContent()}</IonContent>
         </IonPage>
       </IonSplitPane>
     </IonPage>

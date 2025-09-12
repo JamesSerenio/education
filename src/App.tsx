@@ -4,8 +4,8 @@ import { IonReactRouter } from "@ionic/react-router";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Home from "./pages/Home";
-import Dashboard_Arithmetic from "./pages/Dashboard_Arithmetic";
-import Dashboard_Motion from "./pages/Dashboard_Motion";
+import Dashboard_Arithmetic from "./Dashboard/Arithmetic_Sequence/Dashboard_Arithmetic";
+import Dashboard_Motion from "./Dashboard/Uniform_Motion_in_Physics/Dashboard_Motion";
 
 /* Core CSS required for Ionic components to work properly */
 import "@ionic/react/css/core.css";

@@ -29,62 +29,57 @@ const Arithmetic_Radar: React.FC = () => {
   const radarRef = useRef<HTMLCanvasElement | null>(null);
   const chartInstance = useRef<ChartJS | null>(null);
 
-useEffect(() => {
-  if (radarRef.current) {
-    const ctx = radarRef.current.getContext("2d");
-    if (!ctx) return;
+  useEffect(() => {
+    if (radarRef.current) {
+      const ctx = radarRef.current.getContext("2d");
+      if (!ctx) return;
 
-    if (chartInstance.current) {
-      chartInstance.current.destroy();
+      if (chartInstance.current) {
+        chartInstance.current.destroy();
+      }
+
+      chartInstance.current = new ChartJS(ctx, {
+        type: "radar",
+        data: {
+          labels: ["Time", "Problem Solving", "Solving"], // ✅ 3 categories
+          datasets: [
+            {
+              label: "My Performance", // ✅ single user dataset
+              data: [65, 80, 72], // sample values (pwede mo i-bind sa DB/user data)
+              fill: true,
+              backgroundColor: "rgba(54, 162, 235, 0.2)",
+              borderColor: "rgb(54, 162, 235)",
+              pointBackgroundColor: "rgb(54, 162, 235)",
+              pointBorderColor: "#fff",
+              pointHoverBackgroundColor: "#fff",
+              pointHoverBorderColor: "rgb(54, 162, 235)",
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            r: {
+              angleLines: { display: true },
+              suggestedMin: 0,
+              suggestedMax: 100,
+            },
+          },
+        },
+      });
     }
 
-    chartInstance.current = new ChartJS(ctx, {
-      type: "radar",
-      data: {
-        labels: [
-          "Eating",
-          "Drinking",
-          "Sleeping",
-          "Designing",
-          "Coding",
-          "Cycling",
-          "Running",
-        ],
-        datasets: [
-          {
-            label: "My First Dataset",
-            data: [65, 59, 90, 81, 56, 55, 40],
-            fill: true,
-            backgroundColor: "rgba(255, 99, 132, 0.2)",
-            borderColor: "rgb(255, 99, 132)",
-          },
-          {
-            label: "My Second Dataset",
-            data: [28, 48, 40, 19, 96, 27, 100],
-            fill: true,
-            backgroundColor: "rgba(54, 162, 235, 0.2)",
-            borderColor: "rgb(54, 162, 235)",
-          },
-        ],
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-      },
-    });
-  }
-
-  return () => {
-    chartInstance.current?.destroy();
-  };
-}, []);
-
+    return () => {
+      chartInstance.current?.destroy();
+    };
+  }, []);
 
   return (
     <IonPage>
       <IonHeader>
         <IonToolbar>
-          <IonTitle>Radar Chart Example</IonTitle>
+          <IonTitle>Radar Chart</IonTitle>
         </IonToolbar>
       </IonHeader>
       <IonContent fullscreen>

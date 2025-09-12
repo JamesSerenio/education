@@ -1,7 +1,6 @@
 import React from "react";
 import {
   IonButtons,
-  IonButton,
   IonContent,
   IonHeader,
   IonIcon,
@@ -38,7 +37,7 @@ const Dashboard_Arithmetic: React.FC = () => {
 
   return (
     <IonPage>
-      <IonSplitPane contentId="main">
+      <IonSplitPane contentId="main" when="(min-width: 768px)">
         {/* Side Menu */}
         <IonMenu contentId="main">
           <IonHeader>
@@ -48,7 +47,7 @@ const Dashboard_Arithmetic: React.FC = () => {
           </IonHeader>
           <IonContent>
             {path.map((item, index) => (
-              <IonMenuToggle key={index}>
+              <IonMenuToggle key={index} autoHide={false}>
                 <IonItem routerLink={item.url} routerDirection="forward" button>
                   <IonIcon icon={item.icon} slot="start" />
                   {item.name}
@@ -56,16 +55,13 @@ const Dashboard_Arithmetic: React.FC = () => {
               </IonMenuToggle>
             ))}
 
-            {/* Logout Button */}
-            <IonButton
-              routerLink="/education/home"
-              routerDirection="back"
-              expand="full"
-              style={{ marginTop: "1rem" }}
-            >
-              <IonIcon icon={logOutOutline} slot="start" />
-              Logout
-            </IonButton>
+            {/* Logout as IonItem for consistent style */}
+            <IonMenuToggle autoHide={false}>
+              <IonItem routerLink="/education/home" routerDirection="back" button lines="none">
+                <IonIcon icon={logOutOutline} slot="start" />
+                Logout
+              </IonItem>
+            </IonMenuToggle>
           </IonContent>
         </IonMenu>
 

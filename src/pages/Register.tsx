@@ -11,7 +11,6 @@ import { useState } from "react";
 import { useHistory, Link } from "react-router-dom";
 import { personOutline, mailOutline, lockClosedOutline } from "ionicons/icons";
 import { supabase } from "../utils/supabaseClient"; // adjust path if needed
-import type { AuthError, Session, User } from "@supabase/supabase-js";
 
 const Register: React.FC = () => {
   const history = useHistory();
@@ -47,30 +46,45 @@ const Register: React.FC = () => {
     setLoading(true);
 
     try {
-      // Explicitly type the response to avoid editor/type errors
-      const response: {
-        data: { user: User | null; session: Session | null };
-        error: AuthError | null;
-      } = await supabase.auth.signUp({
+      // 1. Sign up user with Supabase Auth
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
-        options: {
-          data: {
-            firstname,
-            lastname,
-          },
-        },
       });
-
-      const { error } = response;
 
       if (error) {
         setError(error.message);
-        console.error("Registration error:", error);
-      } else {
-        // Registration successful, redirect to login
-        history.push("/education/login");
+        setLoading(false);
+        return;
       }
+
+      const user = data?.user;
+
+      if (!user) {
+        // If email confirmation is enabled, user may be null here
+        setError("Please check your email to confirm registration.");
+        setLoading(false);
+        return;
+      }
+
+      // 2. Insert additional profile data into 'profiles' table
+      const { error: profileError } = await supabase.from("profiles").insert([
+        {
+          id: user.id, // link profile to auth user id
+          firstname,
+          lastname,
+          email,
+        },
+      ]);
+
+      if (profileError) {
+        setError("Failed to save profile data: " + profileError.message);
+        setLoading(false);
+        return;
+      }
+
+      // 3. Registration successful, redirect to login
+      history.push("/education/login");
     } catch (err) {
       setError("An unexpected error occurred. Please try again.");
       console.error("Unexpected error:", err);
@@ -142,7 +156,13 @@ const Register: React.FC = () => {
                 />
               </div>
 
-              <div style={{ display: "flex", alignItems: "center", marginTop: "0.5rem" }}>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  marginTop: "0.5rem",
+                }}
+              >
                 <IonCheckbox
                   checked={agreeTerms}
                   onIonChange={(e) => setAgreeTerms(e.detail.checked)}
@@ -150,14 +170,21 @@ const Register: React.FC = () => {
                 />
                 <label
                   htmlFor="terms-checkbox"
-                  style={{ marginLeft: "0.5rem", fontSize: "0.875rem", cursor: "pointer" }}
+                  style={{
+                    marginLeft: "0.5rem",
+                    fontSize: "0.875rem",
+                    cursor: "pointer",
+                  }}
                 >
                   I agree to the terms and conditions
                 </label>
               </div>
 
               {error && (
-                <IonText color="danger" style={{ marginTop: "1rem", display: "block" }}>
+                <IonText
+                  color="danger"
+                  style={{ marginTop: "1rem", display: "block" }}
+                >
                   {error}
                 </IonText>
               )}

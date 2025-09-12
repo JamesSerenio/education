@@ -2,7 +2,10 @@ import { Redirect, Route } from "react-router-dom";
 import { IonApp, IonRouterOutlet, setupIonicReact } from "@ionic/react";
 import { IonReactRouter } from "@ionic/react-router";
 import Login from "./pages/Login";
-import Register from "./pages/Register"; // Import ng Register page
+import Register from "./pages/Register";
+import Home from "./pages/Home";
+import Dashboard_Arithmetic from "./pages/Dashboard_Arithmetic";
+import Dashboard_Motion from "./pages/Dashboard_Motion";
 
 /* Core CSS required for Ionic components to work properly */
 import "@ionic/react/css/core.css";
@@ -40,6 +43,15 @@ const App: React.FC = () => (
         </Route>
         <Route exact path="/education/register">
           <Register />
+        </Route>
+        <Route exact path="/education/home">
+          <Home />
+        </Route>
+        <Route exact path="/education/dashboard_arithmetic">
+          <Dashboard_Arithmetic />
+        </Route>
+        <Route exact path="/education/dashboard_motion">
+          <Dashboard_Motion />
         </Route>
         <Route exact path="/education/">
           <Redirect to="/education/login" />

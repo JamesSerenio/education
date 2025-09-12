@@ -1,6 +1,7 @@
 import React from "react";
 import {
   IonButtons,
+  IonButton,
   IonContent,
   IonHeader,
   IonIcon,
@@ -21,15 +22,14 @@ import {
   trophyOutline,
   navigateOutline,
 } from "ionicons/icons";
-import { Route } from "react-router-dom";
-import ArithmeticHome from "./Arithmetic_Home";
+import { Route, Redirect } from "react-router-dom";
 import ArithmeticModule from "./Arithmetic_Module";
 import ArithmeticLeaderboard from "./Arithmetic_Leaderboard";
 import ArithmeticRadar from "./Arithmetic_Radar";
 
 const Dashboard_Arithmetic: React.FC = () => {
   const path = [
-    { name: "Home", url: "/education/Arithmetic_Home", icon: homeOutline },
+    { name: "Home", url: "/education/dashboard_arithmetic", icon: homeOutline },
     { name: "Module", url: "/education/Arithmetic_Module", icon: layersOutline },
     { name: "LeaderBoard", url: "/education/Arithmetic_Leaderboard", icon: trophyOutline },
     { name: "Radar", url: "/education/Arithmetic_Radar", icon: navigateOutline },
@@ -55,12 +55,18 @@ const Dashboard_Arithmetic: React.FC = () => {
               </IonMenuToggle>
             ))}
 
-            {/* Logout as IonItem for consistent style */}
+            {/* Logout Button with blue style */}
             <IonMenuToggle autoHide={false}>
-              <IonItem routerLink="/education/home" routerDirection="back" button lines="none">
+              <IonButton
+                routerLink="/education/home"
+                routerDirection="back"
+                expand="block"
+                color="primary"
+                style={{ marginTop: "1rem" }}
+              >
                 <IonIcon icon={logOutOutline} slot="start" />
                 Logout
-              </IonItem>
+              </IonButton>
             </IonMenuToggle>
           </IonContent>
         </IonMenu>
@@ -78,10 +84,14 @@ const Dashboard_Arithmetic: React.FC = () => {
 
           <IonContent>
             <IonRouterOutlet>
-              <Route exact path="/education/Arithmetic_Home" component={ArithmeticHome} />
+              <Route exact path="/education/Arithmetic_Home" component={Dashboard_Arithmetic} />
               <Route exact path="/education/Arithmetic_Module" component={ArithmeticModule} />
               <Route exact path="/education/Arithmetic_Leaderboard" component={ArithmeticLeaderboard} />
               <Route exact path="/education/Arithmetic_Radar" component={ArithmeticRadar} />
+              {/* Default redirect to Home */}
+              <Route exact path="/education">
+                <Redirect to="/education/Arithmetic_Home" />
+              </Route>
             </IonRouterOutlet>
           </IonContent>
         </IonPage>

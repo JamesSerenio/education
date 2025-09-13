@@ -71,9 +71,32 @@ const Dashboard_Arithmetic: React.FC = () => {
                 <IonItem
                   button
                   onClick={() => setActivePage(item.key)}
+                  lines="none"
                 >
                   <IonIcon icon={item.icon} slot="start" />
-                  {item.name}
+                  <span
+                    style={{
+                      marginLeft: "8px",
+                      position: "relative",
+                      paddingBottom: "4px",
+                    }}
+                  >
+                    {item.name}
+                    {activePage === item.key && (
+                      <span
+                        style={{
+                          content: '""',
+                          position: "absolute",
+                          left: 0,
+                          bottom: 0,
+                          width: "100%",
+                          height: "2px",
+                          backgroundColor: "#3b82f6", // underline color (light blue)
+                          borderRadius: "2px",
+                        }}
+                      />
+                    )}
+                  </span>
                 </IonItem>
               </IonMenuToggle>
             ))}

@@ -1,129 +1,66 @@
 import {
-  IonContent,
-  IonHeader,
   IonPage,
-  IonTitle,
-  IonToolbar,
+  IonHeader,
+  IonContent,
 } from "@ionic/react";
-import { useEffect, useRef } from "react";
-import Chart from "chart.js/auto";
 
-const Arithmetic_Radar: React.FC = () => {
-  const alumniRadarRef = useRef<HTMLCanvasElement | null>(null);
-  const programRadarRef = useRef<HTMLCanvasElement | null>(null);
-  const alumniChartInstance = useRef<Chart | null>(null);
-  const programChartInstance = useRef<Chart | null>(null);
+// Import images from src/assets
+import moduleImg from "../../assets/module.png";
+import discoverImg from "../../assets/who_discover_arithmetic.png";
 
-  useEffect(() => {
-    fetch("data.json")
-      .then((response) => response.json())
-      .then((data) => {
-        const commonOptions = {
-          responsive: true,
-          scales: {
-            r: {
-              angleLines: { display: true },
-              suggestedMin: 0,
-              suggestedMax: 100,
-              ticks: {
-                stepSize: 20,
-                backdropColor: "transparent",
-              },
-              pointLabels: {
-                font: {
-                  size: 14,
-                },
-              },
-            },
-          },
-          plugins: {
-            legend: {
-              position: "top" as const,
-            },
-          },
-        };
-
-        if (alumniRadarRef.current) {
-          if (alumniChartInstance.current) {
-            alumniChartInstance.current.destroy();
-          }
-          alumniChartInstance.current = new Chart(alumniRadarRef.current, {
-            type: "radar",
-            data: {
-              labels: data.alumniChart.labels,
-              datasets: data.alumniChart.datasets,
-            },
-            options: commonOptions,
-          });
-        }
-
-        if (programRadarRef.current) {
-          if (programChartInstance.current) {
-            programChartInstance.current.destroy();
-          }
-          programChartInstance.current = new Chart(programRadarRef.current, {
-            type: "radar",
-            data: {
-              labels: data.programChart.labels,
-              datasets: data.programChart.datasets,
-            },
-            options: commonOptions,
-          });
-        }
-      })
-      .catch((error) => console.error("Error loading chart data:", error));
-
-    // Cleanup charts on unmount
-    return () => {
-      alumniChartInstance.current?.destroy();
-      programChartInstance.current?.destroy();
-    };
-  }, []);
-
+const Arithmetic_Module: React.FC = () => {
   return (
     <IonPage>
-      <IonHeader>
-        <IonToolbar>
-          <IonTitle>Arithmetic Radar Charts</IonTitle>
-        </IonToolbar>
-      </IonHeader>
-      <IonContent fullscreen style={{ backgroundColor: "#f8f9fa" }}>
+      <IonHeader></IonHeader>
+      <IonContent fullscreen>
         <div
           style={{
             display: "flex",
             justifyContent: "center",
+            alignItems: "flex-start",
+            gap: "20px",
+            padding: "20px",
             flexWrap: "wrap",
-            padding: "1rem",
           }}
         >
+          {/* Who Discover Arithmetic (first) */}
           <div
             style={{
+              border: "2px solid #ccc",
+              borderRadius: "10px",
+              padding: "10px",
+              textAlign: "center",
               width: "45%",
-              margin: "10px",
-              padding: "20px",
-              backgroundColor: "#fff",
-              boxShadow: "0 0 10px rgba(0,0,0,0.1)",
+              maxWidth: "400px",
+              boxShadow: "0 4px 8px rgba(0,0,0,0.1)",
             }}
           >
-            <h2 style={{ textAlign: "center", marginBottom: "30px" }}>
-              Alumni Characteristics Radar Chart
-            </h2>
-            <canvas ref={alumniRadarRef} />
+            <h3 style={{ marginBottom: "10px" }}>Who Discovered Arithmetic</h3>
+            <img
+              src={discoverImg}
+              alt="Who Discover Arithmetic"
+              style={{ width: "100%", borderRadius: "8px" }}
+            />
           </div>
 
+          {/* Arithmetic Module (second) */}
           <div
             style={{
+              border: "2px solid #ccc",
+              borderRadius: "10px",
+              padding: "10px",
+              textAlign: "center",
               width: "45%",
-              margin: "10px",
-              padding: "20px",
-              backgroundColor: "#fff",
-              boxShadow: "0 0 10px rgba(0,0,0,0.1)",
+              maxWidth: "400px",
+              boxShadow: "0 4px 8px rgba(0,0,0,0.1)",
             }}
           >
-            <h2 style={{ textAlign: "center", marginBottom: "30px" }}>
-              Program & Curriculum Contribution
-            </h2>
-            <canvas ref={programRadarRef} />
+            <h3 style={{ marginBottom: "10px" }}>Arithmetic Module</h3>
+            <img
+              src={moduleImg}
+              alt="Arithmetic Module"
+              style={{ width: "100%", borderRadius: "8px" }}
+            />
           </div>
         </div>
       </IonContent>
@@ -131,4 +68,4 @@ const Arithmetic_Radar: React.FC = () => {
   );
 };
 
-export default Arithmetic_Radar;
+export default Arithmetic_Module;

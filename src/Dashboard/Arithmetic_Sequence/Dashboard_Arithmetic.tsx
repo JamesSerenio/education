@@ -28,11 +28,11 @@ import ArithmeticLeaderboard from "./Arithmetic_Leaderboard";
 import ArithmeticRadar from "./Arithmetic_Radar";
 
 const Dashboard_Arithmetic: React.FC = () => {
-  const history = useHistory(); // 👈 for navigation
-  const [activePage, setActivePage] = useState("dashboard");
+  const history = useHistory();
+  const [activePage, setActivePage] = useState("Home");
 
   const menuItems = [
-    { name: "Dashboard", key: "dashboard", icon: homeOutline },
+    { name: "Home", key: "Home", icon: homeOutline },
     { name: "Module", key: "module", icon: layersOutline },
     { name: "Leaderboard", key: "leaderboard", icon: trophyOutline },
     { name: "Radar", key: "radar", icon: navigateOutline },
@@ -84,7 +84,7 @@ const Dashboard_Arithmetic: React.FC = () => {
                 expand="block"
                 color="primary"
                 style={{ marginTop: "1rem" }}
-                onClick={() => history.push("/education/home")} // 👈 direct to Home
+                onClick={() => history.push("/education/home")}
               >
                 <IonIcon icon={logOutOutline} slot="start" />
                 Logout

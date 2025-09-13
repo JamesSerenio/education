@@ -1,8 +1,6 @@
 import {
   IonPage,
   IonHeader,
-  IonToolbar,
-  IonTitle,
   IonContent,
 } from "@ionic/react";
 import { useEffect, useRef } from "react";
@@ -41,11 +39,11 @@ const Arithmetic_Radar: React.FC = () => {
       chartInstance.current = new ChartJS(ctx, {
         type: "radar",
         data: {
-          labels: ["Time", "Problem Solving", "Solving"], // ✅ 3 categories
+          labels: ["Time", "Problem Solving", "Solving"],
           datasets: [
             {
-              label: "My Performance", // ✅ single user dataset
-              data: [65, 80, 72], // sample values (pwede mo i-bind sa DB/user data)
+              label: "My Performance",
+              data: [65, 80, 72],
               fill: true,
               backgroundColor: "rgba(54, 162, 235, 0.2)",
               borderColor: "rgb(54, 162, 235)",
@@ -78,13 +76,11 @@ const Arithmetic_Radar: React.FC = () => {
   return (
     <IonPage>
       <IonHeader>
-        <IonToolbar>
-          <IonTitle>Radar Chart</IonTitle>
-        </IonToolbar>
+        {/* Optional header content */}
       </IonHeader>
       <IonContent fullscreen>
         <div style={{ padding: "20px" }}>
-          <div style={{ width: "100%", height: "400px" }}>
+          <div style={{ width: "100%", height: "650px", marginTop: "60px" }}>
             <canvas ref={radarRef} />
           </div>
         </div>

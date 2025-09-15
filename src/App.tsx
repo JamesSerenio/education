@@ -1,11 +1,13 @@
 import { Redirect, Route } from "react-router-dom";
 import { IonApp, IonRouterOutlet, setupIonicReact } from "@ionic/react";
 import { IonReactRouter } from "@ionic/react-router";
+
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Home from "./pages/Home";
 import Dashboard_Arithmetic from "./Dashboard/Arithmetic_Sequence/Dashboard_Arithmetic";
 import Dashboard_Motion from "./Dashboard/Uniform_Motion_in_Physics/Dashboard_Motion";
+import Arithmetic_Practice from "./Dashboard/Arithmetic_Sequence/Arithmetic_Practice"; 
 
 /* Core CSS required for Ionic components to work properly */
 import "@ionic/react/css/core.css";
@@ -53,6 +55,12 @@ const App: React.FC = () => (
         <Route exact path="/education/dashboard_motion">
           <Dashboard_Motion />
         </Route>
+        {/* 👇 Route for Arithmetic Practice */}
+        <Route exact path="/education/Arithmetic_Practice">
+          <Arithmetic_Practice />
+        </Route>
+
+        {/* Default redirect */}
         <Route exact path="/education/">
           <Redirect to="/education/login" />
         </Route>

@@ -3,43 +3,51 @@ import {
   IonPage,
   IonButton,
 } from "@ionic/react";
+import { useState } from "react";
+import Arithmetic_Practice from "./Arithmetic_Practice"; // import mo yung file
 
 const Arithmetic_Home: React.FC = () => {
+  const [showPractice, setShowPractice] = useState(false);
+
   const handleStartQuiz = () => {
-    console.log("Start the Quiz tapped!");
-    // example: redirect to quiz page
-    // history.push("/education/module");
+    setShowPractice(true); // instead of redirect, show the practice component
   };
 
   return (
     <IonPage>
       <IonContent fullscreen>
-        <div
-          style={{
-            height: "100%",
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-            backgroundColor: "#f8f9fa",
-          }}
-        >
-          <IonButton
-            expand="block"
-            size="large"
-            color="primary"
-            onClick={handleStartQuiz}
+        {!showPractice ? (
+          // 👉 Start button screen
+          <div
             style={{
-              maxWidth: "250px",
-              textTransform: "none", 
-              padding: "20px 10px",
+              height: "100%",
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              backgroundColor: "#f8f9fa",
             }}
           >
-            <div style={{ textAlign: "center", lineHeight: "1.2" }}>
-              <div style={{ fontSize: "25px", fontWeight: "bold" }}>Start</div>
-              <div style={{ fontSize: "25px", fontWeight: "bold" }}>The Quiz</div>
-            </div>
-          </IonButton>
-        </div>
+            <IonButton
+              expand="block"
+              size="large"
+              color="primary"
+              onClick={handleStartQuiz}
+              style={{
+                maxWidth: "250px",
+                textTransform: "none",
+                padding: "20px 10px",
+              }}
+            >
+              <div style={{ textAlign: "center", lineHeight: "1.2" }}>
+                <div style={{ fontSize: "25px", fontWeight: "bold" }}>Start</div>
+                <div style={{ fontSize: "25px", fontWeight: "bold" }}>The Quiz</div>
+              </div>
+            </IonButton>
+          </div>
+        ) : (
+          // 👉 Show Arithmetic Practice directly here
+          <Arithmetic_Practice />
+        )}
       </IonContent>
     </IonPage>
   );

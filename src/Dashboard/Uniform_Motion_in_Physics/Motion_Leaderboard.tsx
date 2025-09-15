@@ -1,105 +1,61 @@
+import React from "react";
 import {
   IonPage,
   IonHeader,
   IonContent,
 } from "@ionic/react";
-import { useEffect, useRef } from "react";
-import {
-  Chart as ChartJS,
-  RadialLinearScale,
-  PointElement,
-  LineElement,
-  Filler,
-  Tooltip,
-  Legend,
-  RadarController, // ✅ Import RadarController
-  Title,           // (optional pero useful kung may title ka)
-} from "chart.js";
+import { Trophy } from "lucide-react"; // gamit natin lucide-react para sa trophy icon
 
-ChartJS.register(
-  RadialLinearScale,
-  PointElement,
-  LineElement,
-  Filler,
-  Tooltip,
-  Legend,
-  RadarController, // ✅ Register RadarController
-  Title
-);
-
-const Arithmetic_Radar: React.FC = () => {
-  const radarRef = useRef<HTMLCanvasElement | null>(null);
-  const chartInstance = useRef<ChartJS | null>(null);
-
-  useEffect(() => {
-    if (radarRef.current) {
-      const ctx = radarRef.current.getContext("2d");
-      if (!ctx) return;
-
-      // Destroy old chart before creating new one
-      if (chartInstance.current) {
-        chartInstance.current.destroy();
-      }
-
-      chartInstance.current = new ChartJS(ctx, {
-        type: "radar",
-        data: {
-          labels: ["Time", "Problem Solving", "Solving"],
-          datasets: [
-            {
-              label: "My Performance",
-              data: [65, 80, 72],
-              fill: true,
-              backgroundColor: "rgba(54, 162, 235, 0.2)",
-              borderColor: "rgb(54, 162, 235)",
-              pointBackgroundColor: "rgb(54, 162, 235)",
-              pointBorderColor: "#fff",
-              pointHoverBackgroundColor: "#fff",
-              pointHoverBorderColor: "rgb(54, 162, 235)",
-            },
-          ],
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: {
-              display: true,
-              position: "top",
-            },
-            title: {
-              display: true,
-              text: "Arithmetic Radar Chart", 
-            },
-          },
-          scales: {
-            r: {
-              angleLines: { display: true },
-              suggestedMin: 0,
-              suggestedMax: 100,
-            },
-          },
-        },
-      });
-    }
-
-    return () => {
-      chartInstance.current?.destroy();
-    };
-  }, []);
+const MotionLeaderboard: React.FC = () => {
+  // Sample data (pwede mo palitan with real data galing sa DB)
+  const leaderboardData = [
+    { position: 1, name: "Alice", time: "32.8s", score: 5 },
+    { position: 2, name: "Bob", time: "47.2s", score: 4 },
+    { position: 3, name: "Charlie", time: "56.7s", score: 3 },
+    { position: 4, name: "David", time: "1:18.5", score: 2 },
+  ];
 
   return (
     <IonPage>
-      <IonHeader></IonHeader>
-      <IonContent fullscreen>
-        <div style={{ padding: "20px" }}>
-          <div style={{ width: "100%", height: "650px", marginTop: "60px" }}>
-            <canvas ref={radarRef} />
+      <IonHeader>
+      </IonHeader>
+
+      <IonContent className="ion-padding">
+        <div className="max-w-md mx-auto bg-white rounded-2xl shadow-lg p-6 border border-gray-300">
+          {/* Title with trophy */}
+          <h2 className="text-2xl font-bold text-center">Leaderboard</h2>
+          <div className="flex justify-center items-center my-2">
+            <Trophy className="w-6 h-6 text-yellow-500" />
+            <span className="ml-2 font-medium">Quiz</span>
           </div>
+
+          {/* Table */}
+          <table className="w-full border border-gray-400 rounded-lg overflow-hidden text-center mt-4">
+            <thead className="bg-gray-100">
+              <tr>
+                <th className="py-2 border border-gray-400">Position</th>
+                <th className="py-2 border border-gray-400">Name</th>
+                <th className="py-2 border border-gray-400">Time</th>
+                <th className="py-2 border border-gray-400">Score</th>
+              </tr>
+            </thead>
+            <tbody>
+              {leaderboardData.map((row, index) => (
+                <tr key={index} className="hover:bg-gray-50">
+                  <td className="py-2 border border-gray-400 font-medium">
+                    {row.position}
+                  </td>
+                  <td className="py-2 border border-gray-400">{row.name}</td>
+                  <td className="py-2 border border-gray-400">{row.time}</td>
+                  <td className="py-2 border border-gray-400">{row.score}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </IonContent>
     </IonPage>
   );
 };
 
-export default Arithmetic_Radar;
+export default MotionLeaderboard;

@@ -69,7 +69,7 @@ const Arithmetic_Radar: React.FC = () => {
             },
             title: {
               display: true,
-              text: "Arithmetic Radar Chart", // ✅ Title above chart
+              text: "Arithmetic Radar Chart", 
             },
           },
           scales: {

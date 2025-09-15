@@ -23,7 +23,35 @@ const Arithmetic_Practice: React.FC = () => {
 
   const [result, setResult] = useState<string>("");
 
+  // Block letters like e, E, +, -
+  const blockInvalidKeys = (e: React.KeyboardEvent) => {
+    if (["e", "E", "+", "-"].includes(e.key)) {
+      e.preventDefault();
+    }
+  };
+
   const calculate = () => {
+    // Check required inputs based on category before parsing
+    const inputsMissing = () => {
+      switch (category) {
+        case "an":
+          return a1.trim() === "" || n.trim() === "" || d.trim() === "";
+        case "a1":
+          return an.trim() === "" || n.trim() === "" || d.trim() === "";
+        case "n":
+          return an.trim() === "" || a1.trim() === "" || d.trim() === "";
+        case "d":
+          return an.trim() === "" || a1.trim() === "" || n.trim() === "";
+        default:
+          return true;
+      }
+    };
+
+    if (inputsMissing()) {
+      setResult("⚠️ No numbers input. Please fill all required fields.");
+      return;
+    }
+
     try {
       const A1 = parseFloat(a1);
       const AN = parseFloat(an);
@@ -47,14 +75,15 @@ const Arithmetic_Practice: React.FC = () => {
           }`;
           break;
 
-        case "n":
-          { if (isNaN(AN) || isNaN(A1) || isNaN(D) || D === 0)
+        case "n": {
+          if (isNaN(AN) || isNaN(A1) || isNaN(D) || D === 0)
             throw new Error("Invalid inputs");
           const nVal = (AN - A1) / D + 1;
           if (!Number.isInteger(nVal) || nVal <= 0)
             throw new Error("n must be a positive integer");
           answer = `n = (aₙ - a₁)/d + 1 = (${AN} - ${A1})/${D} + 1 = ${nVal}`;
-          break; }
+          break;
+        }
 
         case "d":
           if (isNaN(AN) || isNaN(A1) || isNaN(N) || N <= 1)
@@ -74,6 +103,14 @@ const Arithmetic_Practice: React.FC = () => {
     }
   };
 
+  const resetAll = () => {
+    setA1("");
+    setAn("");
+    setN("");
+    setD("");
+    setResult("");
+  };
+
   return (
     <IonPage>
       <IonHeader>
@@ -88,7 +125,10 @@ const Arithmetic_Practice: React.FC = () => {
           <IonSelect
             value={category}
             placeholder="Select One"
-            onIonChange={(e) => setCategory(e.detail.value)}
+            onIonChange={(e) => {
+              setCategory(e.detail.value);
+              setResult("");
+            }}
           >
             <IonSelectOption value="an">Find aₙ</IonSelectOption>
             <IonSelectOption value="a1">Find a₁</IonSelectOption>
@@ -97,14 +137,16 @@ const Arithmetic_Practice: React.FC = () => {
           </IonSelect>
         </IonItem>
 
-        {/* Inputs (show/hide depending on category) */}
+        {/* Inputs */}
         {category !== "a1" && (
           <IonItem>
             <IonLabel position="stacked">a₁</IonLabel>
             <IonInput
-              value={a1}
-              onIonChange={(e) => setA1(e.detail.value ?? "")}
               type="number"
+              inputMode="decimal"
+              value={a1}
+              onKeyDown={blockInvalidKeys}
+              onIonChange={(e) => setA1(e.detail.value ?? "")}
             />
           </IonItem>
         )}
@@ -112,9 +154,11 @@ const Arithmetic_Practice: React.FC = () => {
           <IonItem>
             <IonLabel position="stacked">aₙ</IonLabel>
             <IonInput
-              value={an}
-              onIonChange={(e) => setAn(e.detail.value ?? "")}
               type="number"
+              inputMode="decimal"
+              value={an}
+              onKeyDown={blockInvalidKeys}
+              onIonChange={(e) => setAn(e.detail.value ?? "")}
             />
           </IonItem>
         )}
@@ -122,9 +166,11 @@ const Arithmetic_Practice: React.FC = () => {
           <IonItem>
             <IonLabel position="stacked">n</IonLabel>
             <IonInput
-              value={n}
-              onIonChange={(e) => setN(e.detail.value ?? "")}
               type="number"
+              inputMode="numeric"
+              value={n}
+              onKeyDown={blockInvalidKeys}
+              onIonChange={(e) => setN(e.detail.value ?? "")}
             />
           </IonItem>
         )}
@@ -132,17 +178,31 @@ const Arithmetic_Practice: React.FC = () => {
           <IonItem>
             <IonLabel position="stacked">d</IonLabel>
             <IonInput
-              value={d}
-              onIonChange={(e) => setD(e.detail.value ?? "")}
               type="number"
+              inputMode="decimal"
+              value={d}
+              onKeyDown={blockInvalidKeys}
+              onIonChange={(e) => setD(e.detail.value ?? "")}
             />
           </IonItem>
         )}
 
-        {/* Button */}
-        <IonButton expand="block" color="primary" onClick={calculate}>
-          Solve
-        </IonButton>
+        {/* Buttons (Solve + Reset centered side by side) */}
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            gap: "10px",
+            marginTop: "20px",
+          }}
+        >
+          <IonButton color="primary" onClick={calculate}>
+            Solve
+          </IonButton>
+          <IonButton color="medium" onClick={resetAll}>
+            Reset
+          </IonButton>
+        </div>
 
         {/* Result */}
         {result && (

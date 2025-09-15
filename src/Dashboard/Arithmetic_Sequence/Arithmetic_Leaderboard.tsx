@@ -1,134 +1,66 @@
+import React from "react";
 import {
-  IonContent,
-  IonHeader,
   IonPage,
-  IonTitle,
+  IonHeader,
   IonToolbar,
+  IonTitle,
+  IonContent,
 } from "@ionic/react";
-import { useEffect, useRef } from "react";
-import Chart from "chart.js/auto";
+import { Trophy } from "lucide-react"; // gamit natin lucide-react para sa trophy icon
 
-const Arithmetic_Radar: React.FC = () => {
-  const alumniRadarRef = useRef<HTMLCanvasElement | null>(null);
-  const programRadarRef = useRef<HTMLCanvasElement | null>(null);
-  const alumniChartInstance = useRef<Chart | null>(null);
-  const programChartInstance = useRef<Chart | null>(null);
-
-  useEffect(() => {
-    fetch("data.json")
-      .then((response) => response.json())
-      .then((data) => {
-        const commonOptions = {
-          responsive: true,
-          scales: {
-            r: {
-              angleLines: { display: true },
-              suggestedMin: 0,
-              suggestedMax: 100,
-              ticks: {
-                stepSize: 20,
-                backdropColor: "transparent",
-              },
-              pointLabels: {
-                font: {
-                  size: 14,
-                },
-              },
-            },
-          },
-          plugins: {
-            legend: {
-              position: "top" as const,
-            },
-          },
-        };
-
-        if (alumniRadarRef.current) {
-          if (alumniChartInstance.current) {
-            alumniChartInstance.current.destroy();
-          }
-          alumniChartInstance.current = new Chart(alumniRadarRef.current, {
-            type: "radar",
-            data: {
-              labels: data.alumniChart.labels,
-              datasets: data.alumniChart.datasets,
-            },
-            options: commonOptions,
-          });
-        }
-
-        if (programRadarRef.current) {
-          if (programChartInstance.current) {
-            programChartInstance.current.destroy();
-          }
-          programChartInstance.current = new Chart(programRadarRef.current, {
-            type: "radar",
-            data: {
-              labels: data.programChart.labels,
-              datasets: data.programChart.datasets,
-            },
-            options: commonOptions,
-          });
-        }
-      })
-      .catch((error) => console.error("Error loading chart data:", error));
-
-    // Cleanup charts on unmount
-    return () => {
-      alumniChartInstance.current?.destroy();
-      programChartInstance.current?.destroy();
-    };
-  }, []);
+const ArithmeticLeaderboard: React.FC = () => {
+  // Sample data (pwede mo palitan with real data galing sa DB)
+  const leaderboardData = [
+    { position: 1, name: "Alice", time: "32.8s", score: 5 },
+    { position: 2, name: "Bob", time: "47.2s", score: 4 },
+    { position: 3, name: "Charlie", time: "56.7s", score: 3 },
+    { position: 4, name: "David", time: "1:18.5", score: 2 },
+  ];
 
   return (
     <IonPage>
       <IonHeader>
         <IonToolbar>
-          <IonTitle>Arithmetic Radar Charts</IonTitle>
+          <IonTitle>Leaderboard</IonTitle>
         </IonToolbar>
       </IonHeader>
-      <IonContent fullscreen style={{ backgroundColor: "#f8f9fa" }}>
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "center",
-            flexWrap: "wrap",
-            padding: "1rem",
-          }}
-        >
-          <div
-            style={{
-              width: "45%",
-              margin: "10px",
-              padding: "20px",
-              backgroundColor: "#fff",
-              boxShadow: "0 0 10px rgba(0,0,0,0.1)",
-            }}
-          >
-            <h2 style={{ textAlign: "center", marginBottom: "30px" }}>
-              Alumni Characteristics Radar Chart
-            </h2>
-            <canvas ref={alumniRadarRef} />
+
+      <IonContent className="ion-padding">
+        <div className="max-w-md mx-auto bg-white rounded-2xl shadow-lg p-6 border border-gray-300">
+          {/* Title with trophy */}
+          <h2 className="text-2xl font-bold text-center">Leaderboard</h2>
+          <div className="flex justify-center items-center my-2">
+            <Trophy className="w-6 h-6 text-yellow-500" />
+            <span className="ml-2 font-medium">Quiz</span>
           </div>
 
-          <div
-            style={{
-              width: "45%",
-              margin: "10px",
-              padding: "20px",
-              backgroundColor: "#fff",
-              boxShadow: "0 0 10px rgba(0,0,0,0.1)",
-            }}
-          >
-            <h2 style={{ textAlign: "center", marginBottom: "30px" }}>
-              Program & Curriculum Contribution
-            </h2>
-            <canvas ref={programRadarRef} />
-          </div>
+          {/* Table */}
+          <table className="w-full border border-gray-400 rounded-lg overflow-hidden text-center mt-4">
+            <thead className="bg-gray-100">
+              <tr>
+                <th className="py-2 border border-gray-400">Position</th>
+                <th className="py-2 border border-gray-400">Name</th>
+                <th className="py-2 border border-gray-400">Time</th>
+                <th className="py-2 border border-gray-400">Score</th>
+              </tr>
+            </thead>
+            <tbody>
+              {leaderboardData.map((row, index) => (
+                <tr key={index} className="hover:bg-gray-50">
+                  <td className="py-2 border border-gray-400 font-medium">
+                    {row.position}
+                  </td>
+                  <td className="py-2 border border-gray-400">{row.name}</td>
+                  <td className="py-2 border border-gray-400">{row.time}</td>
+                  <td className="py-2 border border-gray-400">{row.score}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </IonContent>
     </IonPage>
   );
 };
 
-export default Arithmetic_Radar;
+export default ArithmeticLeaderboard;

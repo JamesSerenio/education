@@ -12,6 +12,8 @@ import {
   Filler,
   Tooltip,
   Legend,
+  RadarController, // ✅ Import RadarController
+  Title,           // (optional pero useful kung may title ka)
 } from "chart.js";
 
 ChartJS.register(
@@ -20,7 +22,9 @@ ChartJS.register(
   LineElement,
   Filler,
   Tooltip,
-  Legend
+  Legend,
+  RadarController, // ✅ Register RadarController
+  Title
 );
 
 const Arithmetic_Radar: React.FC = () => {
@@ -32,6 +36,7 @@ const Arithmetic_Radar: React.FC = () => {
       const ctx = radarRef.current.getContext("2d");
       if (!ctx) return;
 
+      // Destroy old chart before creating new one
       if (chartInstance.current) {
         chartInstance.current.destroy();
       }
@@ -57,6 +62,16 @@ const Arithmetic_Radar: React.FC = () => {
         options: {
           responsive: true,
           maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              display: true,
+              position: "top",
+            },
+            title: {
+              display: true,
+              text: "Arithmetic Radar Chart", // ✅ Title above chart
+            },
+          },
           scales: {
             r: {
               angleLines: { display: true },
@@ -75,9 +90,7 @@ const Arithmetic_Radar: React.FC = () => {
 
   return (
     <IonPage>
-      <IonHeader>
-        {/* Optional header content */}
-      </IonHeader>
+      <IonHeader></IonHeader>
       <IonContent fullscreen>
         <div style={{ padding: "20px" }}>
           <div style={{ width: "100%", height: "650px", marginTop: "60px" }}>

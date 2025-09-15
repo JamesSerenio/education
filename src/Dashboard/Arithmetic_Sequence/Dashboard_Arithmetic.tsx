@@ -23,6 +23,7 @@ import {
 } from "ionicons/icons";
 import { useHistory } from "react-router-dom";
 
+import ArithmeticHome from "./Arithmetic_Home";
 import ArithmeticModule from "./Arithmetic_Module";
 import ArithmeticLeaderboard from "./Arithmetic_Leaderboard";
 import ArithmeticRadar from "./Arithmetic_Radar";
@@ -32,7 +33,7 @@ const Dashboard_Arithmetic: React.FC = () => {
   const [activePage, setActivePage] = useState("Home");
 
   const menuItems = [
- { name: "Home", key: "Home", icon: homeOutline, path: "/education/dashboard_arithmetic" },
+    { name: "Home", key: "Home", icon: homeOutline, path: "/education/home" },
     { name: "Module", key: "module", icon: layersOutline, path: "/education/module" },
     { name: "Leaderboard", key: "leaderboard", icon: trophyOutline, path: "/education/leaderboard" },
     { name: "Radar", key: "radar", icon: navigateOutline, path: "/education/radar" },
@@ -40,6 +41,8 @@ const Dashboard_Arithmetic: React.FC = () => {
 
   const renderContent = () => {
     switch (activePage) {
+      case "Home":
+        return <ArithmeticHome />; // ✅ gumamit na ng ArithmeticHome
       case "module":
         return <ArithmeticModule />;
       case "leaderboard":
@@ -91,7 +94,7 @@ const Dashboard_Arithmetic: React.FC = () => {
                           bottom: 0,
                           width: "100%",
                           height: "2px",
-                          backgroundColor: "#3b82f6", // underline color (light blue)
+                          backgroundColor: "#3b82f6", // underline color
                           borderRadius: "2px",
                         }}
                       />

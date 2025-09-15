@@ -1,105 +1,185 @@
+import React, { useState } from "react";
 import {
   IonPage,
-  IonHeader,
   IonContent,
+  IonHeader,
+  IonToolbar,
+  IonTitle,
+  IonItem,
+  IonLabel,
+  IonInput,
+  IonButton,
+  IonSelect,
+  IonSelectOption,
+  IonText,
 } from "@ionic/react";
-import { useEffect, useRef } from "react";
-import {
-  Chart as ChartJS,
-  RadialLinearScale,
-  PointElement,
-  LineElement,
-  Filler,
-  Tooltip,
-  Legend,
-  RadarController, // ✅ Import RadarController
-  Title,           // (optional pero useful kung may title ka)
-} from "chart.js";
 
-ChartJS.register(
-  RadialLinearScale,
-  PointElement,
-  LineElement,
-  Filler,
-  Tooltip,
-  Legend,
-  RadarController, // ✅ Register RadarController
-  Title
-);
+const Motion_Practice: React.FC = () => {
+  const [category, setCategory] = useState<string>("v");
+  const [v, setV] = useState<string>("");
+  const [dx, setDx] = useState<string>("");
+  const [dt, setDt] = useState<string>("");
 
-const Arithmetic_Radar: React.FC = () => {
-  const radarRef = useRef<HTMLCanvasElement | null>(null);
-  const chartInstance = useRef<ChartJS | null>(null);
+  const [result, setResult] = useState<string>("");
 
-  useEffect(() => {
-    if (radarRef.current) {
-      const ctx = radarRef.current.getContext("2d");
-      if (!ctx) return;
+  // Prevent typing invalid keys
+  const blockInvalidKeys = (e: React.KeyboardEvent) => {
+    if (["e", "E", "+", "-"].includes(e.key)) {
+      e.preventDefault();
+    }
+  };
 
-      // Destroy old chart before creating new one
-      if (chartInstance.current) {
-        chartInstance.current.destroy();
+  const calculate = () => {
+    const inputsMissing = () => {
+      switch (category) {
+        case "v":
+          return dx.trim() === "" || dt.trim() === "";
+        case "dx":
+          return v.trim() === "" || dt.trim() === "";
+        case "dt":
+          return v.trim() === "" || dx.trim() === "";
+        default:
+          return true;
       }
+    };
 
-      chartInstance.current = new ChartJS(ctx, {
-        type: "radar",
-        data: {
-          labels: ["Time", "Problem Solving", "Solving"],
-          datasets: [
-            {
-              label: "My Performance",
-              data: [65, 80, 72],
-              fill: true,
-              backgroundColor: "rgba(54, 162, 235, 0.2)",
-              borderColor: "rgb(54, 162, 235)",
-              pointBackgroundColor: "rgb(54, 162, 235)",
-              pointBorderColor: "#fff",
-              pointHoverBackgroundColor: "#fff",
-              pointHoverBorderColor: "rgb(54, 162, 235)",
-            },
-          ],
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: {
-              display: true,
-              position: "top",
-            },
-            title: {
-              display: true,
-              text: "Arithmetic Radar Chart", 
-            },
-          },
-          scales: {
-            r: {
-              angleLines: { display: true },
-              suggestedMin: 0,
-              suggestedMax: 100,
-            },
-          },
-        },
-      });
+    if (inputsMissing()) {
+      setResult("⚠️ No numbers input. Please fill all required fields.");
+      return;
     }
 
-    return () => {
-      chartInstance.current?.destroy();
-    };
-  }, []);
+    try {
+      const V = parseFloat(v);
+      const DX = parseFloat(dx);
+      const DT = parseFloat(dt);
+
+      let answer = "";
+
+      switch (category) {
+        case "v":
+          if (isNaN(DX) || isNaN(DT) || DT === 0)
+            throw new Error("Invalid inputs");
+          answer = `v = Δx / Δt = ${DX} / ${DT} = ${DX / DT} m/s`;
+          break;
+
+        case "dx":
+          if (isNaN(V) || isNaN(DT))
+            throw new Error("Invalid inputs");
+          answer = `Δx = v × Δt = ${V} × ${DT} = ${V * DT} m`;
+          break;
+
+        case "dt":
+          if (isNaN(V) || isNaN(DX) || V === 0)
+            throw new Error("Invalid inputs");
+          answer = `Δt = Δx / v = ${DX} / ${V} = ${DX / V} s`;
+          break;
+
+        default:
+          throw new Error("Invalid category");
+      }
+
+      setResult(answer);
+    } catch {
+      setResult("⚠️ That number is not valid for this formula.");
+    }
+  };
+
+  const resetAll = () => {
+    setV("");
+    setDx("");
+    setDt("");
+    setResult("");
+  };
 
   return (
     <IonPage>
-      <IonHeader></IonHeader>
-      <IonContent fullscreen>
-        <div style={{ padding: "20px" }}>
-          <div style={{ width: "100%", height: "650px", marginTop: "60px" }}>
-            <canvas ref={radarRef} />
-          </div>
+      <IonHeader>
+        <IonToolbar>
+          <IonTitle>Uniform Motion Practice</IonTitle>
+        </IonToolbar>
+      </IonHeader>
+      <IonContent className="ion-padding">
+        {/* Select Category */}
+        <IonItem>
+          <IonLabel>Choose Category</IonLabel>
+          <IonSelect
+            value={category}
+            placeholder="Select One"
+            onIonChange={(e) => {
+              setCategory(e.detail.value);
+              setResult("");
+            }}
+          >
+            <IonSelectOption value="v">Find v (velocity)</IonSelectOption>
+            <IonSelectOption value="dx">Find Δx (displacement)</IonSelectOption>
+            <IonSelectOption value="dt">Find Δt (time)</IonSelectOption>
+          </IonSelect>
+        </IonItem>
+
+        {/* Inputs */}
+        {category !== "v" && (
+          <IonItem>
+            <IonLabel position="stacked">v (m/s)</IonLabel>
+            <IonInput
+              type="number"
+              inputMode="decimal"
+              value={v}
+              onKeyDown={blockInvalidKeys}
+              onIonChange={(e) => setV(e.detail.value ?? "")}
+            />
+          </IonItem>
+        )}
+        {category !== "dx" && (
+          <IonItem>
+            <IonLabel position="stacked">Δx (m)</IonLabel>
+            <IonInput
+              type="number"
+              inputMode="decimal"
+              value={dx}
+              onKeyDown={blockInvalidKeys}
+              onIonChange={(e) => setDx(e.detail.value ?? "")}
+            />
+          </IonItem>
+        )}
+        {category !== "dt" && (
+          <IonItem>
+            <IonLabel position="stacked">Δt (s)</IonLabel>
+            <IonInput
+              type="number"
+              inputMode="decimal"
+              value={dt}
+              onKeyDown={blockInvalidKeys}
+              onIonChange={(e) => setDt(e.detail.value ?? "")}
+            />
+          </IonItem>
+        )}
+
+        {/* Buttons (Solve + Reset) */}
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            gap: "10px",
+            marginTop: "20px",
+          }}
+        >
+          <IonButton color="primary" onClick={calculate}>
+            Solve
+          </IonButton>
+          <IonButton color="medium" onClick={resetAll}>
+            Reset
+          </IonButton>
         </div>
+
+        {/* Result */}
+        {result && (
+          <IonText color="dark">
+            <h2 style={{ marginTop: "20px" }}>{result}</h2>
+          </IonText>
+        )}
       </IonContent>
     </IonPage>
   );
 };
 
-export default Arithmetic_Radar;
+export default Motion_Practice;

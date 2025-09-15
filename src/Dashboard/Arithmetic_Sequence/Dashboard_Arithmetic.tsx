@@ -32,10 +32,10 @@ const Dashboard_Arithmetic: React.FC = () => {
   const [activePage, setActivePage] = useState("Home");
 
   const menuItems = [
-    { name: "Home", key: "Home", icon: homeOutline },
-    { name: "Module", key: "module", icon: layersOutline },
-    { name: "Leaderboard", key: "leaderboard", icon: trophyOutline },
-    { name: "Radar", key: "radar", icon: navigateOutline },
+ { name: "Home", key: "Home", icon: homeOutline, path: "/education/dashboard_arithmetic" },
+    { name: "Module", key: "module", icon: layersOutline, path: "/education/module" },
+    { name: "Leaderboard", key: "leaderboard", icon: trophyOutline, path: "/education/leaderboard" },
+    { name: "Radar", key: "radar", icon: navigateOutline, path: "/education/radar" },
   ];
 
   const renderContent = () => {

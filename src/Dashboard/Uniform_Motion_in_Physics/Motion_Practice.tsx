@@ -170,7 +170,7 @@ const Motion_Practice: React.FC = () => {
             Reset
           </IonButton>
         </div>
-
+          
         {/* Result */}
         {result && (
           <IonText color="dark">

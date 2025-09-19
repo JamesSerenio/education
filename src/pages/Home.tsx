@@ -7,10 +7,12 @@ import {
   IonCardTitle,
   IonCardContent,
 } from "@ionic/react";
-import { useHistory } from "react-router-dom";
 
 const Home: React.FC = () => {
-  const history = useHistory();
+  // Hard refresh navigation function
+  const goTo = (path: string) => {
+    window.location.href = path; // forces full reload
+  };
 
   return (
     <IonPage>
@@ -25,32 +27,32 @@ const Home: React.FC = () => {
           }}
         >
           {/* Arithmetic Sequence Card */}
-          <IonCard style={{ flex: "1 1 300px", maxWidth: "400px" }}>
+          <IonCard
+            style={{ flex: "1 1 300px", maxWidth: "400px", cursor: "pointer" }}
+            onClick={() => goTo("/education/dashboard_arithmetic")}
+          >
             <IonCardHeader>
               <IonCardTitle>Arithmetic Sequence</IonCardTitle>
             </IonCardHeader>
             <IonCardContent>
               <p>Explore the properties and problems of arithmetic sequences.</p>
-              <IonButton
-                expand="block"
-                onClick={() => history.push("/education/dashboard_arithmetic")}
-              >
+              <IonButton expand="block">
                 Start
               </IonButton>
             </IonCardContent>
           </IonCard>
 
           {/* Uniform Motion in Physics Card */}
-          <IonCard style={{ flex: "1 1 300px", maxWidth: "400px" }}>
+          <IonCard
+            style={{ flex: "1 1 300px", maxWidth: "400px", cursor: "pointer" }}
+            onClick={() => goTo("/education/dashboard_motion")}
+          >
             <IonCardHeader>
               <IonCardTitle>Uniform Motion in Physics</IonCardTitle>
             </IonCardHeader>
             <IonCardContent>
               <p>Learn about uniform motion concepts and calculations.</p>
-              <IonButton
-                expand="block"
-                onClick={() => history.push("/education/dashboard_motion")}
-              >
+              <IonButton expand="block">
                 Start
               </IonButton>
             </IonCardContent>

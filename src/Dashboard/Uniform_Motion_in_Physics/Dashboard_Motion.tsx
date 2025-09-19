@@ -33,10 +33,10 @@ const Dashboard_Motion: React.FC = () => {
   const [activePage, setActivePage] = useState("Home");
 
   const menuItems = [
-    { name: "Home", key: "Home", icon: homeOutline, path: "/education/home" },
-    { name: "Module", key: "module", icon: layersOutline, path: "/education/module" },
-    { name: "Leaderboard", key: "leaderboard", icon: trophyOutline, path: "/education/leaderboard" },
-    { name: "Radar", key: "radar", icon: navigateOutline, path: "/education/radar" },
+    { name: "Home", key: "Home", icon: homeOutline, path: "/education/Motion_Home" },
+    { name: "Module", key: "module", icon: layersOutline, path: "/education/Motion_Module" },
+    { name: "Leaderboard", key: "leaderboard", icon: trophyOutline, path: "/education/Motion_Leaderboard" },
+    { name: "Radar", key: "radar", icon: navigateOutline, path: "/education/Motion_Radar" },
   ];
 
   const renderContent = () => {

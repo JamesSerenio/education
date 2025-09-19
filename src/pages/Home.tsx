@@ -9,9 +9,9 @@ import {
 } from "@ionic/react";
 
 const Home: React.FC = () => {
-  // Hard refresh navigation function
-  const goTo = (path: string) => {
-    window.location.href = path; // forces full reload
+  const handleNavigate = (path: string) => {
+    // Hard refresh para laging fresh yung page (GH Pages friendly)
+    window.location.href = path;
   };
 
   return (
@@ -27,32 +27,32 @@ const Home: React.FC = () => {
           }}
         >
           {/* Arithmetic Sequence Card */}
-          <IonCard
-            style={{ flex: "1 1 300px", maxWidth: "400px", cursor: "pointer" }}
-            onClick={() => goTo("/education/dashboard_arithmetic")}
-          >
+          <IonCard style={{ flex: "1 1 300px", maxWidth: "400px" }}>
             <IonCardHeader>
               <IonCardTitle>Arithmetic Sequence</IonCardTitle>
             </IonCardHeader>
             <IonCardContent>
               <p>Explore the properties and problems of arithmetic sequences.</p>
-              <IonButton expand="block">
+              <IonButton
+                expand="block"
+                onClick={() => handleNavigate("/education/dashboard_arithmetic")}
+              >
                 Start
               </IonButton>
             </IonCardContent>
           </IonCard>
 
           {/* Uniform Motion in Physics Card */}
-          <IonCard
-            style={{ flex: "1 1 300px", maxWidth: "400px", cursor: "pointer" }}
-            onClick={() => goTo("/education/dashboard_motion")}
-          >
+          <IonCard style={{ flex: "1 1 300px", maxWidth: "400px" }}>
             <IonCardHeader>
               <IonCardTitle>Uniform Motion in Physics</IonCardTitle>
             </IonCardHeader>
             <IonCardContent>
               <p>Learn about uniform motion concepts and calculations.</p>
-              <IonButton expand="block">
+              <IonButton
+                expand="block"
+                onClick={() => handleNavigate("/education/dashboard_motion")}
+              >
                 Start
               </IonButton>
             </IonCardContent>

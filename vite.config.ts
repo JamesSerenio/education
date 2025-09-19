@@ -12,7 +12,7 @@ export default defineConfig({
     tailwindcss(),
     legacy()
   ],
-  base: process.env.EDUCATION_BASE_PATH || "/education",
+  base: "education",
   test: {
     globals: true,
     environment: 'jsdom',

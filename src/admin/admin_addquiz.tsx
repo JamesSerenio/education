@@ -1,107 +1,115 @@
+import React, { useState } from "react";
 import {
   IonPage,
   IonHeader,
+  IonToolbar,
+  IonTitle,
   IonContent,
+  IonItem,
+  IonLabel,
+  IonSelect,
+  IonSelectOption,
+  IonInput,
+  IonTextarea,
+  IonButton,
 } from "@ionic/react";
-import { useEffect, useRef } from "react";
-import {
-  Chart,
-  Chart as ChartJS,
-  RadialLinearScale,
-  PointElement,
-  LineElement,
-  Filler,
-  Tooltip,
-  Legend,
-  RadarController,
-  Title,
-} from "chart.js";
 
-// ✅ Register Chart.js components
-ChartJS.register(
-  RadialLinearScale,
-  PointElement,
-  LineElement,
-  Filler,
-  Tooltip,
-  Legend,
-  RadarController,
-  Title
-);
+const AdminAddQuiz: React.FC = () => {
+  const [subject, setSubject] = useState("");
+  const [category, setCategory] = useState("");
+  const [question, setQuestion] = useState("");
+  const [solution, setSolution] = useState("");
+  const [answer, setAnswer] = useState("");
 
-const AdminRadar: React.FC = () => {
-  const radarRef = useRef<HTMLCanvasElement | null>(null);
-  const chartInstance = useRef<Chart | null>(null);
+  const handleSubmit = () => {
+    const quizData = { subject, category, question, solution, answer };
+    console.log("Quiz Data Submitted:", quizData);
 
-  useEffect(() => {
-    if (radarRef.current) {
-      const ctx = radarRef.current.getContext("2d");
-      if (!ctx) return;
-
-      // Destroy old chart before creating new one
-      if (chartInstance.current) {
-        chartInstance.current.destroy();
-      }
-
-      chartInstance.current = new Chart(ctx, {
-        type: "radar",
-        data: {
-          labels: ["Time", "Problem Solving", "Accuracy"],
-          datasets: [
-            {
-              label: "My Performance",
-              data: [65, 80, 72],
-              fill: true,
-              backgroundColor: "rgba(54, 162, 235, 0.2)",
-              borderColor: "rgb(54, 162, 235)",
-              pointBackgroundColor: "rgb(54, 162, 235)",
-              pointBorderColor: "#fff",
-              pointHoverBackgroundColor: "#fff",
-              pointHoverBorderColor: "rgb(54, 162, 235)",
-            },
-          ],
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: {
-              display: true,
-              position: "top",
-            },
-            title: {
-              display: true,
-              text: "Arithmetic Radar Chart",
-            },
-          },
-          scales: {
-            r: {
-              angleLines: { display: true },
-              suggestedMin: 0,
-              suggestedMax: 100,
-            },
-          },
-        },
-      });
-    }
-
-    return () => {
-      chartInstance.current?.destroy();
-    };
-  }, []);
+    // Later you can call Supabase/DB insert here
+    alert("Quiz saved successfully!");
+  };
 
   return (
     <IonPage>
-      <IonHeader />
-      <IonContent fullscreen>
-        <div style={{ padding: "20px" }}>
-          <div style={{ width: "100%", height: "650px", marginTop: "60px" }}>
-            <canvas ref={radarRef} />
-          </div>
-        </div>
+      <IonHeader>
+        <IonToolbar>
+          <IonTitle>Add Quiz</IonTitle>
+        </IonToolbar>
+      </IonHeader>
+
+      <IonContent className="ion-padding">
+        {/* Select Subject */}
+        <IonItem>
+          <IonLabel position="stacked">Select Subject</IonLabel>
+          <IonSelect
+            placeholder="Select subject"
+            value={subject}
+            onIonChange={(e) => setSubject(e.detail.value)}
+          >
+            <IonSelectOption value="Arithmetic Sequence">
+              Arithmetic Sequence
+            </IonSelectOption>
+            <IonSelectOption value="Uniform Motion in Physics">
+              Uniform Motion in Physics
+            </IonSelectOption>
+          </IonSelect>
+        </IonItem>
+
+        {/* Select Categories */}
+        <IonItem>
+          <IonLabel position="stacked">Select Categories</IonLabel>
+          <IonSelect
+            placeholder="Select categories"
+            value={category}
+            onIonChange={(e) => setCategory(e.detail.value)}
+          >
+            <IonSelectOption value="Problem Solving">Problem Solving</IonSelectOption>
+            <IonSelectOption value="Solving">Solving</IonSelectOption>
+          </IonSelect>
+        </IonItem>
+
+        {/* Quiz Question */}
+        <IonItem>
+          <IonLabel position="stacked">Quiz Question</IonLabel>
+          <IonInput
+            placeholder="Enter your quiz question"
+            value={question}
+            onIonChange={(e) => setQuestion(e.detail.value!)}
+          />
+        </IonItem>
+
+        {/* The Solution */}
+        <IonItem>
+          <IonLabel position="stacked">The Solution</IonLabel>
+          <IonTextarea
+            placeholder="Write the solution here"
+            value={solution}
+            onIonChange={(e) => setSolution(e.detail.value!)}
+          />
+        </IonItem>
+
+        {/* The Answer */}
+        <IonItem>
+          <IonLabel position="stacked">The Answer</IonLabel>
+          <IonInput
+            placeholder="Enter the correct answer"
+            value={answer}
+            onIonChange={(e) => setAnswer(e.detail.value!)}
+          />
+        </IonItem>
+
+        {/* Submit Button */}
+        <IonButton
+          expand="block"
+          color="primary"
+          onClick={handleSubmit}
+          style={{ marginTop: "20px" }}
+        >
+          Save Quiz
+        </IonButton>
       </IonContent>
     </IonPage>
   );
 };
 
-export default AdminRadar;
+export default AdminAddQuiz;

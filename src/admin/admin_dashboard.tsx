@@ -17,9 +17,9 @@ import {
 import {
   homeOutline,
   logOutOutline,
-  layersOutline,
   trophyOutline,
   navigateOutline,
+  createOutline,
 } from "ionicons/icons";
 import { useHistory } from "react-router-dom";
 
@@ -35,7 +35,7 @@ const AdminDashboard: React.FC = () => {
 
   const menuItems = [
     { name: "Home", key: "Home", icon: homeOutline },
-    { name: "Quiz", key: "quiz", icon: layersOutline },
+    { name: "Quiz", key: "quiz", icon: createOutline },
     { name: "Leaderboard", key: "leaderboard", icon: trophyOutline },
     { name: "Radar", key: "radar", icon: navigateOutline },
   ];

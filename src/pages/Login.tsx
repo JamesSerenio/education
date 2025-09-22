@@ -21,7 +21,7 @@ const Login: React.FC = () => {
     setErrorMsg(null);
 
     try {
-      // 1️⃣ Sign in with Supabase
+      // 1️⃣ Sign in with Supabase Auth
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -55,9 +55,9 @@ const Login: React.FC = () => {
 
       // 3️⃣ Redirect based on role
       if (profile.role === "admin") {
-        history.push("/admin/admin_dashboard");
+        history.push("/education/admin/admin_dashboard"); // ✅ Fixed route
       } else {
-        history.push("/education/home");
+        history.push("/education/home"); // ✅ Normal user route
       }
     } catch (err) {
       console.error("Unexpected login error:", err);

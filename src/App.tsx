@@ -1,20 +1,22 @@
-
 import { IonApp, IonRouterOutlet, setupIonicReact } from "@ionic/react";
 import { IonReactRouter } from "@ionic/react-router";
-import { Redirect, Route} from "react-router-dom";
+import { Redirect, Route } from "react-router-dom";
 
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Home from "./pages/Home";
+
 import Dashboard_Arithmetic from "./Dashboard/Arithmetic_Sequence/Dashboard_Arithmetic";
 import Dashboard_Motion from "./Dashboard/Uniform_Motion_in_Physics/Dashboard_Motion";
 import Arithmetic_Practice from "./Dashboard/Arithmetic_Sequence/Arithmetic_Practice";
 
-// ✅ Add the four components
 import ArithmeticHome from "./Dashboard/Arithmetic_Sequence/Arithmetic_Home";
 import ArithmeticModule from "./Dashboard/Arithmetic_Sequence/Arithmetic_Module";
 import ArithmeticLeaderboard from "./Dashboard/Arithmetic_Sequence/Arithmetic_Leaderboard";
 import ArithmeticRadar from "./Dashboard/Arithmetic_Sequence/Arithmetic_Radar";
+
+// ✅ Admin Dashboard
+import AdminDashboard from "./admin/admin_dashboard";
 
 /* Core CSS required for Ionic components to work properly */
 import "@ionic/react/css/core.css";
@@ -45,50 +47,64 @@ setupIonicReact();
 
 const App: React.FC = () => (
   <IonApp>
-    <IonReactRouter
->
+    <IonReactRouter>
       <IonRouterOutlet>
         {/* 🔹 Auth Pages */}
-        <Route exact path="/education/login">
-          <Login />
-        </Route>
-        <Route exact path="/education/register">
-          <Register />
-        </Route>
+        <Route exact path="/education/login" component={Login} />
+        <Route exact path="/education/register" component={Register} />
 
         {/* 🔹 Home */}
-        <Route exact path="/education/home">
-          <Home />
-        </Route>
+        <Route exact path="/education/home" component={Home} />
 
         {/* 🔹 Dashboards */}
-        <Route exact path="/education/dashboard_arithmetic">
-          <Dashboard_Arithmetic />
-        </Route>
-        <Route exact path="/education/dashboard_motion">
-          <Dashboard_Motion />
-        </Route>
+        <Route
+          exact
+          path="/education/dashboard_arithmetic"
+          component={Dashboard_Arithmetic}
+        />
+        <Route
+          exact
+          path="/education/dashboard_motion"
+          component={Dashboard_Motion}
+        />
 
-        {/* 🔹 Arithmetic Practice (standalone route) */}
-        <Route exact path="/education/arithmetic_practice">
-          <Arithmetic_Practice />
-        </Route>
+        {/* 🔹 Arithmetic Practice */}
+        <Route
+          exact
+          path="/education/arithmetic_practice"
+          component={Arithmetic_Practice}
+        />
 
-        {/* 🔹 Arithmetic Sequence sub-pages (direct routes) */}
-        <Route exact path="/education/arithmetic_home">
-          <ArithmeticHome />
-        </Route>
-        <Route exact path="/education/arithmetic_module">
-          <ArithmeticModule />
-        </Route>
-        <Route exact path="/education/arithmetic_leaderboard">
-          <ArithmeticLeaderboard />
-        </Route>
-        <Route exact path="/education/arithmetic_radar">
-          <ArithmeticRadar />
-        </Route>
+        {/* 🔹 Arithmetic Sub Pages */}
+        <Route
+          exact
+          path="/education/arithmetic_home"
+          component={ArithmeticHome}
+        />
+        <Route
+          exact
+          path="/education/arithmetic_module"
+          component={ArithmeticModule}
+        />
+        <Route
+          exact
+          path="/education/arithmetic_leaderboard"
+          component={ArithmeticLeaderboard}
+        />
+        <Route
+          exact
+          path="/education/arithmetic_radar"
+          component={ArithmeticRadar}
+        />
 
-        {/* 🔹 Default redirect */}
+        {/* 🔹 Admin Dashboard */}
+        <Route
+          exact
+          path="/education/admin/admin_dashboard"
+          component={AdminDashboard}
+        />
+
+        {/* 🔹 Default Redirect */}
         <Route exact path="/education/">
           <Redirect to="/education/login" />
         </Route>

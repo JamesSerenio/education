@@ -73,7 +73,7 @@ const Arithmetic_Module: React.FC = () => {
               boxShadow: "0 4px 8px rgba(0,0,0,0.1)",
             }}
           >
-            <h3 style={{ marginBottom: "10px" }}>An</h3>
+            <h3 style={{ marginBottom: "10px" }}>Module for Arithmetic Sequence</h3>
 
             {/* Switch Tabs */}
             <IonSegment

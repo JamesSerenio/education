@@ -1,14 +1,32 @@
+import { useState } from "react";
 import {
   IonPage,
   IonHeader,
   IonContent,
+  IonSegment,
+  IonSegmentButton,
+  IonLabel,
 } from "@ionic/react";
 
 // Import images from src/assets
-import moduleImg from "../../assets/module.png";
+import anImg from "../../assets/an_arithmetic.png";
 import discoverImg from "../../assets/who_discover_arithmetic.png";
+import a1Img from "../../assets/a1_arithmetic.png";
+import dImg from "../../assets/d_arithmetic.png";
+import nImg from "../../assets/n_arithmetic.png";
 
 const Arithmetic_Module: React.FC = () => {
+  // Default tab: An
+  const [selected, setSelected] = useState<string>("module");
+
+  // Mapping ng images
+  const images: Record<string, { src: string; label: string }> = {
+    module: { src: anImg, label: "An Formula" },
+    a1: { src: a1Img, label: "Find a₁" },
+    d: { src: dImg, label: "Find d" },
+    n: { src: nImg, label: "Find n" },
+  };
+
   return (
     <IonPage>
       <IonHeader></IonHeader>
@@ -43,7 +61,7 @@ const Arithmetic_Module: React.FC = () => {
             />
           </div>
 
-          {/* Arithmetic Module (second) */}
+          {/* Arithmetic Module with switch */}
           <div
             style={{
               border: "2px solid #ccc",
@@ -55,12 +73,41 @@ const Arithmetic_Module: React.FC = () => {
               boxShadow: "0 4px 8px rgba(0,0,0,0.1)",
             }}
           >
-            <h3 style={{ marginBottom: "10px" }}>Arithmetic Module</h3>
-            <img
-              src={moduleImg}
-              alt="Arithmetic Module"
-              style={{ width: "100%", borderRadius: "8px" }}
-            />
+            <h3 style={{ marginBottom: "10px" }}>An</h3>
+
+            {/* Switch Tabs */}
+            <IonSegment
+              value={selected}
+              onIonChange={(e) => setSelected(e.detail.value as string)}
+            >
+              <IonSegmentButton value="module">
+                <IonLabel>
+                  A<sub>n</sub>
+                </IonLabel>
+              </IonSegmentButton>
+              <IonSegmentButton value="a1">
+                <IonLabel>
+                  a<sub>1</sub>
+                </IonLabel>
+              </IonSegmentButton>
+              <IonSegmentButton value="d">
+                <IonLabel>d</IonLabel>
+              </IonSegmentButton>
+              <IonSegmentButton value="n">
+                <IonLabel>
+                  n<sub style={{ fontSize: "0.7em" }}></sub>
+                </IonLabel>
+              </IonSegmentButton>
+            </IonSegment>
+
+            {/* Display selected image */}
+            <div style={{ marginTop: "15px" }}>
+              <img
+                src={images[selected].src}
+                alt={images[selected].label}
+                style={{ width: "100%", borderRadius: "8px" }}
+              />
+            </div>
           </div>
         </div>
       </IonContent>

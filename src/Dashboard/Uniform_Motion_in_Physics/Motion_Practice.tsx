@@ -204,7 +204,7 @@ const Motion_Practice: React.FC = () => {
           </IonButton>
           <IonButton
          color="success"
-          onClick={() => history.push("/motion_quiz")}
+          onClick={() => history.push("/education/Motion_quiz")}
           >
            Proceed to Quiz
             </IonButton>

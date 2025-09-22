@@ -444,7 +444,7 @@ const Arithmetic_Practice: React.FC = () => {
           </IonButton>
           <IonButton
             color="success"
-            onClick={() => history.push("/arithmetic_quiz")}
+            onClick={() => history.push("/education/arithmetic_quiz")}
           >
             Proceed to Quiz
           </IonButton>

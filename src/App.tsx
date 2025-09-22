@@ -14,9 +14,11 @@ import ArithmeticHome from "./Dashboard/Arithmetic_Sequence/Arithmetic_Home";
 import ArithmeticModule from "./Dashboard/Arithmetic_Sequence/Arithmetic_Module";
 import ArithmeticLeaderboard from "./Dashboard/Arithmetic_Sequence/Arithmetic_Leaderboard";
 import ArithmeticRadar from "./Dashboard/Arithmetic_Sequence/Arithmetic_Radar";
+import ArithmeticQuiz from "./Dashboard/Arithmetic_Sequence/Arithmetic_Quiz";
 
 // ✅ Admin Dashboard
 import AdminDashboard from "./admin/admin_dashboard";
+
 
 /* Core CSS required for Ionic components to work properly */
 import "@ionic/react/css/core.css";
@@ -95,6 +97,11 @@ const App: React.FC = () => (
           exact
           path="/education/arithmetic_radar"
           component={ArithmeticRadar}
+        />
+        <Route
+          exact
+          path="/education/arithmetic_quiz"
+          component={ArithmeticQuiz}
         />
 
         {/* 🔹 Admin Dashboard */}

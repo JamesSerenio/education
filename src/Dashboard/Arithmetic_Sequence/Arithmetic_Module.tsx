@@ -48,9 +48,10 @@ const Arithmetic_Module: React.FC = () => {
               borderRadius: "10px",
               padding: "10px",
               textAlign: "center",
-              width: "45%",
+              width: "100%",
               maxWidth: "400px",
               boxShadow: "0 4px 8px rgba(0,0,0,0.1)",
+              flex: "1 1 300px",
             }}
           >
             <h3 style={{ marginBottom: "10px" }}>Who Discovered Arithmetic</h3>
@@ -68,17 +69,19 @@ const Arithmetic_Module: React.FC = () => {
               borderRadius: "10px",
               padding: "10px",
               textAlign: "center",
-              width: "45%",
+              width: "100%",
               maxWidth: "400px",
               boxShadow: "0 4px 8px rgba(0,0,0,0.1)",
+              flex: "1 1 300px",
             }}
           >
             <h3 style={{ marginBottom: "10px" }}>Module for Arithmetic Sequence</h3>
 
-            {/* Switch Tabs */}
+            {/* Switch Tabs with scrollable option */}
             <IonSegment
               value={selected}
               onIonChange={(e) => setSelected(e.detail.value as string)}
+              scrollable
             >
               <IonSegmentButton value="module">
                 <IonLabel>
@@ -94,9 +97,7 @@ const Arithmetic_Module: React.FC = () => {
                 <IonLabel>d</IonLabel>
               </IonSegmentButton>
               <IonSegmentButton value="n">
-                <IonLabel>
-                  n<sub style={{ fontSize: "0.7em" }}></sub>
-                </IonLabel>
+                <IonLabel>n</IonLabel>
               </IonSegmentButton>
             </IonSegment>
 

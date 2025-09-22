@@ -13,8 +13,10 @@ import {
   IonSelectOption,
   IonText,
 } from "@ionic/react";
+import { useHistory } from "react-router-dom"; 
 
 const Motion_Practice: React.FC = () => {
+    const history = useHistory();
   const [category, setCategory] = useState<string>("v");
   const [v, setV] = useState<string>("");
   const [s, setS] = useState<string>(""); // displacement
@@ -200,6 +202,12 @@ const Motion_Practice: React.FC = () => {
           <IonButton color="medium" onClick={resetAll}>
             Reset
           </IonButton>
+          <IonButton
+         color="success"
+          onClick={() => history.push("/motion_quiz")}
+          >
+           Proceed to Quiz
+            </IonButton>
         </div>
 
         {/* Step-by-step */}

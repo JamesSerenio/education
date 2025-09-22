@@ -49,7 +49,7 @@ const AdminRadar: React.FC = () => {
           labels: ["Time", "Problem Solving", "Accuracy"],
           datasets: [
             {
-              label: "My Performance",
+              label: "All Students Performance",
               data: [65, 80, 72],
               fill: true,
               backgroundColor: "rgba(54, 162, 235, 0.2)",

@@ -15,7 +15,7 @@ import {
   IonSelectOption,
   IonText,
 } from "@ionic/react";
-
+import { useHistory } from "react-router-dom"; 
 /**
  * Arithmetic_Practice.tsx
  * - Inline per-field error messages
@@ -25,6 +25,7 @@ import {
  */
 
 const Arithmetic_Practice: React.FC = () => {
+  const history = useHistory();
   const [category, setCategory] = useState<string>("an");
   const [a1, setA1] = useState<string>("");
   const [an, setAn] = useState<string>("");
@@ -440,6 +441,12 @@ const Arithmetic_Practice: React.FC = () => {
           </IonButton>
           <IonButton color="medium" onClick={resetAll}>
             Reset
+          </IonButton>
+          <IonButton
+            color="success"
+            onClick={() => history.push("/arithmetic_quiz")}
+          >
+            Proceed to Quiz
           </IonButton>
         </div>
 

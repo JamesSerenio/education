@@ -13,6 +13,7 @@ import {
   IonTextarea,
   IonButton,
 } from "@ionic/react";
+import { supabase } from "../utils/supabaseClient"; // ✅ import supabase client
 
 const AdminAddQuiz: React.FC = () => {
   const [subject, setSubject] = useState("");
@@ -21,12 +22,28 @@ const AdminAddQuiz: React.FC = () => {
   const [solution, setSolution] = useState("");
   const [answer, setAnswer] = useState("");
 
-  const handleSubmit = () => {
-    const quizData = { subject, category, question, solution, answer };
-    console.log("Quiz Data Submitted:", quizData);
+  const handleSubmit = async () => {
+    if (!subject || !category || !question || !answer) {
+      alert("Please fill in all required fields!");
+      return;
+    }
 
-    // Later you can call Supabase/DB insert here
-    alert("Quiz saved successfully!");
+    const { data, error } = await supabase.from("quizzes").insert([
+      { subject, category, question, solution, answer },
+    ]);
+
+    if (error) {
+      console.error("Error inserting quiz:", error.message);
+      alert("Failed to save quiz!");
+    } else {
+      console.log("Quiz Saved:", data);
+      alert("Quiz saved successfully!");
+      setSubject("");
+      setCategory("");
+      setQuestion("");
+      setSolution("");
+      setAnswer("");
+    }
   };
 
   return (
@@ -46,20 +63,16 @@ const AdminAddQuiz: React.FC = () => {
             value={subject}
             onIonChange={(e) => setSubject(e.detail.value)}
           >
-            <IonSelectOption value="Arithmetic Sequence">
-              Arithmetic Sequence
-            </IonSelectOption>
-            <IonSelectOption value="Uniform Motion in Physics">
-              Uniform Motion in Physics
-            </IonSelectOption>
+            <IonSelectOption value="Arithmetic Sequence">Arithmetic Sequence</IonSelectOption>
+            <IonSelectOption value="Uniform Motion in Physics">Uniform Motion in Physics</IonSelectOption>
           </IonSelect>
         </IonItem>
 
-        {/* Select Categories */}
+        {/* Select Category */}
         <IonItem>
-          <IonLabel position="stacked">Select Categories</IonLabel>
+          <IonLabel position="stacked">Select Category</IonLabel>
           <IonSelect
-            placeholder="Select categories"
+            placeholder="Select category"
             value={category}
             onIonChange={(e) => setCategory(e.detail.value)}
           >
@@ -72,39 +85,34 @@ const AdminAddQuiz: React.FC = () => {
         <IonItem>
           <IonLabel position="stacked">Quiz Question</IonLabel>
           <IonInput
-            placeholder="Enter your quiz question"
+            placeholder="Enter quiz question"
             value={question}
             onIonChange={(e) => setQuestion(e.detail.value!)}
           />
         </IonItem>
 
-        {/* The Solution */}
+        {/* Solution */}
         <IonItem>
-          <IonLabel position="stacked">The Solution</IonLabel>
+          <IonLabel position="stacked">Solution</IonLabel>
           <IonTextarea
-            placeholder="Write the solution here"
+            placeholder="Write the solution"
             value={solution}
             onIonChange={(e) => setSolution(e.detail.value!)}
           />
         </IonItem>
 
-        {/* The Answer */}
+        {/* Answer */}
         <IonItem>
-          <IonLabel position="stacked">The Answer</IonLabel>
+          <IonLabel position="stacked">Answer</IonLabel>
           <IonInput
-            placeholder="Enter the correct answer"
+            placeholder="Enter correct answer"
             value={answer}
             onIonChange={(e) => setAnswer(e.detail.value!)}
           />
         </IonItem>
 
-        {/* Submit Button */}
-        <IonButton
-          expand="block"
-          color="primary"
-          onClick={handleSubmit}
-          style={{ marginTop: "20px" }}
-        >
+        {/* Submit */}
+        <IonButton expand="block" color="primary" onClick={handleSubmit} style={{ marginTop: "20px" }}>
           Save Quiz
         </IonButton>
       </IonContent>

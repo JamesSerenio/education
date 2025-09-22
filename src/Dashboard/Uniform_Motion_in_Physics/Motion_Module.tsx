@@ -15,7 +15,7 @@ import timeImg from "../../assets/time_motion.png";
 import distanceImg from "../../assets/distance_motion.png";
 
 const Motion_Module: React.FC = () => {
-  // State para sa selected tab
+  // Default tab: Velocity
   const [selected, setSelected] = useState<string>("velocity");
 
   // Mapping ng images
@@ -46,9 +46,10 @@ const Motion_Module: React.FC = () => {
               borderRadius: "10px",
               padding: "10px",
               textAlign: "center",
-              width: "45%",
+              width: "100%",
               maxWidth: "400px",
               boxShadow: "0 4px 8px rgba(0,0,0,0.1)",
+              flex: "1 1 300px",
             }}
           >
             <h3 style={{ marginBottom: "10px" }}>Who Discovered Motion</h3>
@@ -66,17 +67,19 @@ const Motion_Module: React.FC = () => {
               borderRadius: "10px",
               padding: "10px",
               textAlign: "center",
-              width: "45%",
+              width: "100%",
               maxWidth: "400px",
               boxShadow: "0 4px 8px rgba(0,0,0,0.1)",
+              flex: "1 1 300px",
             }}
           >
             <h3 style={{ marginBottom: "10px" }}>Uniform Motion Module</h3>
 
-            {/* Switch Tabs */}
+            {/* Switch Tabs with scrollable option */}
             <IonSegment
               value={selected}
               onIonChange={(e) => setSelected(e.detail.value as string)}
+              scrollable
             >
               <IonSegmentButton value="velocity">
                 <IonLabel>Velocity</IonLabel>

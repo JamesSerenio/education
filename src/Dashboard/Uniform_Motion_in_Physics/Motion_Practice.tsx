@@ -15,6 +15,7 @@ import {
 } from "@ionic/react";
 import { useHistory } from "react-router-dom"; 
 
+
 const Motion_Practice: React.FC = () => {
     const history = useHistory();
   const [category, setCategory] = useState<string>("v");

@@ -16,6 +16,8 @@ import {
   IonText,
 } from "@ionic/react";
 import { useHistory } from "react-router-dom"; 
+import Arithmetic_Quiz from "./Arithmetic_Quiz";
+
 /**
  * Arithmetic_Practice.tsx
  * - Inline per-field error messages
@@ -34,6 +36,8 @@ const Arithmetic_Practice: React.FC = () => {
 
   const [result, setResult] = useState<string>("");
   const [steps, setSteps] = useState<string[]>([]);
+
+  const [showQuiz, setShowQuiz] = useState(false);
 
   // per-field error messages
   const [a1Error, setA1Error] = useState<string>("");
@@ -318,6 +322,10 @@ const Arithmetic_Practice: React.FC = () => {
     clearErrors();
   };
 
+    if (showQuiz) {
+    return <Arithmetic_Quiz />;
+  }
+
   return (
     <IonPage>
       <IonHeader>
@@ -444,7 +452,7 @@ const Arithmetic_Practice: React.FC = () => {
           </IonButton>
           <IonButton
             color="success"
-            onClick={() => history.push("/education/arithmetic_quiz")}
+            onClick={() => setShowQuiz(true)} // 👉 switch to quiz
           >
             Proceed to Quiz
           </IonButton>

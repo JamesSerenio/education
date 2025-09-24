@@ -15,7 +15,7 @@ import ArithmeticModule from "./Dashboard/Arithmetic_Sequence/Arithmetic_Module"
 import ArithmeticLeaderboard from "./Dashboard/Arithmetic_Sequence/Arithmetic_Leaderboard";
 import ArithmeticRadar from "./Dashboard/Arithmetic_Sequence/Arithmetic_Radar";
 import ArithmeticQuiz from "./Dashboard/Arithmetic_Sequence/Arithmetic_Quiz";
-
+import MotionQuiz from "./Dashboard/Uniform_Motion_in_Physics/Motion_Quiz";
 // ✅ Admin Dashboard
 import AdminDashboard from "./admin/admin_dashboard";
 
@@ -102,6 +102,12 @@ const App: React.FC = () => (
           exact
           path="/education/arithmetic_quiz"
           component={ArithmeticQuiz}
+        />
+
+         <Route
+          exact
+          path="/education/motion_quiz"
+          component={MotionQuiz}
         />
 
         {/* 🔹 Admin Dashboard */}

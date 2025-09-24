@@ -14,6 +14,7 @@ interface Quiz {
   id: string;
   subject: string;
   category: string;
+  level: number;   // ✅ Added level field
   question: string;
   solution: string;
   answer: string;
@@ -52,6 +53,7 @@ const MotionQuiz: React.FC = () => {
               <IonLabel>
                 <h2>{quiz.question}</h2>
                 <p>Category: {quiz.category}</p>
+                <p>Level: {quiz.level}</p> {/* ✅ Show quiz level */}
               </IonLabel>
             </IonItem>
           ))

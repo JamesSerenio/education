@@ -4,7 +4,7 @@ import {
   IonButton,
 } from "@ionic/react";
 import { useState } from "react";
-import Arithmetic_Practice from "./Motion_Practice"; // import mo yung file
+import MotionPractice from "./Motion_Practice"; // import mo yung file
 
 const Motion_Home: React.FC = () => {
   const [showPractice, setShowPractice] = useState(false);
@@ -46,7 +46,7 @@ const Motion_Home: React.FC = () => {
           </div>
         ) : (
           // 👉 Show Arithmetic Practice directly here
-          <Arithmetic_Practice />
+          <MotionPractice />
         )}
       </IonContent>
     </IonPage>

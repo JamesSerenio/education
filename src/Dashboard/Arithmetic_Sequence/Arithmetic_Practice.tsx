@@ -16,7 +16,7 @@ import {
   IonText,
 } from "@ionic/react";
 import { useHistory } from "react-router-dom"; 
-import Arithmetic_Quiz from "./Arithmetic_Quiz";
+import ArithmeticQuiz from "./Arithmetic_Quiz";
 
 /**
  * Arithmetic_Practice.tsx
@@ -323,7 +323,7 @@ const Arithmetic_Practice: React.FC = () => {
   };
 
     if (showQuiz) {
-    return <Arithmetic_Quiz />;
+    return <ArithmeticQuiz />;
   }
 
   return (

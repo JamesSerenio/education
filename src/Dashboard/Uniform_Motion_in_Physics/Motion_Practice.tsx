@@ -13,15 +13,15 @@ import {
   IonSelectOption,
   IonText,
 } from "@ionic/react";
-import { useHistory } from "react-router-dom"; 
-
+import MotionQuiz from "./Motion_Quiz";
 
 const Motion_Practice: React.FC = () => {
-    const history = useHistory();
   const [category, setCategory] = useState<string>("v");
   const [v, setV] = useState<string>("");
   const [s, setS] = useState<string>(""); // displacement
   const [t, setT] = useState<string>(""); // time
+
+  const [showQuiz, setShowQuiz] = useState(false);
 
   const [result, setResult] = useState<string>("");
   const [steps, setSteps] = useState<string[]>([]);
@@ -36,7 +36,6 @@ const Motion_Practice: React.FC = () => {
     Number.isInteger(n) ? n.toString() : n.toFixed(2);
 
   const calculate = () => {
-    // clear previous
     setSteps([]);
     setResult("");
 
@@ -63,7 +62,6 @@ const Motion_Practice: React.FC = () => {
       const S = parseFloat(s);
       const T = parseFloat(t);
 
-      // validate parsed numbers
       if (category === "v") {
         if (isNaN(S) || isNaN(T)) throw new Error("Invalid inputs");
         if (T === 0) {
@@ -133,6 +131,11 @@ const Motion_Practice: React.FC = () => {
     setSteps([]);
   };
 
+  // 🔹 Kapag showQuiz === true, ipakita ang MotionQuiz component
+  if (showQuiz) {
+    return <MotionQuiz />;
+  }
+
   return (
     <IonPage>
       <IonHeader>
@@ -157,7 +160,6 @@ const Motion_Practice: React.FC = () => {
           </IonSelect>
         </IonItem>
 
-        {/* Inputs */}
         {category !== "v" && (
           <IonItem>
             <IonLabel position="stacked">v (m/s)</IonLabel>
@@ -203,15 +205,11 @@ const Motion_Practice: React.FC = () => {
           <IonButton color="medium" onClick={resetAll}>
             Reset
           </IonButton>
-          <IonButton
-         color="success"
-          onClick={() => history.push("/education/motion_quiz")}
-          >
-           Proceed to Quiz
-            </IonButton>
+          <IonButton color="success" onClick={() => setShowQuiz(true)}>
+            Proceed to Quiz
+          </IonButton>
         </div>
 
-        {/* Step-by-step */}
         {steps.length > 0 && (
           <div style={{ marginTop: 20 }}>
             <h3>Solution:</h3>
@@ -225,7 +223,6 @@ const Motion_Practice: React.FC = () => {
           </div>
         )}
 
-        {/* Final Answer box (black border, black text inside) */}
         {result && (
           <div
             style={{
@@ -246,7 +243,6 @@ const Motion_Practice: React.FC = () => {
           </div>
         )}
 
-        {/* Fallback inline result (keeps compatibility if you rely on it) */}
         {!result && steps.length === 0 && (
           <div style={{ marginTop: 18 }}>
             <IonText color="medium">

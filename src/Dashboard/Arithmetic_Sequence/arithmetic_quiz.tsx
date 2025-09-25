@@ -32,24 +32,15 @@ const ArithmeticQuiz: React.FC = () => {
         .select("*")
         .eq("subject", "Arithmetic Sequence");
 
-      if (error) {
-        console.error("Error fetching quizzes:", error.message);
-      } else {
-        setQuizzes(data || []);
-      }
+      if (error) console.error("Error fetching quizzes:", error.message);
+      else setQuizzes(data || []);
     };
     fetchQuizzes();
   }, []);
 
-  // ✅ Filter quizzes based on selected category
   const filteredQuizzes = selectedCategory
     ? quizzes.filter((quiz) => quiz.category === selectedCategory)
     : [];
-
-  // ✅ Helper para i-display ang tamang label
-  const getCategoryLabel = (category: string) => {
-    return category === "Solving" ? "Number Solving" : category;
-  };
 
   return (
     <IonPage>
@@ -59,14 +50,27 @@ const ArithmeticQuiz: React.FC = () => {
         </IonToolbar>
       </IonHeader>
 
-      <IonContent className="ion-padding">
-        {/* Step 1: Select category */}
+      <IonContent fullscreen>
         {!selectedCategory ? (
-          <>
-            <h2 style={{ marginBottom: "15px" }}>Select Categories</h2>
-            <div style={{ display: "flex", gap: "10px" }}>
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: "flex-start", // nasa taas
+              alignItems: "center",
+              textAlign: "center",
+              paddingTop: "60px", // imbes na marginTop para walang overflow
+              height: "auto", // ✅ wag fixed 100%
+              minHeight: "100%", // para sakto lang sa screen
+              boxSizing: "border-box",
+            }}
+          >
+            <h2 style={{ marginBottom: "20px" }}>Select Categories</h2>
+
+            <div style={{ display: "flex", gap: "15px" }}>
               <IonButton
                 expand="block"
+                color="primary"
                 onClick={() => setSelectedCategory("Problem Solving")}
               >
                 Problem Solving
@@ -79,33 +83,38 @@ const ArithmeticQuiz: React.FC = () => {
                 Number Solving
               </IonButton>
             </div>
-          </>
+          </div>
         ) : (
-          <>
-            <h2>{getCategoryLabel(selectedCategory)} Quizzes</h2>
+          <div className="ion-padding">
+            <h2 style={{ textAlign: "center", marginBottom: "20px" }}>
+              {selectedCategory} Quizzes
+            </h2>
+
             {filteredQuizzes.length === 0 ? (
-              <p>No quizzes available for this category.</p>
+              <p style={{ textAlign: "center" }}>
+                No quizzes available for this category.
+              </p>
             ) : (
               filteredQuizzes.map((quiz) => (
                 <IonItem key={quiz.id}>
                   <IonLabel>
                     <h2>{quiz.question}</h2>
-                    <p>Category: {getCategoryLabel(quiz.category)}</p>
+                    <p>Category: {quiz.category}</p>
                     <p>Level: {quiz.level}</p>
                   </IonLabel>
                 </IonItem>
               ))
             )}
-            {/* Back button */}
+
             <IonButton
               expand="block"
               fill="outline"
-              style={{ marginTop: "20px" }}
               onClick={() => setSelectedCategory(null)}
+              style={{ marginTop: "20px" }}
             >
               Back to Categories
             </IonButton>
-          </>
+          </div>
         )}
       </IonContent>
     </IonPage>

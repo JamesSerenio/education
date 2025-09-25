@@ -6,8 +6,9 @@ import {
   IonTitle,
   IonContent,
   IonItem,
-  IonLabel,
   IonButton,
+  IonInput,
+  IonText,
 } from "@ionic/react";
 import { supabase } from "../../utils/supabaseClient";
 
@@ -24,13 +25,17 @@ interface Quiz {
 const ArithmeticQuiz: React.FC = () => {
   const [quizzes, setQuizzes] = useState<Quiz[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [currentQuiz, setCurrentQuiz] = useState<Quiz | null>(null);
+  const [userAnswer, setUserAnswer] = useState<string>("");
+  const [errorMessage, setErrorMessage] = useState<string>("");
 
   useEffect(() => {
     const fetchQuizzes = async () => {
       const { data, error } = await supabase
         .from("quizzes")
         .select("*")
-        .eq("subject", "Arithmetic Sequence");
+        .eq("subject", "Arithmetic Sequence")
+        .order("level", { ascending: true }); // sorted by level
 
       if (error) console.error("Error fetching quizzes:", error.message);
       else setQuizzes(data || []);
@@ -38,9 +43,39 @@ const ArithmeticQuiz: React.FC = () => {
     fetchQuizzes();
   }, []);
 
-  const filteredQuizzes = selectedCategory
-    ? quizzes.filter((quiz) => quiz.category === selectedCategory)
-    : [];
+  // Pag pili ng category
+  const handleCategorySelect = (category: string) => {
+    setSelectedCategory(category);
+    const filtered = quizzes
+      .filter((q) => q.category === category)
+      .sort((a, b) => a.level - b.level);
+    if (filtered.length > 0) {
+      setCurrentQuiz(filtered[0]); // start sa Level 1
+    }
+  };
+
+  const handleNext = () => {
+    if (!userAnswer.trim()) {
+      setErrorMessage("⚠️ Please enter your answer before proceeding.");
+      return;
+    }
+
+    setErrorMessage(""); // clear kapag may laman
+
+    if (!currentQuiz || !selectedCategory) return;
+
+    const filtered = quizzes
+      .filter((q) => q.category === selectedCategory)
+      .sort((a, b) => a.level - b.level);
+
+    const currentIndex = filtered.findIndex((q) => q.id === currentQuiz.id);
+    if (currentIndex < filtered.length - 1) {
+      setCurrentQuiz(filtered[currentIndex + 1]);
+      setUserAnswer("");
+    } else {
+      setErrorMessage("🎉 You have completed all quizzes for this category!");
+    }
+  };
 
   return (
     <IonPage>
@@ -52,69 +87,110 @@ const ArithmeticQuiz: React.FC = () => {
 
       <IonContent fullscreen>
         {!selectedCategory ? (
+          // Category Screen
           <div
             style={{
               display: "flex",
               flexDirection: "column",
-              justifyContent: "flex-start", // nasa taas
+              justifyContent: "flex-start",
               alignItems: "center",
               textAlign: "center",
-              paddingTop: "60px", // imbes na marginTop para walang overflow
-              height: "auto", // ✅ wag fixed 100%
-              minHeight: "100%", // para sakto lang sa screen
-              boxSizing: "border-box",
+              paddingTop: "60px",
             }}
           >
             <h2 style={{ marginBottom: "20px" }}>Select Categories</h2>
-
             <div style={{ display: "flex", gap: "15px" }}>
               <IonButton
                 expand="block"
                 color="primary"
-                onClick={() => setSelectedCategory("Problem Solving")}
+                onClick={() => handleCategorySelect("Problem Solving")}
               >
                 Problem Solving
               </IonButton>
               <IonButton
                 expand="block"
                 color="secondary"
-                onClick={() => setSelectedCategory("Solving")}
+                onClick={() => handleCategorySelect("Solving")}
               >
                 Number Solving
               </IonButton>
             </div>
           </div>
-        ) : (
-          <div className="ion-padding">
-            <h2 style={{ textAlign: "center", marginBottom: "20px" }}>
-              {selectedCategory} Quizzes
+        ) : currentQuiz ? (
+          // Quiz Screen
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: "flex-start",
+              alignItems: "center",
+              textAlign: "center",
+              height: "100%",
+              padding: "30px 20px",
+              boxSizing: "border-box",
+            }}
+          >
+            {/* Category Title */}
+            <h2 style={{ fontSize: "22px", marginBottom: "10px", color: "#666" }}>
+              {selectedCategory}
             </h2>
 
-            {filteredQuizzes.length === 0 ? (
-              <p style={{ textAlign: "center" }}>
-                No quizzes available for this category.
-              </p>
-            ) : (
-              filteredQuizzes.map((quiz) => (
-                <IonItem key={quiz.id}>
-                  <IonLabel>
-                    <h2>{quiz.question}</h2>
-                    <p>Category: {quiz.category}</p>
-                    <p>Level: {quiz.level}</p>
-                  </IonLabel>
-                </IonItem>
-              ))
+            {/* Level */}
+            <h1 style={{ fontSize: "28px", marginBottom: "15px" }}>
+              Level {currentQuiz.level}
+            </h1>
+
+            {/* Question */}
+            <p style={{ fontSize: "20px", marginBottom: "25px" }}>
+              {currentQuiz.question}
+            </p>
+
+            {/* Answer Input */}
+            <IonItem
+              style={{
+                maxWidth: "400px",
+                width: "100%",
+                marginBottom: "10px",
+              }}
+            >
+              <IonInput
+                value={userAnswer}
+                placeholder="Enter your answer"
+                onIonInput={(e) => setUserAnswer(e.detail.value!)}
+                clearInput
+              />
+            </IonItem>
+
+            {/* Error Message */}
+            {errorMessage && (
+              <IonText color="danger">
+                <p>{errorMessage}</p>
+              </IonText>
             )}
+
+            <IonButton expand="block" onClick={handleNext} style={{ marginTop: "15px" }}>
+              Next
+            </IonButton>
 
             <IonButton
               expand="block"
               fill="outline"
-              onClick={() => setSelectedCategory(null)}
-              style={{ marginTop: "20px" }}
+              color="medium"
+              style={{ marginTop: "15px" }}
+              onClick={() => {
+                setSelectedCategory(null);
+                setCurrentQuiz(null);
+                setUserAnswer("");
+                setErrorMessage("");
+              }}
             >
               Back to Categories
             </IonButton>
           </div>
+        ) : (
+          <p style={{ textAlign: "center", marginTop: "50px" }}>
+            Loading quizzes...
+          </p>
         )}
       </IonContent>
     </IonPage>

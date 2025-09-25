@@ -9,6 +9,7 @@ import {
   IonButton,
   IonInput,
   IonText,
+  IonToast,
 } from "@ionic/react";
 import { supabase } from "../../utils/supabaseClient";
 
@@ -29,13 +30,15 @@ const ArithmeticQuiz: React.FC = () => {
   const [userAnswer, setUserAnswer] = useState<string>("");
   const [errorMessage, setErrorMessage] = useState<string>("");
 
+  const [showCompletionToast, setShowCompletionToast] = useState(false);
+
   useEffect(() => {
     const fetchQuizzes = async () => {
       const { data, error } = await supabase
         .from("quizzes")
         .select("*")
         .eq("subject", "Arithmetic Sequence")
-        .order("level", { ascending: true }); // sorted by level
+        .order("level", { ascending: true });
 
       if (error) console.error("Error fetching quizzes:", error.message);
       else setQuizzes(data || []);
@@ -43,14 +46,13 @@ const ArithmeticQuiz: React.FC = () => {
     fetchQuizzes();
   }, []);
 
-  // Pag pili ng category
   const handleCategorySelect = (category: string) => {
     setSelectedCategory(category);
     const filtered = quizzes
       .filter((q) => q.category === category)
       .sort((a, b) => a.level - b.level);
     if (filtered.length > 0) {
-      setCurrentQuiz(filtered[0]); // start sa Level 1
+      setCurrentQuiz(filtered[0]);
     }
   };
 
@@ -60,7 +62,7 @@ const ArithmeticQuiz: React.FC = () => {
       return;
     }
 
-    setErrorMessage(""); // clear kapag may laman
+    setErrorMessage("");
 
     if (!currentQuiz || !selectedCategory) return;
 
@@ -73,7 +75,15 @@ const ArithmeticQuiz: React.FC = () => {
       setCurrentQuiz(filtered[currentIndex + 1]);
       setUserAnswer("");
     } else {
-      setErrorMessage("🎉 You have completed all quizzes for this category!");
+      // ✅ show toast kapag tapos na lahat
+      setShowCompletionToast(true);
+      setTimeout(() => {
+        setSelectedCategory(null);
+        setCurrentQuiz(null);
+        setUserAnswer("");
+        setErrorMessage("");
+        setShowCompletionToast(false);
+      }, 2000); // after 2 seconds balik sa categories
     }
   };
 
@@ -130,22 +140,18 @@ const ArithmeticQuiz: React.FC = () => {
               boxSizing: "border-box",
             }}
           >
-            {/* Category Title */}
             <h2 style={{ fontSize: "22px", marginBottom: "10px", color: "#666" }}>
               {selectedCategory}
             </h2>
 
-            {/* Level */}
             <h1 style={{ fontSize: "28px", marginBottom: "15px" }}>
               Level {currentQuiz.level}
             </h1>
 
-            {/* Question */}
             <p style={{ fontSize: "20px", marginBottom: "25px" }}>
               {currentQuiz.question}
             </p>
 
-            {/* Answer Input */}
             <IonItem
               style={{
                 maxWidth: "400px",
@@ -161,7 +167,6 @@ const ArithmeticQuiz: React.FC = () => {
               />
             </IonItem>
 
-            {/* Error Message */}
             {errorMessage && (
               <IonText color="danger">
                 <p>{errorMessage}</p>
@@ -192,6 +197,16 @@ const ArithmeticQuiz: React.FC = () => {
             Loading quizzes...
           </p>
         )}
+
+        {/* ✅ Completion Toast */}
+        <IonToast
+          isOpen={showCompletionToast}
+          message="🎉 You have completed all quizzes for this category!"
+          duration={2000}
+          position="top"
+          color="success"
+          onDidDismiss={() => setShowCompletionToast(false)}
+        />
       </IonContent>
     </IonPage>
   );

@@ -9,7 +9,7 @@ import {
   IonButton,
   IonInput,
   IonText,
-  IonToast,
+  IonModal,
 } from "@ionic/react";
 import { supabase } from "../../utils/supabaseClient";
 
@@ -30,7 +30,12 @@ const MotionQuiz: React.FC = () => {
   const [userAnswer, setUserAnswer] = useState<string>("");
   const [errorMessage, setErrorMessage] = useState<string>("");
 
-  const [showCompletionToast, setShowCompletionToast] = useState(false);
+  const [score, setScore] = useState<number>(0);
+  const [userSolutions, setUserSolutions] = useState<
+    { question: string; correct: string; solution: string; isCorrect: boolean }[]
+  >([]);
+
+  const [showResultModal, setShowResultModal] = useState(false);
 
   useEffect(() => {
     const fetchQuizzes = async () => {
@@ -51,9 +56,10 @@ const MotionQuiz: React.FC = () => {
     const filtered = quizzes
       .filter((q) => q.category === category)
       .sort((a, b) => a.level - b.level);
-
     if (filtered.length > 0) {
       setCurrentQuiz(filtered[0]);
+      setScore(0);
+      setUserSolutions([]);
     }
   };
 
@@ -64,22 +70,66 @@ const MotionQuiz: React.FC = () => {
     }
 
     setErrorMessage("");
-
     if (!currentQuiz || !selectedCategory) return;
+
+    const isCorrect =
+      userAnswer.trim().toLowerCase() ===
+      currentQuiz.answer.trim().toLowerCase();
+
+    if (isCorrect) {
+      setScore((prev) => prev + 1);
+    }
+
+    setUserSolutions((prev) => [
+      ...prev,
+      {
+        question: currentQuiz.question,
+        correct: currentQuiz.answer,
+        solution: currentQuiz.solution,
+        isCorrect,
+      },
+    ]);
 
     const filtered = quizzes
       .filter((q) => q.category === selectedCategory)
       .sort((a, b) => a.level - b.level);
 
     const currentIndex = filtered.findIndex((q) => q.id === currentQuiz.id);
-
     if (currentIndex < filtered.length - 1) {
       setCurrentQuiz(filtered[currentIndex + 1]);
       setUserAnswer("");
     } else {
-      // ✅ Show toast kapag tapos na
-      setShowCompletionToast(true);
+      // ✅ Finished all quizzes → show modal
+      setShowResultModal(true);
     }
+  };
+
+  // ✅ Updated getMessage with switch(score)
+  const getMessage = () => {
+    let message = "";
+    switch (score) {
+      case 0:
+        message = "😢 Better luck next time!";
+        break;
+      case 1:
+        message = "🙂 You got 1 correct, keep practicing!";
+        break;
+      case 2:
+        message = "👍 Nice effort, you got 2 correct!";
+        break;
+      case 3:
+        message = "👏 Good job! 3 correct answers!";
+        break;
+      case 4:
+        message = "🔥 Almost perfect! You got 4!";
+        break;
+      case 5:
+        message = "🏆 Perfect score! Excellent work!";
+        break;
+      default:
+        message = "🎉 Quiz completed!";
+    }
+    return message;
   };
 
   return (
@@ -168,7 +218,11 @@ const MotionQuiz: React.FC = () => {
               </IonText>
             )}
 
-            <IonButton expand="block" onClick={handleNext} style={{ marginTop: "15px" }}>
+            <IonButton
+              expand="block"
+              onClick={handleNext}
+              style={{ marginTop: "15px" }}
+            >
               Next
             </IonButton>
 
@@ -182,29 +236,70 @@ const MotionQuiz: React.FC = () => {
                 setCurrentQuiz(null);
                 setUserAnswer("");
                 setErrorMessage("");
+                setScore(0);
+                setUserSolutions([]);
               }}
             >
               Back to Categories
             </IonButton>
           </div>
         ) : (
-          <p style={{ textAlign: "center", marginTop: "50px" }}>Loading quizzes...</p>
+          <p style={{ textAlign: "center", marginTop: "50px" }}>
+            Loading quizzes...
+          </p>
         )}
 
-        {/* ✅ Completion Toast */}
-        <IonToast
-          isOpen={showCompletionToast}
-          message="🎉 You have completed all quizzes for this category!"
-          duration={2000}
-          position="top"
-          color="success"
-          onDidDismiss={() => {
-            setShowCompletionToast(false);
-            setSelectedCategory(null);
-            setCurrentQuiz(null);
-            setUserAnswer("");
-          }}
-        />
+        {/* ✅ Result Modal */}
+        <IonModal isOpen={showResultModal} backdropDismiss={false}>
+          <div
+            style={{
+              padding: "30px 20px",
+              textAlign: "center",
+            }}
+          >
+            <h2>{getMessage()}</h2>
+            <h3>
+              Your Score: {score}/{userSolutions.length}
+            </h3>
+
+            <div style={{ textAlign: "left", marginTop: "20px" }}>
+              <h4>Answers & Solutions:</h4>
+              <ul>
+                {userSolutions.map((res, index) => (
+                  <li
+                    key={index}
+                    style={{
+                      marginBottom: "15px",
+                      color: res.isCorrect ? "green" : "red",
+                    }}
+                  >
+                    <strong>Q:</strong> {res.question}
+                    <br />
+                    <strong>Correct Answer:</strong> {res.correct}
+                    <br />
+                    <strong>Solution:</strong> {res.solution}
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <IonButton
+              expand="block"
+              style={{ marginTop: "20px" }}
+              onClick={() => {
+                setSelectedCategory(null);
+                setCurrentQuiz(null);
+                setUserAnswer("");
+                setErrorMessage("");
+                setScore(0);
+                setUserSolutions([]);
+                setShowResultModal(false);
+              }}
+            >
+              Back to Categories
+            </IonButton>
+          </div>
+        </IonModal>
       </IonContent>
     </IonPage>
   );

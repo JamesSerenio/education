@@ -105,9 +105,32 @@ const ArithmeticQuiz: React.FC = () => {
   };
 
   const getMessage = () => {
-    if (score === 5) return "🌟 Excellent Work!";
-    if (score >= 3) return "👍 Great Job!";
-    return "👏 Good Job! Keep practicing!";
+    let message = "";
+
+    switch (score) {
+      case 0:
+        message = "😢 Better luck next time!";
+        break;
+      case 1:
+        message = "🙂 You got 1 correct, keep practicing!";
+        break;
+      case 2:
+        message = "👍 Nice effort, you got 2 correct!";
+        break;
+      case 3:
+        message = "👏 Good job! 3 correct answers!";
+        break;
+      case 4:
+        message = "🔥 Almost perfect! You got 4!";
+        break;
+      case 5:
+        message = "🏆 Perfect score! Excellent work!";
+        break;
+      default:
+        message = "🎉 Quiz completed!";
+    }
+
+    return message;
   };
 
   return (

@@ -85,7 +85,7 @@ const AdminAddQuiz: React.FC = () => {
             <IonSelectOption value="Problem Solving">
               Problem Solving
             </IonSelectOption>
-            <IonSelectOption value="Solving">Solving</IonSelectOption>
+            <IonSelectOption value="Solving">Number Solving</IonSelectOption>
           </IonSelect>
         </IonItem>
 

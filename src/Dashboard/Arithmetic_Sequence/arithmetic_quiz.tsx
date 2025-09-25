@@ -9,7 +9,7 @@ import {
   IonButton,
   IonInput,
   IonText,
-  IonToast,
+  IonModal,
 } from "@ionic/react";
 import { supabase } from "../../utils/supabaseClient";
 
@@ -30,7 +30,12 @@ const ArithmeticQuiz: React.FC = () => {
   const [userAnswer, setUserAnswer] = useState<string>("");
   const [errorMessage, setErrorMessage] = useState<string>("");
 
-  const [showCompletionToast, setShowCompletionToast] = useState(false);
+  const [score, setScore] = useState<number>(0);
+  const [userSolutions, setUserSolutions] = useState<
+    { question: string; correct: string; solution: string; isCorrect: boolean }[]
+  >([]);
+
+  const [showResultModal, setShowResultModal] = useState(false);
 
   useEffect(() => {
     const fetchQuizzes = async () => {
@@ -53,6 +58,8 @@ const ArithmeticQuiz: React.FC = () => {
       .sort((a, b) => a.level - b.level);
     if (filtered.length > 0) {
       setCurrentQuiz(filtered[0]);
+      setScore(0);
+      setUserSolutions([]);
     }
   };
 
@@ -63,8 +70,25 @@ const ArithmeticQuiz: React.FC = () => {
     }
 
     setErrorMessage("");
-
     if (!currentQuiz || !selectedCategory) return;
+
+    const isCorrect =
+      userAnswer.trim().toLowerCase() ===
+      currentQuiz.answer.trim().toLowerCase();
+
+    if (isCorrect) {
+      setScore((prev) => prev + 1);
+    }
+
+    setUserSolutions((prev) => [
+      ...prev,
+      {
+        question: currentQuiz.question,
+        correct: currentQuiz.answer,
+        solution: currentQuiz.solution,
+        isCorrect,
+      },
+    ]);
 
     const filtered = quizzes
       .filter((q) => q.category === selectedCategory)
@@ -75,16 +99,15 @@ const ArithmeticQuiz: React.FC = () => {
       setCurrentQuiz(filtered[currentIndex + 1]);
       setUserAnswer("");
     } else {
-      // ✅ show toast kapag tapos na lahat
-      setShowCompletionToast(true);
-      setTimeout(() => {
-        setSelectedCategory(null);
-        setCurrentQuiz(null);
-        setUserAnswer("");
-        setErrorMessage("");
-        setShowCompletionToast(false);
-      }, 2000); // after 2 seconds balik sa categories
+      // ✅ Finished all quizzes → show modal
+      setShowResultModal(true);
     }
+  };
+
+  const getMessage = () => {
+    if (score === 5) return "🌟 Excellent Work!";
+    if (score >= 3) return "👍 Great Job!";
+    return "👏 Good Job! Keep practicing!";
   };
 
   return (
@@ -173,7 +196,11 @@ const ArithmeticQuiz: React.FC = () => {
               </IonText>
             )}
 
-            <IonButton expand="block" onClick={handleNext} style={{ marginTop: "15px" }}>
+            <IonButton
+              expand="block"
+              onClick={handleNext}
+              style={{ marginTop: "15px" }}
+            >
               Next
             </IonButton>
 
@@ -187,6 +214,8 @@ const ArithmeticQuiz: React.FC = () => {
                 setCurrentQuiz(null);
                 setUserAnswer("");
                 setErrorMessage("");
+                setScore(0);
+                setUserSolutions([]);
               }}
             >
               Back to Categories
@@ -198,15 +227,55 @@ const ArithmeticQuiz: React.FC = () => {
           </p>
         )}
 
-        {/* ✅ Completion Toast */}
-        <IonToast
-          isOpen={showCompletionToast}
-          message="🎉 You have completed all quizzes for this category!"
-          duration={2000}
-          position="top"
-          color="success"
-          onDidDismiss={() => setShowCompletionToast(false)}
-        />
+        {/* ✅ Result Modal */}
+        <IonModal isOpen={showResultModal} backdropDismiss={false}>
+          <div
+            style={{
+              padding: "30px 20px",
+              textAlign: "center",
+            }}
+          >
+            <h2>{getMessage()}</h2>
+            <h3>Your Score: {score}/5</h3>
+
+            <div style={{ textAlign: "left", marginTop: "20px" }}>
+              <h4>Answers & Solutions:</h4>
+              <ul>
+                {userSolutions.map((res, index) => (
+                  <li
+                    key={index}
+                    style={{
+                      marginBottom: "15px",
+                      color: res.isCorrect ? "green" : "red",
+                    }}
+                  >
+                    <strong>Q:</strong> {res.question}
+                    <br />
+                    <strong>Correct Answer:</strong> {res.correct}
+                    <br />
+                    <strong>Solution:</strong> {res.solution}
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <IonButton
+              expand="block"
+              style={{ marginTop: "20px" }}
+              onClick={() => {
+                setSelectedCategory(null);
+                setCurrentQuiz(null);
+                setUserAnswer("");
+                setErrorMessage("");
+                setScore(0);
+                setUserSolutions([]);
+                setShowResultModal(false);
+              }}
+            >
+              Back to Categories
+            </IonButton>
+          </div>
+        </IonModal>
       </IonContent>
     </IonPage>
   );

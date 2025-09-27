@@ -2,8 +2,6 @@ import React, { useState } from "react";
 import {
   IonPage,
   IonHeader,
-  IonToolbar,
-  IonTitle,
   IonContent,
   IonItem,
   IonLabel,
@@ -51,9 +49,6 @@ const AdminAddQuiz: React.FC = () => {
   return (
     <IonPage>
       <IonHeader>
-        <IonToolbar>
-          <IonTitle>Add Quiz</IonTitle>
-        </IonToolbar>
       </IonHeader>
 
       <IonContent className="ion-padding">

@@ -20,6 +20,8 @@ import {
   trophyOutline,
   navigateOutline,
   createOutline,
+  calculatorOutline,
+  speedometerOutline,
 } from "ionicons/icons";
 import { useHistory } from "react-router-dom";
 
@@ -28,6 +30,8 @@ import AdminHome from "./admin_home";
 import AdminAddQuiz from "./admin_addquiz";
 import AdminLeaderboard from "./admin_leaderboard";
 import AdminRadar from "./admin_radar";
+import AdminArithmeticQuiz from "./admin_arithmetic_quiz";
+import AdminMotionQuiz from "./admin_motion_quiz";
 
 const AdminDashboard: React.FC = () => {
   const history = useHistory();
@@ -35,7 +39,9 @@ const AdminDashboard: React.FC = () => {
 
   const menuItems = [
     { name: "Home", key: "Home", icon: homeOutline },
-    { name: "Quiz", key: "quiz", icon: createOutline },
+    { name: "Add Quiz", key: "quiz", icon: createOutline },
+    { name: "Arithmetic Quiz", key: "arithmetic_quiz", icon: calculatorOutline },
+    { name: "Motion Quiz", key: "motion_quiz", icon: speedometerOutline },
     { name: "Leaderboard", key: "leaderboard", icon: trophyOutline },
     { name: "Radar", key: "radar", icon: navigateOutline },
   ];
@@ -47,6 +53,10 @@ const AdminDashboard: React.FC = () => {
         return <AdminHome />;
       case "quiz":
         return <AdminAddQuiz />;
+      case "arithmetic_quiz":
+        return <AdminArithmeticQuiz />;
+      case "motion_quiz":
+        return <AdminMotionQuiz />;
       case "leaderboard":
         return <AdminLeaderboard />;
       case "radar":

@@ -205,6 +205,7 @@ const ArithmeticQuiz: React.FC = () => {
                 marginBottom: "10px",
               }}
             >
+              
               <IonInput
                 value={userAnswer}
                 placeholder="Enter your answer"

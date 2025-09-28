@@ -111,14 +111,15 @@ const AdminAddQuiz: React.FC = () => {
         </IonItem>
 
         {/* Solution */}
-        <IonItem>
-          <IonLabel position="stacked">Solution</IonLabel>
-          <IonTextarea
-            placeholder="Write the solution"
-            value={solution}
-            onIonChange={(e) => setSolution(e.detail.value!)}
-          />
-        </IonItem>
+          <IonItem>
+            <IonLabel position="stacked">Solution</IonLabel>
+            <IonTextarea
+              placeholder="Write the solution"
+              value={solution}
+              autoGrow={true}  // ✅ para mag-expand kapag mahaba
+              onIonChange={(e) => setSolution(e.detail.value!)}
+            />
+          </IonItem>
 
         {/* Answer */}
         <IonItem>

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import {
   IonPage,
   IonHeader,
@@ -12,6 +12,9 @@ import {
   IonModal,
 } from "@ionic/react";
 import { supabase } from "../../utils/supabaseClient";
+
+
+const TIME_PER_QUESTION = 30; // <-- Declare this before your component
 
 interface Quiz {
   id: string;
@@ -37,6 +40,10 @@ const ArithmeticQuiz: React.FC = () => {
 
   const [showResultModal, setShowResultModal] = useState(false);
 
+// Timer state
+const [timeLeft, setTimeLeft] = useState<number>(TIME_PER_QUESTION);
+const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
   useEffect(() => {
     const fetchQuizzes = async () => {
       const { data, error } = await supabase
@@ -50,6 +57,28 @@ const ArithmeticQuiz: React.FC = () => {
     };
     fetchQuizzes();
   }, []);
+
+    // Reset timer when currentQuiz changes
+  useEffect(() => {
+    if (currentQuiz) {
+      setTimeLeft(TIME_PER_QUESTION);
+      if (timerRef.current) clearInterval(timerRef.current);
+      timerRef.current = setInterval(() => {
+        setTimeLeft((prev) => {
+          if (prev <= 1) {
+            clearInterval(timerRef.current!);
+            handleNext(); // Auto proceed when time runs out
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+    // Cleanup on unmount or quiz change
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [currentQuiz]);
 
   const handleCategorySelect = (category: string) => {
     setSelectedCategory(category);
@@ -133,6 +162,15 @@ const ArithmeticQuiz: React.FC = () => {
     return message;
   };
 
+    // Format time as mm:ss
+  const formatTime = (seconds: number) => {
+    const m = Math.floor(seconds / 60)
+      .toString()
+      .padStart(2, "0");
+    const s = (seconds % 60).toString().padStart(2, "0");
+    return `${m}:${s}`;
+  };
+
   return (
     <IonPage>
       <IonHeader>
@@ -186,6 +224,22 @@ const ArithmeticQuiz: React.FC = () => {
               boxSizing: "border-box",
             }}
           >
+
+              {/* Timer */}
+            <div
+              style={{
+                fontSize: "24px",
+                fontWeight: "bold",
+                color: timeLeft <= 5 ? "red" : "#333",
+                marginBottom: "10px",
+                fontFamily: "monospace",
+              }}
+              aria-live="polite"
+              aria-atomic="true"
+            >
+              Time Left: {formatTime(timeLeft)}
+            </div>
+
             <h2 style={{ fontSize: "22px", marginBottom: "10px", color: "#666" }}>
               {selectedCategory}
             </h2>
@@ -203,6 +257,7 @@ const ArithmeticQuiz: React.FC = () => {
                 maxWidth: "400px",
                 width: "100%",
                 marginBottom: "10px",
+                justifyContent: "center", // center horizontally
               }}
             >
               
@@ -211,6 +266,7 @@ const ArithmeticQuiz: React.FC = () => {
                 placeholder="Enter your answer"
                 onIonInput={(e) => setUserAnswer(e.detail.value!)}
                 clearInput
+               style={{ textAlign: "center", fontSize: "18px" }} // center text inside input
               />
             </IonItem>
 
@@ -240,6 +296,7 @@ const ArithmeticQuiz: React.FC = () => {
                 setErrorMessage("");
                 setScore(0);
                 setUserSolutions([]);
+               if (timerRef.current) clearInterval(timerRef.current);
               }}
             >
               Back to Categories

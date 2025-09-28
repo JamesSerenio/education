@@ -142,9 +142,10 @@ const AdminArithmeticQuiz: React.FC = () => {
         </IonToolbar>
       </IonHeader>
       <IonContent style={{ padding: "1rem" }}>
-        <style jsx>{`
+        <style>{`
           .quiz-table-container {
             margin-bottom: 2rem;
+            width: 100%;
           }
           .category-header {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -156,25 +157,30 @@ const AdminArithmeticQuiz: React.FC = () => {
             font-weight: bold;
             text-align: center;
           }
+          .table-wrapper {
+            overflow-x: auto;
+            border-radius: 0 0 8px 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+          }
           .quiz-table {
             width: 100%;
+            min-width: 600px; /* Minimum width to ensure actions are visible */
             border-collapse: collapse;
             background: white;
-            border-radius: 0 0 8px 8px;
-            overflow: hidden;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
           }
           .quiz-table th,
           .quiz-table td {
-            padding: 1rem;
+            padding: 0.75rem 0.5rem; /* Reduced padding for smaller screens */
             text-align: left;
             border-bottom: 1px solid #ddd;
+            white-space: nowrap; /* Prevent wrapping in most cells */
           }
           .quiz-table th {
             background-color: #f8f9fa;
             font-weight: bold;
             color: #333;
             border-top: 1px solid #ddd;
+            font-size: 0.9rem;
           }
           .quiz-table tr:hover {
             background-color: #f5f5f5;
@@ -182,27 +188,41 @@ const AdminArithmeticQuiz: React.FC = () => {
           .level-cell {
             font-weight: bold;
             color: #007bff;
-            width: 80px;
+            width: 60px; /* Narrower for level */
+            text-align: center;
           }
           .question-cell {
-            max-width: 300px;
+            max-width: 250px; /* Allow some wrapping but compress */
             word-wrap: break-word;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: normal; /* Allow wrapping for question */
           }
           .answer-cell,
           .solution-cell {
-            max-width: 150px;
+            max-width: 120px; /* Compress answers/solutions */
             word-wrap: break-word;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: normal;
+          }
+          .created-cell {
+            font-size: 0.8rem;
+            color: #666;
+            width: 100px;
+            text-align: center;
           }
           .actions-cell {
             text-align: center;
-            width: 120px;
+            width: 100px; /* Fixed width to always show actions */
+            min-width: 100px;
           }
           .actions-cell button {
-            margin: 0 0.25rem;
-          }
-          .created-cell {
-            font-size: 0.9rem;
-            color: #666;
+            margin: 0 0.125rem;
+            --padding-start: 0.5rem;
+            --padding-end: 0.5rem;
+            height: 2rem;
+            width: 2rem;
           }
           .no-quizzes {
             text-align: center;
@@ -218,6 +238,36 @@ const AdminArithmeticQuiz: React.FC = () => {
           .edit-modal-content {
             --background: #f8f9fa;
           }
+          .edit-modal-content .ion-item {
+            --padding-start: 1rem;
+            --padding-end: 1rem;
+          }
+          @media (max-width: 768px) {
+            .quiz-table th,
+            .quiz-table td {
+              padding: 0.5rem 0.25rem; /* Even smaller padding on mobile */
+              font-size: 0.85rem;
+            }
+            .question-cell {
+              max-width: 150px; /* Further compress on mobile */
+            }
+            .answer-cell,
+            .solution-cell {
+              max-width: 80px;
+            }
+            .actions-cell button {
+              height: 1.75rem;
+              width: 1.75rem;
+              margin: 0 0.0625rem;
+            }
+            .actions-cell {
+              /* Stack buttons vertically on very small screens if needed */
+              display: flex;
+              flex-direction: column;
+              gap: 0.25rem;
+              padding: 0.25rem;
+            }
+          }
         `}</style>
 
         {loading ? (
@@ -230,63 +280,59 @@ const AdminArithmeticQuiz: React.FC = () => {
               <div className="category-header">
                 {category} Category ({groupedQuizzes[category].length} Quizzes)
               </div>
-              <table className="quiz-table">
-                <thead>
-                  <tr>
-                    <th>Level</th>
-                    <th>Question</th>
-                    <th>Answer</th>
-                    <th>Solution</th>
-                    <th>Created</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {groupedQuizzes[category].map((quiz) => (
-                    <tr key={quiz.id}>
-                      <td className="level-cell">Level {quiz.level}</td>
-                      <td className="question-cell">
-                        <strong>Q:</strong> {quiz.question}
-                      </td>
-                      <td className="answer-cell">
-                        <strong>A:</strong> {quiz.answer}
-                      </td>
-                      <td className="solution-cell">
-                        {quiz.solution ? (
-                          <span>
-                            <strong>S:</strong> {quiz.solution}
-                          </span>
-                        ) : (
-                          <em>No solution</em>
-                        )}
-                      </td>
-                      <td className="created-cell">
-                        {new Date(quiz.created_at).toLocaleDateString()}
-                      </td>
-                      <td className="actions-cell">
-                        <IonButton
-                          fill="clear"
-                          size="small"
-                          color="primary"
-                          onClick={() => openEdit(quiz)}
-                          title="Edit"
-                        >
-                          <IonIcon icon={createOutline} />
-                        </IonButton>
-                        <IonButton
-                          fill="clear"
-                          size="small"
-                          color="danger"
-                          onClick={() => setDeleteId(quiz.id)}
-                          title="Delete"
-                        >
-                          <IonIcon icon={trashOutline} />
-                        </IonButton>
-                      </td>
+              <div className="table-wrapper">
+                <table className="quiz-table">
+                  <thead>
+                    <tr>
+                      <th>Level</th>
+                      <th>Question</th>
+                      <th>Answer</th>
+                      <th>Solution</th>
+                      <th>Created</th>
+                      <th>Actions</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {groupedQuizzes[category].map((quiz) => (
+                      <tr key={quiz.id}>
+                        <td className="level-cell">L{quiz.level}</td>
+                        <td className="question-cell" title={quiz.question}>
+                          Q: {quiz.question}
+                        </td>
+                        <td className="answer-cell" title={quiz.answer}>
+                          A: {quiz.answer}
+                        </td>
+                        <td className="solution-cell" title={quiz.solution || "No solution"}>
+                          {quiz.solution ? `S: ${quiz.solution}` : "No S"}
+                        </td>
+                        <td className="created-cell">
+                          {new Date(quiz.created_at).toLocaleDateString()}
+                        </td>
+                        <td className="actions-cell">
+                          <IonButton
+                            fill="clear"
+                            size="small"
+                            color="primary"
+                            onClick={() => openEdit(quiz)}
+                            title="Edit Quiz"
+                          >
+                            <IonIcon icon={createOutline} />
+                          </IonButton>
+                          <IonButton
+                            fill="clear"
+                            size="small"
+                            color="danger"
+                            onClick={() => setDeleteId(quiz.id)}
+                            title="Delete Quiz"
+                          >
+                            <IonIcon icon={trashOutline} />
+                          </IonButton>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           ))
         )}
@@ -364,7 +410,7 @@ const AdminArithmeticQuiz: React.FC = () => {
                 placeholder="Enter the solution (optional)"
               />
             </IonItem>
-            <div style={{ marginTop: "1.5rem", textAlign: "center", display: "flex", gap: "1rem", justifyContent: "center" }}>
+            <div style={{ marginTop: "1.5rem", textAlign: "center", display: "flex", gap: "1rem", justifyContent: "center", flexWrap: "wrap" }}>
               <IonButton color="success" onClick={handleEditSave}>
                 Save Changes
               </IonButton>

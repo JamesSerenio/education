@@ -252,11 +252,20 @@ const ArithmeticQuiz: React.FC = () => {
         )}
 
         {/* ✅ Result Modal */}
-        <IonModal isOpen={showResultModal} backdropDismiss={false}>
+      <IonModal isOpen={showResultModal} backdropDismiss={false}>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            height: "100%",       // ✅ para masakop buong modal
+            padding: "20px",
+          }}
+        >
           <div
             style={{
-              padding: "30px 20px",
-              textAlign: "center",
+              flex: 1,
+              overflowY: "auto",   // ✅ scrollable content
+              paddingRight: "10px"
             }}
           >
             <h2>{getMessage()}</h2>
@@ -280,36 +289,37 @@ const ArithmeticQuiz: React.FC = () => {
                     <strong>Solution:</strong>
                     <pre
                       style={{
-                        whiteSpace: "pre-wrap", // ✅ respect line breaks
-                        fontFamily: "inherit",  // ✅ same font as text
+                        whiteSpace: "pre-wrap",
+                        fontFamily: "inherit",
                         margin: "5px 0",
                       }}
                     >
                       {res?.solution || "No solution provided."}
                     </pre>
                   </li>
-
                 ))}
               </ul>
             </div>
-
-            <IonButton
-              expand="block"
-              style={{ marginTop: "20px" }}
-              onClick={() => {
-                setSelectedCategory(null);
-                setCurrentQuiz(null);
-                setUserAnswer("");
-                setErrorMessage("");
-                setScore(0);
-                setUserSolutions([]);
-                setShowResultModal(false);
-              }}
-            >
-              Back to Categories
-            </IonButton>
           </div>
-        </IonModal>
+
+          {/* ✅ Button stays at bottom */}
+          <IonButton
+            expand="block"
+            style={{ marginTop: "15px" }}
+            onClick={() => {
+              setSelectedCategory(null);
+              setCurrentQuiz(null);
+              setUserAnswer("");
+              setErrorMessage("");
+              setScore(0);
+              setUserSolutions([]);
+              setShowResultModal(false);
+            }}
+          >
+            Back to Categories
+          </IonButton>
+        </div>
+      </IonModal>
       </IonContent>
     </IonPage>
   );

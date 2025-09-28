@@ -5,14 +5,15 @@ import {
   IonToolbar,
   IonTitle,
   IonContent,
-  IonList,
-  IonItem,
-  IonLabel,
   IonButton,
   IonIcon,
   IonAlert,
   IonModal,
   IonInput,
+  IonLabel,
+  IonSelect,
+  IonSelectOption,
+  IonItem,
 } from "@ionic/react";
 import { createOutline, trashOutline } from "ionicons/icons";
 import { supabase } from "../utils/supabaseClient";
@@ -21,6 +22,7 @@ interface Quiz {
   id: string;
   subject: string;
   category: string;
+  level: number;
   question: string;
   solution: string | null;
   answer: string;
@@ -39,15 +41,18 @@ const AdminMotionQuiz: React.FC = () => {
   const [editQuestion, setEditQuestion] = useState("");
   const [editAnswer, setEditAnswer] = useState("");
   const [editSolution, setEditSolution] = useState("");
+  const [editLevel, setEditLevel] = useState<number>(1);
+  const [editCategory, setEditCategory] = useState<string>("");
 
-  // ✅ Load quizzes (motion category)
+  // ✅ Load quizzes (filtered by subject = Uniform Motion in Physics to match your data)
   const fetchQuizzes = async () => {
     setLoading(true);
     const { data, error } = await supabase
       .from("quizzes")
       .select("*")
-      .eq("category", "motion")
-      .order("created_at", { ascending: false });
+      .eq("subject", "Uniform Motion in Physics") // ✅ Filter by exact subject for dashboard visibility
+      .order("category", { ascending: true }) // ✅ Order by category first (like Arithmetic)
+      .order("level", { ascending: true }); // ✅ Then by level for proper sequencing
 
     if (error) {
       console.error("Error fetching quizzes:", error.message);
@@ -79,6 +84,8 @@ const AdminMotionQuiz: React.FC = () => {
     setEditQuestion(quiz.question);
     setEditAnswer(quiz.answer);
     setEditSolution(quiz.solution || "");
+    setEditLevel(quiz.level || 1);
+    setEditCategory(quiz.category);
   };
 
   // ✅ Save edit
@@ -90,6 +97,8 @@ const AdminMotionQuiz: React.FC = () => {
         question: editQuestion,
         answer: editAnswer,
         solution: editSolution,
+        level: editLevel,
+        category: editCategory,
       })
       .eq("id", editQuiz.id);
 
@@ -104,6 +113,8 @@ const AdminMotionQuiz: React.FC = () => {
                 question: editQuestion,
                 answer: editAnswer,
                 solution: editSolution,
+                level: editLevel,
+                category: editCategory,
               }
             : q
         )
@@ -112,52 +123,218 @@ const AdminMotionQuiz: React.FC = () => {
     }
   };
 
+  // ✅ Group quizzes by category for table-like separation (same as Arithmetic)
+  const groupedQuizzes = quizzes.reduce((acc: { [key: string]: Quiz[] }, quiz) => {
+    if (!acc[quiz.category]) {
+      acc[quiz.category] = [];
+    }
+    acc[quiz.category].push(quiz);
+    return acc;
+  }, {});
+
+  const categories = Object.keys(groupedQuizzes).sort();
+
   return (
     <IonPage>
       <IonHeader>
         <IonToolbar>
-          <IonTitle>Motion Quizzes</IonTitle>
+          <IonTitle>Admin Uniform Motion Quizzes</IonTitle>
         </IonToolbar>
       </IonHeader>
-      <IonContent>
+      <IonContent style={{ padding: "1rem" }}>
+        <style>{`
+          .quiz-table-container {
+            margin-bottom: 2rem;
+            width: 100%;
+          }
+          .category-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1rem;
+            border-radius: 8px 8px 0 0;
+            margin-bottom: 0;
+            font-size: 1.2rem;
+            font-weight: bold;
+            text-align: center;
+          }
+          .table-wrapper {
+            overflow-x: auto;
+            border-radius: 0 0 8px 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+          }
+          .quiz-table {
+            width: 100%;
+            min-width: 600px; /* Minimum width to ensure actions are visible */
+            border-collapse: collapse;
+            background: white;
+          }
+          .quiz-table th,
+          .quiz-table td {
+            padding: 0.75rem 0.5rem; /* Reduced padding for smaller screens */
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+            white-space: nowrap; /* Prevent wrapping in most cells */
+          }
+          .quiz-table th {
+            background-color: #f8f9fa;
+            font-weight: bold;
+            color: #333;
+            border-top: 1px solid #ddd;
+            font-size: 0.9rem;
+          }
+          .quiz-table tr:hover {
+            background-color: #f5f5f5;
+          }
+          .level-cell {
+            font-weight: bold;
+            color: #007bff;
+            width: 60px; /* Narrower for level */
+            text-align: center;
+          }
+          .question-cell {
+            max-width: 250px; /* Allow some wrapping but compress */
+            word-wrap: break-word;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: normal; /* Allow wrapping for question */
+          }
+          .answer-cell,
+          .solution-cell {
+            max-width: 120px; /* Compress answers/solutions */
+            word-wrap: break-word;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: normal;
+          }
+          .created-cell {
+            font-size: 0.8rem;
+            color: #666;
+            width: 100px;
+            text-align: center;
+          }
+          .actions-cell {
+            text-align: center;
+            width: 100px; /* Fixed width to always show actions */
+            min-width: 100px;
+          }
+          .actions-cell button {
+            margin: 0 0.125rem;
+            --padding-start: 0.5rem;
+            --padding-end: 0.5rem;
+            height: 2rem;
+            width: 2rem;
+          }
+          .no-quizzes {
+            text-align: center;
+            padding: 2rem;
+            color: #666;
+            font-style: italic;
+          }
+          .loading {
+            text-align: center;
+            padding: 2rem;
+            color: #007bff;
+          }
+          .edit-modal-content {
+            --background: #f8f9fa;
+          }
+          .edit-modal-content .ion-item {
+            --padding-start: 1rem;
+            --padding-end: 1rem;
+          }
+          @media (max-width: 768px) {
+            .quiz-table th,
+            .quiz-table td {
+              padding: 0.5rem 0.25rem; /* Even smaller padding on mobile */
+              font-size: 0.85rem;
+            }
+            .question-cell {
+              max-width: 150px; /* Further compress on mobile */
+            }
+            .answer-cell,
+            .solution-cell {
+              max-width: 80px;
+            }
+            .actions-cell button {
+              height: 1.75rem;
+              width: 1.75rem;
+              margin: 0 0.0625rem;
+            }
+            .actions-cell {
+              /* Stack buttons vertically on very small screens if needed */
+              display: flex;
+              flex-direction: column;
+              gap: 0.25rem;
+              padding: 0.25rem;
+            }
+          }
+        `}</style>
+
         {loading ? (
-          <p style={{ padding: "1rem" }}>Loading quizzes...</p>
+          <div className="loading">Loading quizzes...</div>
         ) : quizzes.length === 0 ? (
-          <p style={{ padding: "1rem" }}>No quizzes found.</p>
+          <div className="no-quizzes">No quizzes found.</div>
         ) : (
-          <IonList>
-            {quizzes.map((quiz) => (
-              <IonItem key={quiz.id}>
-                <IonLabel>
-                  <h2>
-                    <strong>Q:</strong> {quiz.question}
-                  </h2>
-                  <p>
-                    <strong>Answer:</strong> {quiz.answer}
-                  </p>
-                  {quiz.solution && (
-                    <p>
-                      <strong>Solution:</strong> {quiz.solution}
-                    </p>
-                  )}
-                </IonLabel>
-                <IonButton
-                  fill="clear"
-                  color="primary"
-                  onClick={() => openEdit(quiz)}
-                >
-                  <IonIcon slot="icon-only" icon={createOutline} />
-                </IonButton>
-                <IonButton
-                  fill="clear"
-                  color="danger"
-                  onClick={() => setDeleteId(quiz.id)}
-                >
-                  <IonIcon slot="icon-only" icon={trashOutline} />
-                </IonButton>
-              </IonItem>
-            ))}
-          </IonList>
+          categories.map((category) => (
+            <div key={category} className="quiz-table-container">
+              <div className="category-header">
+                {category} Category ({groupedQuizzes[category].length} Quizzes)
+              </div>
+              <div className="table-wrapper">
+                <table className="quiz-table">
+                  <thead>
+                    <tr>
+                      <th>Level</th>
+                      <th>Question</th>
+                      <th>Answer</th>
+                      <th>Solution</th>
+                      <th>Created</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {groupedQuizzes[category].map((quiz) => (
+                      <tr key={quiz.id}>
+                        <td className="level-cell">L{quiz.level}</td>
+                        <td className="question-cell" title={quiz.question}>
+                          Q: {quiz.question}
+                        </td>
+                        <td className="answer-cell" title={quiz.answer}>
+                          A: {quiz.answer}
+                        </td>
+                        <td className="solution-cell" title={quiz.solution || "No solution"}>
+                          {quiz.solution ? `S: ${quiz.solution}` : "No S"}
+                        </td>
+                        <td className="created-cell">
+                          {new Date(quiz.created_at).toLocaleDateString()}
+                        </td>
+                        <td className="actions-cell">
+                          <IonButton
+                            fill="clear"
+                            size="small"
+                            color="primary"
+                            onClick={() => openEdit(quiz)}
+                            title="Edit Quiz"
+                          >
+                            <IonIcon icon={createOutline} />
+                          </IonButton>
+                          <IonButton
+                            fill="clear"
+                            size="small"
+                            color="danger"
+                            onClick={() => setDeleteId(quiz.id)}
+                            title="Delete Quiz"
+                          >
+                            <IonIcon icon={trashOutline} />
+                          </IonButton>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ))
         )}
 
         {/* ✅ Delete Alert */}
@@ -165,26 +342,58 @@ const AdminMotionQuiz: React.FC = () => {
           isOpen={!!deleteId}
           onDidDismiss={() => setDeleteId(null)}
           header="Confirm Delete"
-          message="Are you sure you want to delete this quiz?"
+          message="Are you sure you want to delete this quiz? This action cannot be undone."
           buttons={[
             { text: "Cancel", role: "cancel" },
-            { text: "Delete", handler: handleDelete },
+            {
+              text: "Delete",
+              cssClass: "danger-button",
+              handler: handleDelete,
+            },
           ]}
         />
 
         {/* ✅ Edit Modal */}
-        <IonModal isOpen={!!editQuiz} onDidDismiss={() => setEditQuiz(null)}>
+        <IonModal
+          isOpen={!!editQuiz}
+          onDidDismiss={() => setEditQuiz(null)}
+          className="edit-modal-content"
+        >
           <IonHeader>
             <IonToolbar>
-              <IonTitle>Edit Quiz</IonTitle>
+              <IonTitle>Edit Quiz - Level {editLevel}</IonTitle>
             </IonToolbar>
           </IonHeader>
           <IonContent style={{ padding: "1rem" }}>
+            <IonItem>
+              <IonLabel position="stacked">Category</IonLabel>
+              <IonSelect
+                value={editCategory}
+                onIonChange={(e) => setEditCategory(e.detail.value!)}
+                interface="action-sheet"
+              >
+                <IonSelectOption value="Basic">Basic</IonSelectOption>
+                <IonSelectOption value="Intermediate">Intermediate</IonSelectOption>
+                <IonSelectOption value="Advanced">Advanced</IonSelectOption>
+                {/* Add more categories as needed for Motion */}
+              </IonSelect>
+            </IonItem>
+            <IonItem>
+              <IonLabel position="stacked">Level</IonLabel>
+              <IonInput
+                type="number"
+                value={editLevel}
+                onIonChange={(e) => setEditLevel(parseInt(e.detail.value!) || 1)}
+                min={1}
+                max={10}
+              />
+            </IonItem>
             <IonItem>
               <IonLabel position="stacked">Question</IonLabel>
               <IonInput
                 value={editQuestion}
                 onIonChange={(e) => setEditQuestion(e.detail.value!)}
+                placeholder="Enter the question"
               />
             </IonItem>
             <IonItem>
@@ -192,6 +401,7 @@ const AdminMotionQuiz: React.FC = () => {
               <IonInput
                 value={editAnswer}
                 onIonChange={(e) => setEditAnswer(e.detail.value!)}
+                placeholder="Enter the correct answer"
               />
             </IonItem>
             <IonItem>
@@ -199,16 +409,17 @@ const AdminMotionQuiz: React.FC = () => {
               <IonInput
                 value={editSolution}
                 onIonChange={(e) => setEditSolution(e.detail.value!)}
+                placeholder="Enter the solution (optional)"
               />
             </IonItem>
-            <div style={{ marginTop: "1rem", textAlign: "center" }}>
-              <IonButton color="primary" onClick={handleEditSave}>
-                Save
+            <div style={{ marginTop: "1.5rem", textAlign: "center", display: "flex", gap: "1rem", justifyContent: "center", flexWrap: "wrap" }}>
+              <IonButton color="success" onClick={handleEditSave}>
+                Save Changes
               </IonButton>
               <IonButton
                 color="medium"
+                fill="outline"
                 onClick={() => setEditQuiz(null)}
-                style={{ marginLeft: "0.5rem" }}
               >
                 Cancel
               </IonButton>

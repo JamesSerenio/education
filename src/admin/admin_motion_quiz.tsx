@@ -1,61 +1,223 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   IonPage,
   IonHeader,
+  IonToolbar,
+  IonTitle,
   IonContent,
+  IonList,
+  IonItem,
+  IonLabel,
+  IonButton,
+  IonIcon,
+  IonAlert,
+  IonModal,
+  IonInput,
 } from "@ionic/react";
-import { Trophy } from "lucide-react"; // gamit natin lucide-react para sa trophy icon
+import { createOutline, trashOutline } from "ionicons/icons";
+import { supabase } from "../utils/supabaseClient";
 
-const admin_leaderboard: React.FC = () => {
-  // Sample data (pwede mo palitan with real data galing sa DB)
-  const leaderboardData = [
-    { position: 1, name: "Alice", time: "32.8s", score: 5 },
-    { position: 2, name: "Bob", time: "47.2s", score: 4 },
-    { position: 3, name: "Charlie", time: "56.7s", score: 3 },
-    { position: 4, name: "David", time: "1:18.5", score: 2 },
-  ];
+interface Quiz {
+  id: string;
+  subject: string;
+  category: string;
+  question: string;
+  solution: string | null;
+  answer: string;
+  created_at: string;
+}
+
+const AdminMotionQuiz: React.FC = () => {
+  const [quizzes, setQuizzes] = useState<Quiz[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Delete confirmation
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+
+  // Edit modal
+  const [editQuiz, setEditQuiz] = useState<Quiz | null>(null);
+  const [editQuestion, setEditQuestion] = useState("");
+  const [editAnswer, setEditAnswer] = useState("");
+  const [editSolution, setEditSolution] = useState("");
+
+  // ✅ Load quizzes (motion category)
+  const fetchQuizzes = async () => {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from("quizzes")
+      .select("*")
+      .eq("category", "motion")
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("Error fetching quizzes:", error.message);
+    } else {
+      setQuizzes(data || []);
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    fetchQuizzes();
+  }, []);
+
+  // ✅ Delete quiz
+  const handleDelete = async () => {
+    if (!deleteId) return;
+    const { error } = await supabase.from("quizzes").delete().eq("id", deleteId);
+    if (error) {
+      console.error("Error deleting quiz:", error.message);
+    } else {
+      setQuizzes(quizzes.filter((q) => q.id !== deleteId));
+    }
+    setDeleteId(null);
+  };
+
+  // ✅ Open edit modal
+  const openEdit = (quiz: Quiz) => {
+    setEditQuiz(quiz);
+    setEditQuestion(quiz.question);
+    setEditAnswer(quiz.answer);
+    setEditSolution(quiz.solution || "");
+  };
+
+  // ✅ Save edit
+  const handleEditSave = async () => {
+    if (!editQuiz) return;
+    const { error } = await supabase
+      .from("quizzes")
+      .update({
+        question: editQuestion,
+        answer: editAnswer,
+        solution: editSolution,
+      })
+      .eq("id", editQuiz.id);
+
+    if (error) {
+      console.error("Error updating quiz:", error.message);
+    } else {
+      setQuizzes(
+        quizzes.map((q) =>
+          q.id === editQuiz.id
+            ? {
+                ...q,
+                question: editQuestion,
+                answer: editAnswer,
+                solution: editSolution,
+              }
+            : q
+        )
+      );
+      setEditQuiz(null);
+    }
+  };
 
   return (
     <IonPage>
       <IonHeader>
+        <IonToolbar>
+          <IonTitle>Motion Quizzes</IonTitle>
+        </IonToolbar>
       </IonHeader>
+      <IonContent>
+        {loading ? (
+          <p style={{ padding: "1rem" }}>Loading quizzes...</p>
+        ) : quizzes.length === 0 ? (
+          <p style={{ padding: "1rem" }}>No quizzes found.</p>
+        ) : (
+          <IonList>
+            {quizzes.map((quiz) => (
+              <IonItem key={quiz.id}>
+                <IonLabel>
+                  <h2>
+                    <strong>Q:</strong> {quiz.question}
+                  </h2>
+                  <p>
+                    <strong>Answer:</strong> {quiz.answer}
+                  </p>
+                  {quiz.solution && (
+                    <p>
+                      <strong>Solution:</strong> {quiz.solution}
+                    </p>
+                  )}
+                </IonLabel>
+                <IonButton
+                  fill="clear"
+                  color="primary"
+                  onClick={() => openEdit(quiz)}
+                >
+                  <IonIcon slot="icon-only" icon={createOutline} />
+                </IonButton>
+                <IonButton
+                  fill="clear"
+                  color="danger"
+                  onClick={() => setDeleteId(quiz.id)}
+                >
+                  <IonIcon slot="icon-only" icon={trashOutline} />
+                </IonButton>
+              </IonItem>
+            ))}
+          </IonList>
+        )}
 
-      <IonContent className="ion-padding">
-        <div className="max-w-md mx-auto bg-white rounded-2xl shadow-lg p-6 border border-gray-300">
-          {/* Title with trophy */}
-          <h2 className="text-2xl font-bold text-center">Leaderboard</h2>
-          <div className="flex justify-center items-center my-2">
-            <Trophy className="w-6 h-6 text-yellow-500" />
-            <span className="ml-2 font-medium">Quiz</span>
-          </div>
+        {/* ✅ Delete Alert */}
+        <IonAlert
+          isOpen={!!deleteId}
+          onDidDismiss={() => setDeleteId(null)}
+          header="Confirm Delete"
+          message="Are you sure you want to delete this quiz?"
+          buttons={[
+            { text: "Cancel", role: "cancel" },
+            { text: "Delete", handler: handleDelete },
+          ]}
+        />
 
-          {/* Table */}
-          <table className="w-full border border-gray-400 rounded-lg overflow-hidden text-center mt-4">
-            <thead className="bg-gray-100">
-              <tr>
-                <th className="py-2 border border-gray-400">Position</th>
-                <th className="py-2 border border-gray-400">Name</th>
-                <th className="py-2 border border-gray-400">Time</th>
-                <th className="py-2 border border-gray-400">Score</th>
-              </tr>
-            </thead>
-            <tbody>
-              {leaderboardData.map((row, index) => (
-                <tr key={index} className="hover:bg-gray-50">
-                  <td className="py-2 border border-gray-400 font-medium">
-                    {row.position}
-                  </td>
-                  <td className="py-2 border border-gray-400">{row.name}</td>
-                  <td className="py-2 border border-gray-400">{row.time}</td>
-                  <td className="py-2 border border-gray-400">{row.score}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        {/* ✅ Edit Modal */}
+        <IonModal isOpen={!!editQuiz} onDidDismiss={() => setEditQuiz(null)}>
+          <IonHeader>
+            <IonToolbar>
+              <IonTitle>Edit Quiz</IonTitle>
+            </IonToolbar>
+          </IonHeader>
+          <IonContent style={{ padding: "1rem" }}>
+            <IonItem>
+              <IonLabel position="stacked">Question</IonLabel>
+              <IonInput
+                value={editQuestion}
+                onIonChange={(e) => setEditQuestion(e.detail.value!)}
+              />
+            </IonItem>
+            <IonItem>
+              <IonLabel position="stacked">Answer</IonLabel>
+              <IonInput
+                value={editAnswer}
+                onIonChange={(e) => setEditAnswer(e.detail.value!)}
+              />
+            </IonItem>
+            <IonItem>
+              <IonLabel position="stacked">Solution</IonLabel>
+              <IonInput
+                value={editSolution}
+                onIonChange={(e) => setEditSolution(e.detail.value!)}
+              />
+            </IonItem>
+            <div style={{ marginTop: "1rem", textAlign: "center" }}>
+              <IonButton color="primary" onClick={handleEditSave}>
+                Save
+              </IonButton>
+              <IonButton
+                color="medium"
+                onClick={() => setEditQuiz(null)}
+                style={{ marginLeft: "0.5rem" }}
+              >
+                Cancel
+              </IonButton>
+            </div>
+          </IonContent>
+        </IonModal>
       </IonContent>
     </IonPage>
   );
 };
 
-export default admin_leaderboard;
+export default AdminMotionQuiz;

@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import {
   IonPage,
   IonHeader,
@@ -13,8 +13,7 @@ import {
 } from "@ionic/react";
 import { supabase } from "../../utils/supabaseClient";
 
-
-const TIME_PER_QUESTION = 30; // <-- Declare this before your component
+const TIME_PER_QUESTION = 60; // seconds
 
 interface Quiz {
   id: string;
@@ -40,10 +39,11 @@ const ArithmeticQuiz: React.FC = () => {
 
   const [showResultModal, setShowResultModal] = useState(false);
 
-// Timer state
-const [timeLeft, setTimeLeft] = useState<number>(TIME_PER_QUESTION);
-const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // Timer state
+  const [timeLeft, setTimeLeft] = useState<number>(TIME_PER_QUESTION);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  // ✅ Fetch quizzes from supabase
   useEffect(() => {
     const fetchQuizzes = async () => {
       const { data, error } = await supabase
@@ -58,47 +58,8 @@ const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
     fetchQuizzes();
   }, []);
 
-    // Reset timer when currentQuiz changes
-  useEffect(() => {
-    if (currentQuiz) {
-      setTimeLeft(TIME_PER_QUESTION);
-      if (timerRef.current) clearInterval(timerRef.current);
-      timerRef.current = setInterval(() => {
-        setTimeLeft((prev) => {
-          if (prev <= 1) {
-            clearInterval(timerRef.current!);
-            handleNext(); // Auto proceed when time runs out
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-    }
-    // Cleanup on unmount or quiz change
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
-  }, [currentQuiz]);
-
-  const handleCategorySelect = (category: string) => {
-    setSelectedCategory(category);
-    const filtered = quizzes
-      .filter((q) => q.category === category)
-      .sort((a, b) => a.level - b.level);
-    if (filtered.length > 0) {
-      setCurrentQuiz(filtered[0]);
-      setScore(0);
-      setUserSolutions([]);
-    }
-  };
-
-  const handleNext = () => {
-    if (!userAnswer.trim()) {
-      setErrorMessage("⚠️ Please enter your answer before proceeding.");
-      return;
-    }
-
-    setErrorMessage("");
+  // ✅ Handle next with useCallback to fix dependency issue
+  const handleNext = useCallback(() => {
     if (!currentQuiz || !selectedCategory) return;
 
     const isCorrect =
@@ -128,45 +89,65 @@ const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
       setCurrentQuiz(filtered[currentIndex + 1]);
       setUserAnswer("");
     } else {
-      // ✅ Finished all quizzes → show modal
       setShowResultModal(true);
+      if (timerRef.current) clearInterval(timerRef.current);
+    }
+  }, [currentQuiz, selectedCategory, quizzes, userAnswer]);
+
+  // ✅ Timer effect
+  useEffect(() => {
+    if (currentQuiz) {
+      setTimeLeft(TIME_PER_QUESTION);
+      if (timerRef.current) clearInterval(timerRef.current);
+      timerRef.current = setInterval(() => {
+        setTimeLeft((prev) => {
+          if (prev <= 1) {
+            clearInterval(timerRef.current!);
+            handleNext(); // Auto proceed when time runs out
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [currentQuiz, handleNext]);
+
+  const handleCategorySelect = (category: string) => {
+    setSelectedCategory(category);
+    const filtered = quizzes
+      .filter((q) => q.category === category)
+      .sort((a, b) => a.level - b.level);
+    if (filtered.length > 0) {
+      setCurrentQuiz(filtered[0]);
+      setScore(0);
+      setUserSolutions([]);
     }
   };
 
   const getMessage = () => {
-    let message = "";
-
     switch (score) {
       case 0:
-        message = "😢 Better luck next time!";
-        break;
+        return "😢 Better luck next time!";
       case 1:
-        message = "🙂 You got 1 correct, keep practicing!";
-        break;
+        return "🙂 You got 1 correct, keep practicing!";
       case 2:
-        message = "👍 Nice effort, you got 2 correct!";
-        break;
+        return "👍 Nice effort, you got 2 correct!";
       case 3:
-        message = "👏 Good job! 3 correct answers!";
-        break;
+        return "👏 Good job! 3 correct answers!";
       case 4:
-        message = "🔥 Almost perfect! You got 4!";
-        break;
+        return "🔥 Almost perfect! You got 4!";
       case 5:
-        message = "🏆 Perfect score! Excellent work!";
-        break;
+        return "🏆 Perfect score! Excellent work!";
       default:
-        message = "🎉 Quiz completed!";
+        return "🎉 Quiz completed!";
     }
-
-    return message;
   };
 
-    // Format time as mm:ss
   const formatTime = (seconds: number) => {
-    const m = Math.floor(seconds / 60)
-      .toString()
-      .padStart(2, "0");
+    const m = Math.floor(seconds / 60).toString().padStart(2, "0");
     const s = (seconds % 60).toString().padStart(2, "0");
     return `${m}:${s}`;
   };
@@ -224,8 +205,7 @@ const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
               boxSizing: "border-box",
             }}
           >
-
-              {/* Timer */}
+            {/* Timer */}
             <div
               style={{
                 fontSize: "24px",
@@ -234,8 +214,6 @@ const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
                 marginBottom: "10px",
                 fontFamily: "monospace",
               }}
-              aria-live="polite"
-              aria-atomic="true"
             >
               Time Left: {formatTime(timeLeft)}
             </div>
@@ -257,16 +235,15 @@ const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
                 maxWidth: "400px",
                 width: "100%",
                 marginBottom: "10px",
-                justifyContent: "center", // center horizontally
+                justifyContent: "center",
               }}
             >
-              
               <IonInput
                 value={userAnswer}
                 placeholder="Enter your answer"
                 onIonInput={(e) => setUserAnswer(e.detail.value!)}
                 clearInput
-               style={{ textAlign: "center", fontSize: "18px" }} // center text inside input
+                style={{ textAlign: "center", fontSize: "18px" }}
               />
             </IonItem>
 
@@ -276,11 +253,7 @@ const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
               </IonText>
             )}
 
-            <IonButton
-              expand="block"
-              onClick={handleNext}
-              style={{ marginTop: "15px" }}
-            >
+            <IonButton expand="block" onClick={handleNext} style={{ marginTop: "15px" }}>
               Next
             </IonButton>
 
@@ -296,87 +269,85 @@ const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
                 setErrorMessage("");
                 setScore(0);
                 setUserSolutions([]);
-               if (timerRef.current) clearInterval(timerRef.current);
+                if (timerRef.current) clearInterval(timerRef.current);
               }}
             >
               Back to Categories
             </IonButton>
           </div>
         ) : (
-          <p style={{ textAlign: "center", marginTop: "50px" }}>
-            Loading quizzes...
-          </p>
+          <p style={{ textAlign: "center", marginTop: "50px" }}>Loading quizzes...</p>
         )}
 
-        {/* ✅ Result Modal */}
-      <IonModal isOpen={showResultModal} backdropDismiss={false}>
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            height: "100%",       // ✅ para masakop buong modal
-            padding: "20px",
-          }}
-        >
+        {/* ✅ Result Modal with scroll */}
+        <IonModal isOpen={showResultModal} backdropDismiss={false}>
           <div
             style={{
-              flex: 1,
-              overflowY: "auto",   // ✅ scrollable content
-              paddingRight: "10px"
+              display: "flex",
+              flexDirection: "column",
+              height: "100%",
+              padding: "20px",
             }}
           >
-            <h2>{getMessage()}</h2>
-            <h3>Your Score: {score}/5</h3>
+            <div
+              style={{
+                flex: 1,
+                overflowY: "auto",
+                paddingRight: "10px",
+              }}
+            >
+              <h2>{getMessage()}</h2>
+              <h3>Your Score: {score}/5</h3>
 
-            <div style={{ textAlign: "left", marginTop: "20px" }}>
-              <h4>Answers & Solutions:</h4>
-              <ul>
-                {userSolutions.map((res, index) => (
-                  <li
-                    key={index}
-                    style={{
-                      marginBottom: "15px",
-                      color: res.isCorrect ? "green" : "red",
-                    }}
-                  >
-                    <strong>Q:</strong> {res.question}
-                    <br />
-                    <strong>Correct Answer:</strong> {res.correct}
-                    <br />
-                    <strong>Solution:</strong>
-                    <pre
+              <div style={{ textAlign: "left", marginTop: "20px" }}>
+                <h4>Answers & Solutions:</h4>
+                <ul>
+                  {userSolutions.map((res, index) => (
+                    <li
+                      key={index}
                       style={{
-                        whiteSpace: "pre-wrap",
-                        fontFamily: "inherit",
-                        margin: "5px 0",
+                        marginBottom: "15px",
+                        color: res.isCorrect ? "green" : "red",
                       }}
                     >
-                      {res?.solution || "No solution provided."}
-                    </pre>
-                  </li>
-                ))}
-              </ul>
+                      <strong>Q:</strong> {res.question}
+                      <br />
+                      <strong>Correct Answer:</strong> {res.correct}
+                      <br />
+                      <strong>Solution:</strong>
+                      <pre
+                        style={{
+                          whiteSpace: "pre-wrap",
+                          fontFamily: "inherit",
+                          margin: "5px 0",
+                        }}
+                      >
+                        {res?.solution || "No solution provided."}
+                      </pre>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             </div>
-          </div>
 
-          {/* ✅ Button stays at bottom */}
-          <IonButton
-            expand="block"
-            style={{ marginTop: "15px" }}
-            onClick={() => {
-              setSelectedCategory(null);
-              setCurrentQuiz(null);
-              setUserAnswer("");
-              setErrorMessage("");
-              setScore(0);
-              setUserSolutions([]);
-              setShowResultModal(false);
-            }}
-          >
-            Back to Categories
-          </IonButton>
-        </div>
-      </IonModal>
+            {/* Button stays at bottom */}
+            <IonButton
+              expand="block"
+              style={{ marginTop: "15px" }}
+              onClick={() => {
+                setSelectedCategory(null);
+                setCurrentQuiz(null);
+                setUserAnswer("");
+                setErrorMessage("");
+                setScore(0);
+                setUserSolutions([]);
+                setShowResultModal(false);
+              }}
+            >
+              Back to Categories
+            </IonButton>
+          </div>
+        </IonModal>
       </IonContent>
     </IonPage>
   );

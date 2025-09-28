@@ -277,8 +277,18 @@ const ArithmeticQuiz: React.FC = () => {
                     <br />
                     <strong>Correct Answer:</strong> {res.correct}
                     <br />
-                    <strong>Solution:</strong> {res.solution}
+                    <strong>Solution:</strong>
+                    <pre
+                      style={{
+                        whiteSpace: "pre-wrap", // ✅ respect line breaks
+                        fontFamily: "inherit",  // ✅ same font as text
+                        margin: "5px 0",
+                      }}
+                    >
+                      {res?.solution || "No solution provided."}
+                    </pre>
                   </li>
+
                 ))}
               </ul>
             </div>

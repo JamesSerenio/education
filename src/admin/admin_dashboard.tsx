@@ -4,7 +4,6 @@ import {
   IonButton,
   IonContent,
   IonHeader,
-  IonIcon,
   IonItem,
   IonMenu,
   IonMenuButton,
@@ -13,16 +12,9 @@ import {
   IonSplitPane,
   IonTitle,
   IonToolbar,
+  IonIcon,
 } from "@ionic/react";
-import {
-  homeOutline,
-  logOutOutline,
-  trophyOutline,
-  navigateOutline,
-  createOutline,
-  calculatorOutline,
-  speedometerOutline,
-} from "ionicons/icons";
+import { logOutOutline } from "ionicons/icons";
 import { useHistory } from "react-router-dom";
 
 // ✅ Import your page components
@@ -33,17 +25,25 @@ import AdminRadar from "./admin_radar";
 import AdminArithmeticQuiz from "./admin_arithmetic_quiz";
 import AdminMotionQuiz from "./admin_motion_quiz";
 
+// ✅ Import custom icons
+import iconHome from "../assets/icon_home.gif";
+import iconAddQuiz from "../assets/icon_addquiz.gif";
+import iconArithmetic from "../assets/icon_arithmetic.gif";
+import iconMotion from "../assets/icon_motion.gif";
+import iconLeaderboard from "../assets/icon_leaderboard.gif";
+import iconRadar from "../assets/icon_radar.png";
+
 const AdminDashboard: React.FC = () => {
   const history = useHistory();
   const [activePage, setActivePage] = useState("Home");
 
   const menuItems = [
-    { name: "Home", key: "Home", icon: homeOutline },
-    { name: "Add Quiz", key: "quiz", icon: createOutline },
-    { name: "Arithmetic Quiz", key: "arithmetic_quiz", icon: calculatorOutline },
-    { name: "Motion Quiz", key: "motion_quiz", icon: speedometerOutline },
-    { name: "Leaderboard", key: "leaderboard", icon: trophyOutline },
-    { name: "Radar", key: "radar", icon: navigateOutline },
+    { name: "Home", key: "Home", icon: iconHome },
+    { name: "Add Quiz", key: "quiz", icon: iconAddQuiz },
+    { name: "Arithmetic Quiz", key: "arithmetic_quiz", icon: iconArithmetic },
+    { name: "Motion Quiz", key: "motion_quiz", icon: iconMotion },
+    { name: "Leaderboard", key: "leaderboard", icon: iconLeaderboard },
+    { name: "Radar", key: "radar", icon: iconRadar },
   ];
 
   // ✅ Decide which component to render
@@ -84,7 +84,18 @@ const AdminDashboard: React.FC = () => {
                   onClick={() => setActivePage(item.key)}
                   lines="none"
                 >
-                  <IonIcon icon={item.icon} slot="start" />
+                  {/* ✅ Custom icon (image instead of IonIcon) */}
+                  <img
+                    src={item.icon}
+                    alt={item.name}
+                    style={{
+                      width: "24px",
+                      height: "24px",
+                      marginRight: "8px",
+                      borderRadius: "4px",
+                    }}
+                  />
+
                   <span
                     style={{
                       marginLeft: "8px",
@@ -111,7 +122,7 @@ const AdminDashboard: React.FC = () => {
               </IonMenuToggle>
             ))}
 
-            {/* Logout Button → Home */}
+            {/* Logout Button → Login */}
             <IonMenuToggle autoHide={false}>
               <IonButton
                 expand="block"

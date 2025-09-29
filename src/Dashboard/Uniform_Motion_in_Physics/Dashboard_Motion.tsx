@@ -4,7 +4,6 @@ import {
   IonButton,
   IonContent,
   IonHeader,
-  IonIcon,
   IonItem,
   IonMenu,
   IonMenuButton,
@@ -13,14 +12,9 @@ import {
   IonSplitPane,
   IonTitle,
   IonToolbar,
+  IonIcon,
 } from "@ionic/react";
-import {
-  homeOutline,
-  logOutOutline,
-  layersOutline,
-  trophyOutline,
-  navigateOutline,
-} from "ionicons/icons";
+import { logOutOutline } from "ionicons/icons";
 import { useHistory } from "react-router-dom";
 
 import ArithmeticHome from "./Motion_Home";
@@ -28,21 +22,28 @@ import ArithmeticModule from "./Motion_Module";
 import ArithmeticLeaderboard from "./Motion_Leaderboard";
 import ArithmeticRadar from "./Motion_Radar";
 
+// ✅ Import custom icons
+import iconHome from "../../assets/icon_home.gif";
+import iconModule from "../../assets/icon_module.gif";
+import iconLeaderboard from "../../assets/icon_leaderboard.gif";
+import iconRadar from "../../assets/icon_radar.png";
+
 const Dashboard_Motion: React.FC = () => {
   const history = useHistory();
   const [activePage, setActivePage] = useState("Home");
 
+  // ✅ Use custom icons for all menu items
   const menuItems = [
-    { name: "Home", key: "Home", icon: homeOutline, path: "/education/Motion_Home" },
-    { name: "Module", key: "module", icon: layersOutline, path: "/education/Motion_Module" },
-    { name: "Leaderboard", key: "leaderboard", icon: trophyOutline, path: "/education/Motion_Leaderboard" },
-    { name: "Radar", key: "radar", icon: navigateOutline, path: "/education/Motion_Radar" },
+    { name: "Home", key: "Home", icon: iconHome },
+    { name: "Module", key: "module", icon: iconModule },
+    { name: "Leaderboard", key: "leaderboard", icon: iconLeaderboard },
+    { name: "Radar", key: "radar", icon: iconRadar },
   ];
 
   const renderContent = () => {
     switch (activePage) {
       case "Home":
-        return <ArithmeticHome />; // ✅ gumamit na ng ArithmeticHome
+        return <ArithmeticHome />;
       case "module":
         return <ArithmeticModule />;
       case "leaderboard":
@@ -52,7 +53,7 @@ const Dashboard_Motion: React.FC = () => {
       default:
         return (
           <h2 style={{ textAlign: "center", marginTop: "2rem" }}>
-            Welcome to Arithmetic Dashboard
+            Welcome to Motion Dashboard
           </h2>
         );
     }
@@ -76,7 +77,18 @@ const Dashboard_Motion: React.FC = () => {
                   onClick={() => setActivePage(item.key)}
                   lines="none"
                 >
-                  <IonIcon icon={item.icon} slot="start" />
+                  {/* ✅ Custom icons */}
+                  <img
+                    src={item.icon}
+                    alt={item.name}
+                    style={{
+                      width: "24px",
+                      height: "24px",
+                      borderRadius: "4px",
+                      marginRight: "8px",
+                    }}
+                  />
+
                   <span
                     style={{
                       marginLeft: "8px",
@@ -88,13 +100,12 @@ const Dashboard_Motion: React.FC = () => {
                     {activePage === item.key && (
                       <span
                         style={{
-                          content: '""',
                           position: "absolute",
                           left: 0,
                           bottom: 0,
                           width: "100%",
                           height: "2px",
-                          backgroundColor: "#3b82f6", // underline color
+                          backgroundColor: "#3b82f6", // underline
                           borderRadius: "2px",
                         }}
                       />
@@ -128,7 +139,7 @@ const Dashboard_Motion: React.FC = () => {
               </IonButtons>
               <IonTitle>
                 {menuItems.find((m) => m.key === activePage)?.name ||
-                  "Dashboard Arithmetic"}
+                  "Dashboard Motion"}
               </IonTitle>
             </IonToolbar>
           </IonHeader>

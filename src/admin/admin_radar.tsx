@@ -31,12 +31,25 @@ ChartJS.register(
 );
 
 const MAX_SCORE = 5;
-const MAX_TIME = 300;
+const MAX_TIME = 300; // seconds (5 minutes max for the quiz)
 
 interface UserScore {
   time: number;
   solving: number;
   problemSolving: number;
+}
+
+// TypeScript interface for the fetched score data (with quizzes join)
+interface ScoreWithQuizzes {
+  id: string;
+  score: number | null;
+  time_taken: number | null;
+  created_at: string;
+  quiz_id: string;
+  quizzes: {
+    id: string;
+    category: string;
+  } | null;
 }
 
 const AdminRadar: React.FC = () => {
@@ -48,38 +61,122 @@ const AdminRadar: React.FC = () => {
     problemSolving: 0,
   });
 
+  // Helper function to map raw Supabase data to our typed interface
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const mapToScoreWithQuizzes = (rawData: any): ScoreWithQuizzes => {
+    return {
+      id: rawData.id || '',
+      score: rawData.score || null,
+      time_taken: rawData.time_taken || null,
+      created_at: rawData.created_at || new Date().toISOString(), // Default if missing
+      quiz_id: rawData.quiz_id || '',
+      quizzes: rawData.quizzes 
+        ? {
+            id: rawData.quizzes.id || '',
+            category: rawData.quizzes.category || ''
+          }
+        : null,
+    };
+  };
+
   const fetchAllUsersData = async () => {
     try {
-      const { data: scoresData, error: scoresError } = await supabase
+      // Fetch ALL scores with category info (join with quizzes) - no user filter for admin view
+      const { data: allScores, error: scoresError } = await supabase
         .from("scores")
-        .select(`time_taken, score`);
+        .select(`
+          id,
+          score,
+          time_taken,
+          created_at,
+          quiz_id,
+          quizzes!quiz_id (id, category)
+        `)
+        .order("created_at", { ascending: false });
 
       if (scoresError) {
         console.error("Error fetching scores:", scoresError);
+        setAverageScore({ time: 0, solving: 0, problemSolving: 0 });
         return;
       }
 
-      if (!scoresData || scoresData.length === 0) return;
+      // Map raw Supabase data to our typed interface
+      const typedScores: ScoreWithQuizzes[] = (allScores || []).map(mapToScoreWithQuizzes);
 
-      let totalTime = 0;
-      let totalScore = 0;
+      console.log("All fetched scores with categories:", typedScores); // DEBUG: Check this in console
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      scoresData.forEach((s: any) => {
-        totalTime += MAX_TIME - s.time_taken;
-        totalScore += s.score;
+      if (typedScores.length === 0) {
+        console.log("No scores found, defaulting to 0%");
+        setAverageScore({ time: 0, solving: 0, problemSolving: 0 });
+        return;
+      }
+
+      // Calculate overall average time performance (across all scores/categories)
+      let totalTimePercent = 0;
+      typedScores.forEach((score) => {
+        const rawTime = score.time_taken ?? 0;
+        totalTimePercent += Math.max(0, Math.round(((MAX_TIME - rawTime) / MAX_TIME) * 100));
+      });
+      const avgTimePercent = Math.round(totalTimePercent / typedScores.length);
+      console.log(`Overall average time performance: ${avgTimePercent}% (from ${typedScores.length} total attempts)`);
+
+      // Group scores by category
+      const solvingScores: ScoreWithQuizzes[] = [];
+      const problemSolvingScores: ScoreWithQuizzes[] = [];
+
+      typedScores.forEach((score) => {
+        const category = score.quizzes?.category || null;
+        console.log(`Score ID ${score.id}: Score=${score.score}, Category='${category}'`); // DEBUG
+
+        if (category === "Solving") {
+          solvingScores.push(score);
+        } else if (category === "Problem Solving") {
+          problemSolvingScores.push(score);
+        }
       });
 
-      const avgTime = Math.round((totalTime / scoresData.length / MAX_TIME) * 100);
-      const avgScore = Math.round((totalScore / scoresData.length / MAX_SCORE) * 100);
+      // Calculate average score % for Solving category
+      let avgSolvingPercent = 0;
+      if (solvingScores.length > 0) {
+        let totalSolvingScore = 0;
+        solvingScores.forEach((s) => {
+          totalSolvingScore += (s.score ?? 0);
+        });
+        avgSolvingPercent = Math.min(100, Math.round((totalSolvingScore / solvingScores.length) / MAX_SCORE * 100));
+        console.log(`Solving average: ${Math.round((totalSolvingScore / solvingScores.length))}/5 (${solvingScores.length} attempts) → ${avgSolvingPercent}%`);
+      } else {
+        console.log("No Solving scores found, defaulting to 0%");
+      }
 
+      // Calculate average score % for Problem Solving category
+      let avgProblemSolvingPercent = 0;
+      if (problemSolvingScores.length > 0) {
+        let totalProblemSolvingScore = 0;
+        problemSolvingScores.forEach((s) => {
+          totalProblemSolvingScore += (s.score ?? 0);
+        });
+        avgProblemSolvingPercent = Math.min(100, Math.round((totalProblemSolvingScore / problemSolvingScores.length) / MAX_SCORE * 100));
+        console.log(`Problem Solving average: ${Math.round((totalProblemSolvingScore / problemSolvingScores.length))}/5 (${problemSolvingScores.length} attempts) → ${avgProblemSolvingPercent}%`);
+      } else {
+        console.log("No Problem Solving scores found, defaulting to 0%");
+      }
+
+      // Update average state
       setAverageScore({
-        time: avgTime,
-        solving: avgScore,
-        problemSolving: avgScore,
+        time: avgTimePercent,
+        solving: avgSolvingPercent,
+        problemSolving: avgProblemSolvingPercent,
       });
+
+      console.log("Final average values:", {
+        time: avgTimePercent,
+        solving: avgSolvingPercent,
+        problemSolving: avgProblemSolvingPercent,
+      });
+
     } catch (err) {
       console.error("Error fetching data:", err);
+      setAverageScore({ time: 0, solving: 0, problemSolving: 0 });
     }
   };
 
@@ -140,7 +237,7 @@ const AdminRadar: React.FC = () => {
             },
           },
           datalabels: {
-            color: "white",
+            color: "black", // Changed to black for % labels
             font: { weight: 'bold', size: 12 },
             formatter: (value) => `${value}%`,
           },
@@ -150,9 +247,13 @@ const AdminRadar: React.FC = () => {
             angleLines: { color: "rgba(156, 163, 175, 0.3)" },
             grid: { circular: true, color: "rgba(209, 213, 219, 0.3)" },
             pointLabels: { color: "#111827", font: { size: 14, weight: "bold" } },
-            ticks: { color: "#4b5563", backdropColor: "transparent" },
             suggestedMin: 0,
             suggestedMax: 100,
+            ticks: {
+              display: false, // Hide the numerical tick labels (0, 20, 40, 60, 80, 100)
+              color: "#4b5563",
+              backdropColor: "transparent",
+            },
           },
         },
       },

@@ -29,7 +29,20 @@ ChartJS.register(
 );
 
 const MAX_SCORE = 5;
-const MAX_TIME = 300;
+const MAX_TIME = 300; // seconds (5 minutes max for the quiz)
+
+// TypeScript interface for the fetched score data (with quizzes join)
+interface ScoreWithQuizzes {
+  id: string;
+  score: number | null;
+  time_taken: number | null;
+  created_at: string;
+  quiz_id: string;
+  quizzes: {
+    id: string;
+    category: string;
+  } | null;
+}
 
 const Arithmetic_Radar: React.FC = () => {
   const radarRef = useRef<HTMLCanvasElement | null>(null);
@@ -41,54 +54,138 @@ const Arithmetic_Radar: React.FC = () => {
     problemSolving: 0,
   });
 
+  // Helper function to map raw Supabase data to our typed interface
+  const mapToScoreWithQuizzes = (rawData: any): ScoreWithQuizzes => {
+    return {
+      id: rawData.id || '',
+      score: rawData.score || null,
+      time_taken: rawData.time_taken || null,
+      created_at: rawData.created_at || new Date().toISOString(), // Default if missing
+      quiz_id: rawData.quiz_id || '',
+      quizzes: rawData.quizzes 
+        ? {
+            id: rawData.quizzes.id || '',
+            category: rawData.quizzes.category || ''
+          }
+        : null,
+    };
+  };
+
   const fetchRadarData = async () => {
     try {
       const {
         data: { user },
         error: userError,
-      } = await supabase.auth.getUser();
+      } = await supabase.auth.getUser  ();
 
       if (userError || !user) {
         console.error("No user logged in:", userError);
+        setPerformance({ time: 0, solving: 0, problemSolving: 0 });
         return;
       }
 
       const userId = user.id;
 
-      const { data: scores, error: scoreError } = await supabase
+      // Fetch ALL recent scores with category info (join with quizzes)
+      // Limit to last 10 attempts to keep it efficient
+      const { data: allScores, error: scoresError } = await supabase
         .from("scores")
-        .select("time_taken, score")
+        .select(`
+          id,
+          score,
+          time_taken,
+          created_at,
+          quiz_id,
+          quizzes!quiz_id (id, category)
+        `)
         .eq("user_id", userId)
         .order("created_at", { ascending: false })
-        .limit(1);
+        .limit(10); // Adjust if you have more attempts
 
-      if (scoreError) {
-        console.error("Error fetching scores:", scoreError);
+      if (scoresError) {
+        console.error("Error fetching scores:", scoresError);
+        setPerformance({ time: 0, solving: 0, problemSolving: 0 });
         return;
       }
 
-      if (scores && scores.length > 0) {
-        const latest = scores[0];
-        const rawTime = latest.time_taken ?? 0;
-        const rawScore = latest.score ?? 0;
+      // Map raw Supabase data to our typed interface (no casting needed!)
+      const typedScores: ScoreWithQuizzes[] = (allScores || []).map(mapToScoreWithQuizzes);
 
-        const timePercent = Math.max(
-          0,
-          Math.round(((MAX_TIME - rawTime) / MAX_TIME) * 100)
-        );
-        const scorePercent = Math.min(
-          100,
-          Math.round((rawScore / MAX_SCORE) * 100)
-        );
+      console.log("All fetched scores with categories:", typedScores); // DEBUG: Check this in console
 
-        setPerformance({
-          time: timePercent,
-          solving: scorePercent,
-          problemSolving: scorePercent,
-        });
+      if (typedScores.length === 0) {
+        console.log("No scores found, defaulting to 0%");
+        setPerformance({ time: 0, solving: 0, problemSolving: 0 });
+        return;
       }
+
+      // Get latest overall time (most recent score, regardless of category)
+      const latestOverall = typedScores[0];
+      const rawTime = latestOverall.time_taken ?? 0;
+      const timePercent = Math.max(
+        0,
+        Math.round(((MAX_TIME - rawTime) / MAX_TIME) * 100)
+      );
+      console.log(`Latest time taken: ${rawTime}s → Time performance: ${timePercent}%`);
+
+      // Initialize typed arrays for each category
+      const solvingScores: ScoreWithQuizzes[] = [];
+      const problemSolvingScores: ScoreWithQuizzes[] = [];
+
+      // Group scores by category (manual JS filtering)
+      typedScores.forEach((score) => {
+        // Safe access to category with optional chaining
+        const category = score.quizzes?.category || null;
+        console.log(`Score ID ${score.id}: Score=${score.score}, Category='${category}'`); // DEBUG
+
+        if (category === "Solving") {
+          solvingScores.push(score);
+        } else if (category === "Problem Solving") {
+          problemSolvingScores.push(score);
+        }
+      });
+
+      // Sort each by created_at DESC to get latest (most recent first)
+      solvingScores.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      problemSolvingScores.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+      // Calculate percentages
+      let solvingPercent = 0;
+      if (solvingScores.length > 0) {
+        const latestSolving = solvingScores[0];
+        const rawScoreSolving = latestSolving.score ?? 0;
+        solvingPercent = Math.min(100, Math.round((rawScoreSolving / MAX_SCORE) * 100));
+        console.log(`Latest Solving: ${rawScoreSolving}/5 (${solvingScores.length} attempts) → ${solvingPercent}%`);
+      } else {
+        console.log("No Solving scores found, defaulting to 0%");
+      }
+
+      let problemSolvingPercent = 0;
+      if (problemSolvingScores.length > 0) {
+        const latestProblemSolving = problemSolvingScores[0];
+        const rawScoreProblemSolving = latestProblemSolving.score ?? 0;
+        problemSolvingPercent = Math.min(100, Math.round((rawScoreProblemSolving / MAX_SCORE) * 100));
+        console.log(`Latest Problem Solving: ${rawScoreProblemSolving}/5 (${problemSolvingScores.length} attempts) → ${problemSolvingPercent}%`);
+      } else {
+        console.log("No Problem Solving scores found, defaulting to 0%");
+      }
+
+      // Update performance state
+      setPerformance({
+        time: timePercent,
+        solving: solvingPercent,
+        problemSolving: problemSolvingPercent,
+      });
+
+      console.log("Final performance values:", {
+        time: timePercent,
+        solving: solvingPercent,
+        problemSolving: problemSolvingPercent,
+      });
+
     } catch (err) {
-      console.error("Error:", err);
+      console.error("Error in fetchRadarData:", err);
+      setPerformance({ time: 0, solving: 0, problemSolving: 0 });
     }
   };
 
@@ -165,6 +262,7 @@ const Arithmetic_Radar: React.FC = () => {
               suggestedMin: 0,
               suggestedMax: 100,
               ticks: {
+                display: false, // Hide the numerical tick labels (0, 20, 40, 60, 80, 100)
                 backdropColor: "transparent",
                 color: "#4b5563",
               },

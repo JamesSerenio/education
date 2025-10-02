@@ -242,14 +242,14 @@ const AdminRadar: React.FC = () => {
             formatter: (value) => `${value}%`,
           },
         },
-            scales: {
-              r: {
-                angleLines: { color: "rgba(156, 163, 175, 0.3)" },
-                grid: { circular: false, color: "rgba(209, 213, 219, 0.3)" }, // polygon instead of circle
-                pointLabels: { color: "#111827", font: { size: 14, weight: "bold" } },
-                suggestedMin: 0,
-                suggestedMax: 100,
-                ticks: {
+          scales: {
+            r: {
+              angleLines: { color: "rgba(156, 163, 175, 0.3)" },
+              grid: { circular: false, color: "rgba(209, 213, 219, 0.3)" }, // polygon instead of circle
+              pointLabels: { color: "#111827", font: { size: 14, weight: "bold" } },
+              suggestedMin: 0,
+              suggestedMax: 100,
+              ticks: {
               display: false, // Hide the numerical tick labels (0, 20, 40, 60, 80, 100)
               color: "#4b5563",
               backdropColor: "transparent",

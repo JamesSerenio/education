@@ -65,51 +65,55 @@ const ArithmeticQuiz: React.FC = () => {
   }, []);
 
   // ✅ Handle next with validation
-  const handleNext = useCallback(() => {
-    if (!currentQuiz || !selectedCategory) return;
+const handleNext = useCallback(() => {
+  if (!currentQuiz || !selectedCategory) return;
 
-    // 🔴 Check if user has entered an answer
-    if (!userAnswer.trim()) {
-      setErrorMessage("Please enter your answer before proceeding.");
-      return; // stop here, don't continue
-    }
+  if (!userAnswer.trim()) {
+    setErrorMessage("Please enter your answer before proceeding.");
+    return;
+  }
 
-    setErrorMessage(""); // clear error if any
+  setErrorMessage("");
 
-    const isCorrect =
-      userAnswer.trim().toLowerCase() ===
-      currentQuiz.answer.trim().toLowerCase();
+  const isCorrect =
+    userAnswer.trim().toLowerCase() ===
+    currentQuiz.answer.trim().toLowerCase();
 
-    if (isCorrect) {
-      setScore((prev) => prev + 1);
-    }
+  // 🔧 FIX: use local variable para siguradong tama yung score
+  let newScore = score;
+  if (isCorrect) {
+    newScore = score + 1;
+    setScore(newScore);
+  }
 
-    setUserSolutions((prev) => [
-      ...prev,
-      {
-        question: currentQuiz.question,
-        correct: currentQuiz.answer,
-        solution: currentQuiz.solution,
-        isCorrect,
-      },
-    ]);
+  setUserSolutions((prev) => [
+    ...prev,
+    {
+      question: currentQuiz.question,
+      correct: currentQuiz.answer,
+      solution: currentQuiz.solution,
+      isCorrect,
+    },
+  ]);
 
-    const filtered = quizzes
-      .filter((q) => q.category === selectedCategory)
-      .sort((a, b) => a.level - b.level);
+  const filtered = quizzes
+    .filter((q) => q.category === selectedCategory)
+    .sort((a, b) => a.level - b.level);
 
-    const currentIndex = filtered.findIndex((q) => q.id === currentQuiz.id);
-    if (currentIndex < filtered.length - 1) {
-      setCurrentQuiz(filtered[currentIndex + 1]);
-      setUserAnswer("");
-    } else {
-      setShowResultModal(true);
-      if (timerRef.current) clearInterval(timerRef.current);
+  const currentIndex = filtered.findIndex((q) => q.id === currentQuiz.id);
 
-      // ✅ Save result to Supabase
-      saveResult(filtered[0].id);
-    }
-  }, [currentQuiz, selectedCategory, quizzes, userAnswer]);
+  if (currentIndex < filtered.length - 1) {
+    setCurrentQuiz(filtered[currentIndex + 1]);
+    setUserAnswer("");
+  } else {
+    setShowResultModal(true);
+    if (timerRef.current) clearInterval(timerRef.current);
+
+    // ✅ Save result with the final newScore
+    saveResult(filtered[0].id, newScore);
+  }
+}, [currentQuiz, selectedCategory, quizzes, userAnswer, score]);
+
 
   // ✅ Timer effect
   useEffect(() => {
@@ -155,41 +159,42 @@ const ArithmeticQuiz: React.FC = () => {
   };
 
   // ✅ Save quiz result in Supabase
-  const saveResult = async (quizId: string) => {
-    try {
-      const {
-        data: { session },
-        error,
-      } = await supabase.auth.getSession();
+const saveResult = async (quizId: string, finalScore: number) => {
+  try {
+    const {
+      data: { session },
+      error,
+    } = await supabase.auth.getSession();
 
-      if (error || !session) {
-        console.warn("⚠️ No active session. Cannot save score.");
-        return;
-      }
-
-      const userId = session.user.id; // ✅ current logged-in user
-      console.log("👉 Saving score for user:", userId);
-
-      const timeTaken = startTime ? Math.floor((Date.now() - startTime) / 1000) : 0;
-
-      const { error: insertError } = await supabase.from("scores").insert([
-        {
-          user_id: userId,
-          quiz_id: quizId,
-          score: score,
-          time_taken: timeTaken,
-        },
-      ]);
-
-      if (insertError) {
-        console.error("❌ Error saving score:", insertError.message);
-      } else {
-        console.log("✅ Score saved successfully!");
-      }
-    } catch (err) {
-      console.error("Unexpected error saving score:", err);
+    if (error || !session) {
+      console.warn("⚠️ No active session. Cannot save score.");
+      return;
     }
-  };
+
+    const userId = session.user.id;
+    console.log("👉 Saving score for user:", userId);
+
+    const timeTaken = startTime ? Math.floor((Date.now() - startTime) / 1000) : 0;
+
+    const { error: insertError } = await supabase.from("scores").insert([
+      {
+        user_id: userId,
+        quiz_id: quizId,
+        score: finalScore, // ✅ siguradong tama
+        time_taken: timeTaken,
+      },
+    ]);
+
+    if (insertError) {
+      console.error("❌ Error saving score:", insertError.message);
+    } else {
+      console.log("✅ Score saved successfully!");
+    }
+  } catch (err) {
+    console.error("Unexpected error saving score:", err);
+  }
+};
+
 
   const getMessage = () => {
     switch (score) {

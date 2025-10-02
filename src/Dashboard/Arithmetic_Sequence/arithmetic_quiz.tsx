@@ -43,6 +43,9 @@ const ArithmeticQuiz: React.FC = () => {
   const [timeLeft, setTimeLeft] = useState<number>(TIME_PER_QUESTION);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  // Track total time taken
+  const [startTime, setStartTime] = useState<number | null>(null);
+
   // ✅ Fetch quizzes from supabase
   useEffect(() => {
     const fetchQuizzes = async () => {
@@ -58,7 +61,7 @@ const ArithmeticQuiz: React.FC = () => {
     fetchQuizzes();
   }, []);
 
-  // ✅ Handle next with useCallback to fix dependency issue
+  // ✅ Handle next with useCallback
   const handleNext = useCallback(() => {
     if (!currentQuiz || !selectedCategory) return;
 
@@ -91,6 +94,9 @@ const ArithmeticQuiz: React.FC = () => {
     } else {
       setShowResultModal(true);
       if (timerRef.current) clearInterval(timerRef.current);
+
+      // ✅ Save result to Supabase
+      saveResult(filtered[0].id);
     }
   }, [currentQuiz, selectedCategory, quizzes, userAnswer]);
 
@@ -124,6 +130,40 @@ const ArithmeticQuiz: React.FC = () => {
       setCurrentQuiz(filtered[0]);
       setScore(0);
       setUserSolutions([]);
+      setStartTime(Date.now());
+    }
+  };
+
+  // ✅ Save quiz result in Supabase
+  const saveResult = async (quizId: string) => {
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) {
+        console.warn("No user logged in. Cannot save score.");
+        return;
+      }
+
+      const timeTaken = startTime ? Math.floor((Date.now() - startTime) / 1000) : 0;
+
+      const { error } = await supabase.from("scores").insert([
+        {
+          user_id: user.id,
+          quiz_id: quizId,
+          score: score,
+          time_taken: timeTaken,
+        },
+      ]);
+
+      if (error) {
+        console.error("Error saving score:", error.message);
+      } else {
+        console.log("Score saved successfully!");
+      }
+    } catch (err) {
+      console.error("Unexpected error saving score:", err);
     }
   };
 
@@ -279,7 +319,7 @@ const ArithmeticQuiz: React.FC = () => {
           <p style={{ textAlign: "center", marginTop: "50px" }}>Loading quizzes...</p>
         )}
 
-        {/* ✅ Result Modal with scroll */}
+        {/* ✅ Result Modal */}
         <IonModal isOpen={showResultModal} backdropDismiss={false}>
           <div
             style={{
@@ -297,7 +337,7 @@ const ArithmeticQuiz: React.FC = () => {
               }}
             >
               <h2>{getMessage()}</h2>
-              <h3>Your Score: {score}/5</h3>
+              <h3>Your Score: {score}/{userSolutions.length}</h3>
 
               <div style={{ textAlign: "left", marginTop: "20px" }}>
                 <h4>Answers & Solutions:</h4>

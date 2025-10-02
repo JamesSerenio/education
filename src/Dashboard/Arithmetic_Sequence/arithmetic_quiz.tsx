@@ -46,6 +46,9 @@ const ArithmeticQuiz: React.FC = () => {
   // Track total time taken
   const [startTime, setStartTime] = useState<number | null>(null);
 
+  // Autofocus input
+  const inputRef = useRef<HTMLIonInputElement | null>(null);
+
   // ✅ Fetch quizzes from supabase
   useEffect(() => {
     const fetchQuizzes = async () => {
@@ -61,9 +64,17 @@ const ArithmeticQuiz: React.FC = () => {
     fetchQuizzes();
   }, []);
 
-  // ✅ Handle next with useCallback
+  // ✅ Handle next with validation
   const handleNext = useCallback(() => {
     if (!currentQuiz || !selectedCategory) return;
+
+    // 🔴 Check if user has entered an answer
+    if (!userAnswer.trim()) {
+      setErrorMessage("Please enter your answer before proceeding.");
+      return; // stop here, don't continue
+    }
+
+    setErrorMessage(""); // clear error if any
 
     const isCorrect =
       userAnswer.trim().toLowerCase() ===
@@ -121,6 +132,15 @@ const ArithmeticQuiz: React.FC = () => {
     };
   }, [currentQuiz, handleNext]);
 
+  // ✅ Auto-focus input whenever new question appears
+  useEffect(() => {
+    if (currentQuiz && inputRef.current) {
+      setTimeout(() => {
+        inputRef.current?.setFocus();
+      }, 200);
+    }
+  }, [currentQuiz]);
+
   const handleCategorySelect = (category: string) => {
     setSelectedCategory(category);
     const filtered = quizzes
@@ -134,7 +154,7 @@ const ArithmeticQuiz: React.FC = () => {
     }
   };
 
-  // ✅ Save quiz result in Supabase (FIXED)
+  // ✅ Save quiz result in Supabase
   const saveResult = async (quizId: string) => {
     try {
       const {
@@ -283,6 +303,7 @@ const ArithmeticQuiz: React.FC = () => {
               }}
             >
               <IonInput
+                ref={inputRef}
                 value={userAnswer}
                 placeholder="Enter your answer"
                 onIonInput={(e) => setUserAnswer(e.detail.value!)}

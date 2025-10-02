@@ -19,87 +19,135 @@ interface LeaderboardRow {
 const ArithmeticLeaderboard: React.FC = () => {
   const [solvingData, setSolvingData] = useState<LeaderboardRow[]>([]);
   const [problemSolvingData, setProblemSolvingData] = useState<LeaderboardRow[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchLeaderboards();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const fetchLeaderboards = async () => {
-    // 🔹 Fetch Solving leaderboard
-    const { data: solving, error: err1 } = await supabase
-      .from("scores")
-      .select(
-        `
-        score,
-        time_taken,
-        profiles!inner(lastname),
-        quizzes!inner(category)
-      `
-      )
-      .eq("quizzes.category", "Solving")
-      .order("score", { ascending: false })
-      .order("time_taken", { ascending: true });
-
-    if (err1) {
-      console.error("Solving Error:", err1.message);
-      setSolvingData([]);
-    } else {
-      setSolvingData(solving as LeaderboardRow[]);
+  // Normalize a raw Supabase row into our LeaderboardRow shape safely
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const normalizeRow = (r: any): LeaderboardRow => {
+    // profiles/quizzes might be returned as an object or an array depending on join form;
+    // handle both shapes defensively.
+    let lastname = "";
+    if (r?.profiles) {
+      if (Array.isArray(r.profiles)) {
+        lastname = r.profiles[0]?.lastname ?? "";
+      } else if (typeof r.profiles === "object") {
+        lastname = r.profiles.lastname ?? "";
+      }
     }
 
-    // 🔹 Fetch Problem Solving leaderboard
-    const { data: problem, error: err2 } = await supabase
-      .from("scores")
-      .select(
-        `
-        score,
-        time_taken,
-        profiles!inner(lastname),
-        quizzes!inner(category)
-      `
-      )
-      .eq("quizzes.category", "Problem Solving")
-      .order("score", { ascending: false })
-      .order("time_taken", { ascending: true });
+    let category = "";
+    if (r?.quizzes) {
+      if (Array.isArray(r.quizzes)) {
+        category = r.quizzes[0]?.category ?? "";
+      } else if (typeof r.quizzes === "object") {
+        category = r.quizzes.category ?? "";
+      }
+    }
 
-    if (err2) {
-      console.error("Problem Solving Error:", err2.message);
+    return {
+      score: Number(r?.score ?? 0),
+      time_taken: Number(r?.time_taken ?? 0),
+      profiles: { lastname },
+      quizzes: { category },
+    };
+  };
+
+  const fetchLeaderboards = async () => {
+    setLoading(true);
+
+    try {
+      // Solving
+      const { data: solvingRaw, error: err1 } = await supabase
+        .from("scores")
+        .select(
+          `
+          score,
+          time_taken,
+          profiles!inner(lastname),
+          quizzes!inner(category)
+        `
+        )
+        .eq("quizzes.category", "Solving")
+        .order("score", { ascending: false })
+        .order("time_taken", { ascending: true });
+
+      if (err1) {
+        console.error("Solving Error:", err1);
+        setSolvingData([]);
+      } else {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const mapped = (solvingRaw ?? []).map((r: any) => normalizeRow(r));
+        setSolvingData(mapped);
+      }
+
+      // Problem Solving
+      const { data: problemRaw, error: err2 } = await supabase
+        .from("scores")
+        .select(
+          `
+          score,
+          time_taken,
+          profiles!inner(lastname),
+          quizzes!inner(category)
+        `
+        )
+        .eq("quizzes.category", "Problem Solving")
+        .order("score", { ascending: false })
+        .order("time_taken", { ascending: true });
+
+      if (err2) {
+        console.error("Problem Solving Error:", err2);
+        setProblemSolvingData([]);
+      } else {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const mapped = (problemRaw ?? []).map((r: any) => normalizeRow(r));
+        setProblemSolvingData(mapped);
+      }
+    } catch (e) {
+      console.error("Unexpected fetch error", e);
+      setSolvingData([]);
       setProblemSolvingData([]);
-    } else {
-      setProblemSolvingData(problem as LeaderboardRow[]);
+    } finally {
+      setLoading(false);
     }
   };
 
   // helper to format seconds into mm:ss
   const formatTime = (seconds: number) => {
+    if (!Number.isFinite(seconds)) return "0:00";
     const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
+    const secs = Math.floor(seconds % 60);
     return `${mins}:${secs < 10 ? "0" : ""}${secs}`;
   };
 
   const renderTable = (data: LeaderboardRow[]) => (
-    <table className="w-full border border-gray-400 rounded-lg overflow-hidden text-center mt-4">
-      <thead className="bg-gray-100">
+    <table style={{ width: "100%", borderCollapse: "collapse", marginTop: 12 }}>
+      <thead style={{ background: "#f3f4f6" }}>
         <tr>
-          <th className="py-2 border border-gray-400">Place</th>
-          <th className="py-2 border border-gray-400">Lastname</th>
-          <th className="py-2 border border-gray-400">Score</th>
-          <th className="py-2 border border-gray-400">Time</th>
+          <th style={thStyle}>Place</th>
+          <th style={thStyle}>Lastname</th>
+          <th style={thStyle}>Score</th>
+          <th style={thStyle}>Time</th>
         </tr>
       </thead>
       <tbody>
         {data.length > 0 ? (
           data.map((row, index) => (
-            <tr key={index} className="hover:bg-gray-50">
-              <td className="py-2 border border-gray-400 font-medium">{index + 1}</td>
-              <td className="py-2 border border-gray-400">{row.profiles?.lastname}</td>
-              <td className="py-2 border border-gray-400">{row.score}</td>
-              <td className="py-2 border border-gray-400">{formatTime(row.time_taken)}</td>
+            <tr key={index} style={{ borderBottom: "1px solid #e5e7eb" }}>
+              <td style={tdStyle}>{index + 1}</td>
+              <td style={tdStyle}>{row.profiles?.lastname || "-"}</td>
+              <td style={tdStyle}>{row.score}</td>
+              <td style={tdStyle}>{formatTime(row.time_taken)}</td>
             </tr>
           ))
         ) : (
           <tr>
-            <td className="py-2 border border-gray-400 text-center" colSpan={4}>
+            <td style={tdStyle} colSpan={4}>
               No data found.
             </td>
           </tr>
@@ -117,26 +165,47 @@ const ArithmeticLeaderboard: React.FC = () => {
       </IonHeader>
 
       <IonContent className="ion-padding">
-        {/* Solving Leaderboard */}
-        <div className="max-w-md mx-auto bg-white rounded-2xl shadow-lg p-6 border border-gray-300 mb-8">
-          <h2 className="text-2xl font-bold text-center">Solving Leaderboard</h2>
-          <div className="flex justify-center items-center my-2">
-            <Trophy className="w-6 h-6 text-yellow-500" />
+        <div style={cardStyle}>
+          <h2 style={{ margin: 0, textAlign: "center" }}>Solving Leaderboard</h2>
+          <div style={{ display: "flex", justifyContent: "center", margin: "8px 0" }}>
+            <Trophy size={20} color="#f59e0b" />
           </div>
-          {renderTable(solvingData)}
+          {loading ? <p>Loading...</p> : renderTable(solvingData)}
         </div>
 
-        {/* Problem Solving Leaderboard */}
-        <div className="max-w-md mx-auto bg-white rounded-2xl shadow-lg p-6 border border-gray-300">
-          <h2 className="text-2xl font-bold text-center">Problem Solving Leaderboard</h2>
-          <div className="flex justify-center items-center my-2">
-            <Trophy className="w-6 h-6 text-blue-500" />
+        <div style={{ ...cardStyle, marginTop: 18 }}>
+          <h2 style={{ margin: 0, textAlign: "center" }}>Problem Solving Leaderboard</h2>
+          <div style={{ display: "flex", justifyContent: "center", margin: "8px 0" }}>
+            <Trophy size={20} color="#3b82f6" />
           </div>
-          {renderTable(problemSolvingData)}
+          {loading ? <p>Loading...</p> : renderTable(problemSolvingData)}
         </div>
       </IonContent>
     </IonPage>
   );
+};
+
+/* small inline styles to avoid tailwind dependency in this snippet */
+const cardStyle: React.CSSProperties = {
+  maxWidth: 720,
+  margin: "0 auto",
+  background: "#fff",
+  borderRadius: 16,
+  boxShadow: "0 6px 18px rgba(0,0,0,0.06)",
+  padding: 16,
+  border: "1px solid #e5e7eb",
+};
+
+const thStyle: React.CSSProperties = {
+  padding: "8px 10px",
+  border: "1px solid #e5e7eb",
+  textAlign: "center",
+};
+
+const tdStyle: React.CSSProperties = {
+  padding: "8px 10px",
+  border: "1px solid #eee",
+  textAlign: "center",
 };
 
 export default ArithmeticLeaderboard;

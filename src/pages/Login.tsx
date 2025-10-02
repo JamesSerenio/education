@@ -21,7 +21,7 @@ const Login: React.FC = () => {
     setErrorMsg(null);
 
     try {
-      // 1️⃣ Sign in with Supabase Auth
+      // 1️⃣ Login with Supabase Auth
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -40,11 +40,11 @@ const Login: React.FC = () => {
 
       console.log("Logged in user:", data.user);
 
-      // 2️⃣ Fetch role from profiles table
+      // 2️⃣ Fetch the user's profile from "profiles" table
       const { data: profile, error: profileError } = await supabase
         .from("profiles")
-        .select("role")
-        .eq("id", data.user.id)
+        .select("id, firstname, lastname, role")
+        .eq("id", data.user.id) // link by Supabase Auth UUID
         .single();
 
       if (profileError || !profile) {
@@ -53,11 +53,19 @@ const Login: React.FC = () => {
         return;
       }
 
-      // 3️⃣ Redirect based on role
+      // 3️⃣ Save profile info in localStorage
+      localStorage.setItem("profile_id", profile.id);
+      localStorage.setItem("firstname", profile.firstname || "");
+      localStorage.setItem("lastname", profile.lastname || "");
+      localStorage.setItem("role", profile.role || "user");
+
+      console.log("Profile stored:", profile);
+
+      // 4️⃣ Redirect based on role
       if (profile.role === "admin") {
-        history.push("/education/admin/admin_dashboard"); // ✅ Fixed route
+        history.push("/education/admin/admin_dashboard");
       } else {
-        history.push("/education/home"); // ✅ Normal user route
+        history.push("/education/home");
       }
     } catch (err) {
       console.error("Unexpected login error:", err);

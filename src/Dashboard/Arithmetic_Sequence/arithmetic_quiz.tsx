@@ -134,33 +134,37 @@ const ArithmeticQuiz: React.FC = () => {
     }
   };
 
-  // ✅ Save quiz result in Supabase
+  // ✅ Save quiz result in Supabase (FIXED)
   const saveResult = async (quizId: string) => {
     try {
       const {
-        data: { user },
-      } = await supabase.auth.getUser();
+        data: { session },
+        error,
+      } = await supabase.auth.getSession();
 
-      if (!user) {
-        console.warn("No user logged in. Cannot save score.");
+      if (error || !session) {
+        console.warn("⚠️ No active session. Cannot save score.");
         return;
       }
 
+      const userId = session.user.id; // ✅ current logged-in user
+      console.log("👉 Saving score for user:", userId);
+
       const timeTaken = startTime ? Math.floor((Date.now() - startTime) / 1000) : 0;
 
-      const { error } = await supabase.from("scores").insert([
+      const { error: insertError } = await supabase.from("scores").insert([
         {
-          user_id: user.id,
+          user_id: userId,
           quiz_id: quizId,
           score: score,
           time_taken: timeTaken,
         },
       ]);
 
-      if (error) {
-        console.error("Error saving score:", error.message);
+      if (insertError) {
+        console.error("❌ Error saving score:", insertError.message);
       } else {
-        console.log("Score saved successfully!");
+        console.log("✅ Score saved successfully!");
       }
     } catch (err) {
       console.error("Unexpected error saving score:", err);

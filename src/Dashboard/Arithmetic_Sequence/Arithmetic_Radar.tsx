@@ -28,8 +28,8 @@ ChartJS.register(
   Title
 );
 
-const MAX_SCORE = 5; // 👉 5 questions max
-const MAX_TIME = 300; // 👉 60s × 5 levels = 300s
+const MAX_SCORE = 5;
+const MAX_TIME = 300;
 
 const Arithmetic_Radar: React.FC = () => {
   const radarRef = useRef<HTMLCanvasElement | null>(null);
@@ -41,7 +41,6 @@ const Arithmetic_Radar: React.FC = () => {
     problemSolving: 0,
   });
 
-  // ✅ Get logged-in user's performance
   const fetchRadarData = async () => {
     try {
       const {
@@ -70,11 +69,9 @@ const Arithmetic_Radar: React.FC = () => {
 
       if (scores && scores.length > 0) {
         const latest = scores[0];
-
         const rawTime = latest.time_taken ?? 0;
         const rawScore = latest.score ?? 0;
 
-        // ✅ Normalize values to percentage (0–100)
         const timePercent = Math.max(
           0,
           Math.round(((MAX_TIME - rawTime) / MAX_TIME) * 100)
@@ -95,7 +92,6 @@ const Arithmetic_Radar: React.FC = () => {
     }
   };
 
-  // ✅ Init chart
   useEffect(() => {
     if (radarRef.current) {
       const ctx = radarRef.current.getContext("2d");
@@ -106,8 +102,8 @@ const Arithmetic_Radar: React.FC = () => {
       }
 
       const gradient = ctx.createLinearGradient(0, 0, 0, 400);
-      gradient.addColorStop(0, "rgba(99, 102, 241, 0.4)"); // violet
-      gradient.addColorStop(1, "rgba(236, 72, 153, 0.4)"); // pink
+      gradient.addColorStop(0, "rgba(99, 102, 241, 0.4)");
+      gradient.addColorStop(1, "rgba(236, 72, 153, 0.4)");
 
       chartInstance.current = new ChartJS(ctx, {
         type: "radar",
@@ -123,9 +119,9 @@ const Arithmetic_Radar: React.FC = () => {
               ],
               fill: true,
               backgroundColor: gradient,
-              borderColor: "rgb(147, 51, 234)", // purple border
+              borderColor: "rgb(147, 51, 234)",
               borderWidth: 3,
-              pointBackgroundColor: "rgb(236, 72, 153)", // pink
+              pointBackgroundColor: "rgb(236, 72, 153)",
               pointBorderColor: "#fff",
               pointHoverBackgroundColor: "#fff",
               pointHoverBorderColor: "rgb(236, 72, 153)",
@@ -164,10 +160,7 @@ const Arithmetic_Radar: React.FC = () => {
               grid: { color: "rgba(209, 213, 219, 0.3)" },
               pointLabels: {
                 color: "#111827",
-                font: {
-                  size: 14,
-                  weight: "bold",
-                },
+                font: { size: 14, weight: "bold" },
               },
               suggestedMin: 0,
               suggestedMax: 100,
@@ -204,35 +197,45 @@ const Arithmetic_Radar: React.FC = () => {
               borderRadius: "20px",
               boxShadow: "0px 8px 20px rgba(0,0,0,0.1)",
               padding: "20px",
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: "space-between",
             }}
           >
-            <canvas ref={radarRef} />
-          </div>
-          <div style={{ textAlign: "center", marginTop: "20px" }}>
-            <button
-              onClick={fetchRadarData}
-              style={{
-                padding: "12px 24px",
-                background:
-                  "linear-gradient(90deg, #6366F1, #EC4899)", // violet → pink
-                color: "white",
-                fontSize: "16px",
-                fontWeight: "bold",
-                borderRadius: "12px",
-                border: "none",
-                cursor: "pointer",
-                boxShadow: "0 4px 10px rgba(0,0,0,0.2)",
-                transition: "0.3s",
-              }}
-              onMouseOver={(e) =>
-                ((e.target as HTMLButtonElement).style.transform = "scale(1.05)")
-              }
-              onMouseOut={(e) =>
-                ((e.target as HTMLButtonElement).style.transform = "scale(1)")
-              }
-            >
-              🔄 Refresh My Data
-            </button>
+            <div style={{ flex: 1 }}>
+              <canvas ref={radarRef} />
+            </div>
+
+            {/* Refresh Button Inside */}
+            <div style={{ textAlign: "center", marginTop: "15px" }}>
+              <button
+                onClick={fetchRadarData}
+                style={{
+                  padding: "12px 24px",
+                  background:
+                    "linear-gradient(90deg, #6366F1, #EC4899)",
+                  color: "white",
+                  fontSize: "16px",
+                  fontWeight: "bold",
+                  borderRadius: "12px",
+                  border: "none",
+                  cursor: "pointer",
+                  boxShadow: "0 4px 10px rgba(0,0,0,0.2)",
+                  transition: "0.3s",
+                  width: "100%",
+                  maxWidth: "250px",
+                }}
+                onMouseOver={(e) =>
+                  ((e.target as HTMLButtonElement).style.transform =
+                    "scale(1.05)")
+                }
+                onMouseOut={(e) =>
+                  ((e.target as HTMLButtonElement).style.transform = "scale(1)")
+                }
+              >
+                🔄 Refresh My Data
+              </button>
+            </div>
           </div>
         </div>
       </IonContent>

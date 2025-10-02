@@ -15,6 +15,7 @@ import {
   RadarController,
   Title,
 } from "chart.js";
+import ChartDataLabels from 'chartjs-plugin-datalabels';
 import { supabase } from "../../utils/supabaseClient";
 
 ChartJS.register(
@@ -25,7 +26,8 @@ ChartJS.register(
   Tooltip,
   Legend,
   RadarController,
-  Title
+  Title,
+  ChartDataLabels
 );
 
 const MAX_SCORE = 5;
@@ -55,6 +57,7 @@ const Arithmetic_Radar: React.FC = () => {
   });
 
   // Helper function to map raw Supabase data to our typed interface
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const mapToScoreWithQuizzes = (rawData: any): ScoreWithQuizzes => {
     return {
       id: rawData.id || '',
@@ -76,7 +79,7 @@ const Arithmetic_Radar: React.FC = () => {
       const {
         data: { user },
         error: userError,
-      } = await supabase.auth.getUser  ();
+      } = await supabase.auth.getUser   ();
 
       if (userError || !user) {
         console.error("No user logged in:", userError);
@@ -250,6 +253,11 @@ const Arithmetic_Radar: React.FC = () => {
                 family: "Roboto, sans-serif",
               },
             },
+            datalabels: {
+              color: "black", // Black % labels on points
+              font: { weight: 'bold', size: 12 },
+              formatter: (value) => `${value}%`,
+            },
           },
           scales: {
             r: {
@@ -269,6 +277,7 @@ const Arithmetic_Radar: React.FC = () => {
             },
           },
         },
+        plugins: [ChartDataLabels],
       });
     }
 

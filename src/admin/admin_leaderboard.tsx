@@ -10,16 +10,27 @@ import {
 import { Trophy } from "lucide-react";
 import { supabase } from "../utils/supabaseClient";
 
+interface Profile {
+  lastname: string;
+}
+
+interface Quiz {
+  category: string;
+  subject?: string;
+}
+
 interface LeaderboardRow {
   score: number;
   time_taken: number;
-  profiles: { lastname: string };
-  quizzes: { category: string };
+  profiles: Profile;
+  quizzes: Quiz;
 }
 
 const AdminLeaderboard: React.FC = () => {
   const [solvingData, setSolvingData] = useState<LeaderboardRow[]>([]);
   const [problemSolvingData, setProblemSolvingData] = useState<LeaderboardRow[]>([]);
+  const [motionSolvingData, setMotionSolvingData] = useState<LeaderboardRow[]>([]);
+  const [motionProblemData, setMotionProblemData] = useState<LeaderboardRow[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -27,90 +38,86 @@ const AdminLeaderboard: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Normalize a raw Supabase row into our LeaderboardRow shape safely
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const normalizeRow = (r: any): LeaderboardRow => {
-    let lastname = "";
-    if (r?.profiles) {
-      if (Array.isArray(r.profiles)) {
-        lastname = r.profiles[0]?.lastname ?? "";
-      } else if (typeof r.profiles === "object") {
-        lastname = r.profiles.lastname ?? "";
-      }
-    }
+  // Normalize row from Supabase
+  const normalizeRow = (r: Record<string, unknown>): LeaderboardRow => {
+    const profile = r.profiles as Profile | Profile[] | null;
+    const quiz = r.quizzes as Quiz | Quiz[] | null;
 
-    let category = "";
-    if (r?.quizzes) {
-      if (Array.isArray(r.quizzes)) {
-        category = r.quizzes[0]?.category ?? "";
-      } else if (typeof r.quizzes === "object") {
-        category = r.quizzes.category ?? "";
-      }
-    }
+    const lastname =
+      Array.isArray(profile) ? profile[0]?.lastname ?? "" : profile?.lastname ?? "";
+
+    const category =
+      Array.isArray(quiz) ? quiz[0]?.category ?? "" : quiz?.category ?? "";
+
+    const subject =
+      Array.isArray(quiz) ? quiz[0]?.subject ?? undefined : quiz?.subject ?? undefined;
 
     return {
       score: Number(r?.score ?? 0),
       time_taken: Number(r?.time_taken ?? 0),
       profiles: { lastname },
-      quizzes: { category },
+      quizzes: { category, subject },
     };
   };
 
   const fetchLeaderboards = async () => {
     setLoading(true);
-
     try {
-      // Solving
+      // Arithmetic - Solving
       const { data: solvingRaw, error: err1 } = await supabase
         .from("scores")
-        .select(
-          `
-          score,
-          time_taken,
-          profiles!inner(lastname),
-          quizzes!inner(category)
-        `
-        )
+        .select(`score,time_taken,profiles!inner(lastname),quizzes!inner(category)`)
         .eq("quizzes.category", "Solving")
         .order("score", { ascending: false })
         .order("time_taken", { ascending: true });
 
-      if (err1) {
-        console.error("Solving Error:", err1);
-        setSolvingData([]);
-      } else {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const mapped = (solvingRaw ?? []).map((r: any) => normalizeRow(r));
-        setSolvingData(mapped);
-      }
+      if (!err1 && solvingRaw)
+        setSolvingData(solvingRaw.map((r) => normalizeRow(r)));
 
-      // Problem Solving
+      // Arithmetic - Problem Solving
       const { data: problemRaw, error: err2 } = await supabase
         .from("scores")
-        .select(
-          `
-          score,
-          time_taken,
-          profiles!inner(lastname),
-          quizzes!inner(category)
-        `
-        )
+        .select(`score,time_taken,profiles!inner(lastname),quizzes!inner(category)`)
         .eq("quizzes.category", "Problem Solving")
         .order("score", { ascending: false })
         .order("time_taken", { ascending: true });
 
-      if (err2) {
-        console.error("Problem Solving Error:", err2);
-        setProblemSolvingData([]);
-      } else {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const mapped = (problemRaw ?? []).map((r: any) => normalizeRow(r));
-        setProblemSolvingData(mapped);
-      }
+      if (!err2 && problemRaw)
+        setProblemSolvingData(problemRaw.map((r) => normalizeRow(r)));
+
+      // Motion - Solving
+      const { data: motionSolvingRaw, error: err3 } = await supabase
+        .from("scores")
+        .select(
+          `score,time_taken,profiles!inner(lastname),quizzes!inner(category,subject)`
+        )
+        .eq("quizzes.category", "Solving")
+        .eq("quizzes.subject", "Uniform Motion in Physics")
+        .order("score", { ascending: false })
+        .order("time_taken", { ascending: true });
+
+      if (!err3 && motionSolvingRaw)
+        setMotionSolvingData(motionSolvingRaw.map((r) => normalizeRow(r)));
+
+      // Motion - Problem Solving
+      const { data: motionProblemRaw, error: err4 } = await supabase
+        .from("scores")
+        .select(
+          `score,time_taken,profiles!inner(lastname),quizzes!inner(category,subject)`
+        )
+        .eq("quizzes.category", "Problem Solving")
+        .eq("quizzes.subject", "Uniform Motion in Physics")
+        .order("score", { ascending: false })
+        .order("time_taken", { ascending: true });
+
+      if (!err4 && motionProblemRaw)
+        setMotionProblemData(motionProblemRaw.map((r) => normalizeRow(r)));
     } catch (e) {
       console.error("Unexpected fetch error", e);
       setSolvingData([]);
       setProblemSolvingData([]);
+      setMotionSolvingData([]);
+      setMotionProblemData([]);
     } finally {
       setLoading(false);
     }
@@ -124,8 +131,8 @@ const AdminLeaderboard: React.FC = () => {
   };
 
   const renderTable = (data: LeaderboardRow[]) => (
-    <table style={{ width: "100%", borderCollapse: "collapse", marginTop: 12 }}>
-      <thead style={{ background: "#f3f4f6" }}>
+    <table style={tableStyle}>
+      <thead style={theadStyle}>
         <tr>
           <th style={thStyle}>Place</th>
           <th style={thStyle}>Lastname</th>
@@ -163,24 +170,54 @@ const AdminLeaderboard: React.FC = () => {
       </IonHeader>
 
       <IonContent className="ion-padding">
+        {/* Arithmetic Section */}
+        <h1 style={mainTitle}>Arithmetic Leaderboard</h1>
+
         <div style={cardStyle}>
-          <h2 style={{ margin: 0, textAlign: "center" }}>Solving Leaderboard</h2>
-          <div style={{ display: "flex", justifyContent: "center", margin: "8px 0" }}>
+          <h2 style={blackTitle}>Solving</h2>
+          <div style={iconWrapper}>
             <Trophy size={20} color="#f59e0b" />
           </div>
           {loading ? <p>Loading...</p> : renderTable(solvingData)}
         </div>
 
         <div style={{ ...cardStyle, marginTop: 18 }}>
-          <h2 style={{ margin: 0, textAlign: "center" }}>Problem Solving Leaderboard</h2>
-          <div style={{ display: "flex", justifyContent: "center", margin: "8px 0" }}>
+          <h2 style={blackTitle}>Problem Solving</h2>
+          <div style={iconWrapper}>
             <Trophy size={20} color="#3b82f6" />
           </div>
           {loading ? <p>Loading...</p> : renderTable(problemSolvingData)}
         </div>
+
+        {/* Motion Section */}
+        <h1 style={{ ...mainTitle, marginTop: 30 }}>Uniform Motion Leaderboard</h1>
+
+        <div style={cardStyle}>
+          <h2 style={blackTitle}>Solving</h2>
+          <div style={iconWrapper}>
+            <Trophy size={20} color="#f59e0b" />
+          </div>
+          {loading ? <p>Loading...</p> : renderTable(motionSolvingData)}
+        </div>
+
+        <div style={{ ...cardStyle, marginTop: 18 }}>
+          <h2 style={blackTitle}>Problem Solving</h2>
+          <div style={iconWrapper}>
+            <Trophy size={20} color="#3b82f6" />
+          </div>
+          {loading ? <p>Loading...</p> : renderTable(motionProblemData)}
+        </div>
       </IonContent>
     </IonPage>
   );
+};
+
+/* Styles */
+const mainTitle: React.CSSProperties = {
+  textAlign: "center",
+  fontSize: 24,
+  fontWeight: 700,
+  margin: "20px 0 10px 0",
 };
 
 const cardStyle: React.CSSProperties = {
@@ -191,6 +228,29 @@ const cardStyle: React.CSSProperties = {
   boxShadow: "0 6px 18px rgba(0,0,0,0.06)",
   padding: 16,
   border: "1px solid #e5e7eb",
+};
+
+const blackTitle: React.CSSProperties = {
+  textAlign: "center",
+  color: "#000",
+  fontSize: 20,
+  margin: 0,
+};
+
+const iconWrapper: React.CSSProperties = {
+  display: "flex",
+  justifyContent: "center",
+  margin: "8px 0",
+};
+
+const tableStyle: React.CSSProperties = {
+  width: "100%",
+  borderCollapse: "collapse",
+  marginTop: 12,
+};
+
+const theadStyle: React.CSSProperties = {
+  background: "#f3f4f6",
 };
 
 const thStyle: React.CSSProperties = {

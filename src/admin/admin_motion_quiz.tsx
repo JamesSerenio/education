@@ -158,114 +158,52 @@ const AdminMotionQuiz: React.FC = () => {
             text-align: center;
           }
           .table-wrapper {
-            overflow-x: auto;
+            overflow-x: auto; /* ✅ Scroll if maliit screen */
             border-radius: 0 0 8px 8px;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
           }
           .quiz-table {
             width: 100%;
-            min-width: 600px; /* Minimum width to ensure actions are visible */
             border-collapse: collapse;
             background: white;
+            table-layout: fixed; /* ✅ Para auto-truncate text */
           }
           .quiz-table th,
           .quiz-table td {
-            padding: 0.75rem 0.5rem; /* Reduced padding for smaller screens */
+            padding: 0.75rem;
             text-align: left;
             border-bottom: 1px solid #ddd;
-            white-space: nowrap; /* Prevent wrapping in most cells */
+            white-space: nowrap; 
+            overflow: hidden; 
+            text-overflow: ellipsis; /* ✅ Ellipsis kapag mahaba */
           }
           .quiz-table th {
             background-color: #f8f9fa;
             font-weight: bold;
             color: #333;
             border-top: 1px solid #ddd;
-            font-size: 0.9rem;
           }
           .quiz-table tr:hover {
             background-color: #f5f5f5;
           }
-          .level-cell {
-            font-weight: bold;
-            color: #007bff;
-            width: 60px; /* Narrower for level */
-            text-align: center;
-          }
-          .question-cell {
-            max-width: 250px; /* Allow some wrapping but compress */
-            word-wrap: break-word;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: normal; /* Allow wrapping for question */
-          }
-          .answer-cell,
-          .solution-cell {
-            max-width: 120px; /* Compress answers/solutions */
-            word-wrap: break-word;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: normal;
-          }
-          .created-cell {
-            font-size: 0.8rem;
-            color: #666;
-            width: 100px;
-            text-align: center;
-          }
+          /* ✅ Para sa Actions column laging visible */
           .actions-cell {
             text-align: center;
-            width: 100px; /* Fixed width to always show actions */
-            min-width: 100px;
+            width: 90px; /* fixed width */
           }
-          .actions-cell button {
-            margin: 0 0.125rem;
-            --padding-start: 0.5rem;
-            --padding-end: 0.5rem;
-            height: 2rem;
-            width: 2rem;
+          .actions-cell ion-button {
+            margin: 0 2px;
           }
-          .no-quizzes {
-            text-align: center;
-            padding: 2rem;
-            color: #666;
-            font-style: italic;
-          }
-          .loading {
-            text-align: center;
-            padding: 2rem;
-            color: #007bff;
-          }
-          .edit-modal-content {
-            --background: #f8f9fa;
-          }
-          .edit-modal-content .ion-item {
-            --padding-start: 1rem;
-            --padding-end: 1rem;
-          }
+
+          /* ✅ Mobile tweaks */
           @media (max-width: 768px) {
             .quiz-table th,
             .quiz-table td {
-              padding: 0.5rem 0.25rem; /* Even smaller padding on mobile */
-              font-size: 0.85rem;
-            }
-            .question-cell {
-              max-width: 150px; /* Further compress on mobile */
-            }
-            .answer-cell,
-            .solution-cell {
-              max-width: 80px;
-            }
-            .actions-cell button {
-              height: 1.75rem;
-              width: 1.75rem;
-              margin: 0 0.0625rem;
+              font-size: 12px;  /* mas maliit text */
+              padding: 0.5rem;
             }
             .actions-cell {
-              /* Stack buttons vertically on very small screens if needed */
-              display: flex;
-              flex-direction: column;
-              gap: 0.25rem;
-              padding: 0.25rem;
+              width: 70px;
             }
           }
         `}</style>

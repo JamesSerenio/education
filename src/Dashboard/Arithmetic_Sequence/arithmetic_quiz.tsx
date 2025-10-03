@@ -43,12 +43,14 @@ const ArithmeticQuiz: React.FC = () => {
   const [timeLeft, setTimeLeft] = useState<number>(TIME_PER_QUESTION);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  const questionIdRef = useRef<string | null>(null);
+
   // Track total time taken
   const [startTime, setStartTime] = useState<number | null>(null);
 
   // Autofocus input
   const inputRef = useRef<HTMLIonInputElement | null>(null);
-
+ 
   // ✅ Fetch quizzes from supabase
   useEffect(() => {
     const fetchQuizzes = async () => {
@@ -116,25 +118,33 @@ const handleNext = useCallback(() => {
 
 
   // ✅ Timer effect
-  useEffect(() => {
-    if (currentQuiz) {
-      setTimeLeft(TIME_PER_QUESTION);
-      if (timerRef.current) clearInterval(timerRef.current);
-      timerRef.current = setInterval(() => {
-        setTimeLeft((prev) => {
-          if (prev <= 1) {
-            clearInterval(timerRef.current!);
-            handleNext(); // Auto proceed when time runs out
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-    }
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
-  }, [currentQuiz, handleNext]);
+useEffect(() => {
+  if (!currentQuiz) return;
+
+  // ✅ Check kung bago ang question
+  if (questionIdRef.current !== currentQuiz.id) {
+    questionIdRef.current = currentQuiz.id;
+
+    // Reset timer for new question
+    setTimeLeft(TIME_PER_QUESTION);
+
+    // Clear previous interval
+    if (timerRef.current) clearInterval(timerRef.current);
+
+    // Start new interval (hindi maaapektuhan kahit mag-type ka)
+    timerRef.current = setInterval(() => {
+      setTimeLeft((prev) => {
+        if (prev <= 1) {
+          clearInterval(timerRef.current!);
+          handleNext(); // auto next question
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  }
+
+}, [currentQuiz,]);
 
   // ✅ Auto-focus input whenever new question appears
   useEffect(() => {

@@ -55,7 +55,14 @@ interface ScoreWithQuizzes {
 const AdminRadar: React.FC = () => {
   const radarRef = useRef<HTMLCanvasElement | null>(null);
   const chartInstance = useRef<ChartJS | null>(null);
+  const physicsRadarRef = useRef<HTMLCanvasElement | null>(null);
+  const physicsChartInstance = useRef<ChartJS | null>(null);
   const [averageScore, setAverageScore] = useState<UserScore>({
+    time: 0,
+    solving: 0,
+    problemSolving: 0,
+  });
+  const [physicsAverageScore, setPhysicsAverageScore] = useState<UserScore>({
     time: 0,
     solving: 0,
     problemSolving: 0,
@@ -97,6 +104,7 @@ const AdminRadar: React.FC = () => {
       if (scoresError) {
         console.error("Error fetching scores:", scoresError);
         setAverageScore({ time: 0, solving: 0, problemSolving: 0 });
+        setPhysicsAverageScore({ time: 0, solving: 0, problemSolving: 0 });
         return;
       }
 
@@ -108,32 +116,28 @@ const AdminRadar: React.FC = () => {
       if (typedScores.length === 0) {
         console.log("No scores found, defaulting to 0%");
         setAverageScore({ time: 0, solving: 0, problemSolving: 0 });
+        setPhysicsAverageScore({ time: 0, solving: 0, problemSolving: 0 });
         return;
       }
 
-      // Calculate overall average time performance (across all scores/categories)
-      let totalTimePercent = 0;
-      typedScores.forEach((score) => {
-        const rawTime = score.time_taken ?? 0;
-        totalTimePercent += Math.max(0, Math.round(((MAX_TIME - rawTime) / MAX_TIME) * 100));
-      });
-      const avgTimePercent = Math.round(totalTimePercent / typedScores.length);
-      console.log(`Overall average time performance: ${avgTimePercent}% (from ${typedScores.length} total attempts)`);
+      // Arithmetic Calculations
+      const solvingScores: ScoreWithQuizzes[] = typedScores.filter(s => s.quizzes?.category === "Solving");
+      const problemSolvingScores: ScoreWithQuizzes[] = typedScores.filter(s => s.quizzes?.category === "Problem Solving");
+      const arithmeticScores = [...solvingScores, ...problemSolvingScores];
 
-      // Group scores by category
-      const solvingScores: ScoreWithQuizzes[] = [];
-      const problemSolvingScores: ScoreWithQuizzes[] = [];
-
-      typedScores.forEach((score) => {
-        const category = score.quizzes?.category || null;
-        console.log(`Score ID ${score.id}: Score=${score.score}, Category='${category}'`); // DEBUG
-
-        if (category === "Solving") {
-          solvingScores.push(score);
-        } else if (category === "Problem Solving") {
-          problemSolvingScores.push(score);
-        }
-      });
+      // Calculate average time performance for Arithmetic (only from relevant scores)
+      let avgTimePercent = 0;
+      if (arithmeticScores.length > 0) {
+        let totalTimePercent = 0;
+        arithmeticScores.forEach((score) => {
+          const rawTime = score.time_taken ?? 0;
+          totalTimePercent += Math.max(0, Math.round(((MAX_TIME - rawTime) / MAX_TIME) * 100));
+        });
+        avgTimePercent = Math.round(totalTimePercent / arithmeticScores.length);
+        console.log(`Arithmetic average time performance: ${avgTimePercent}% (from ${arithmeticScores.length} attempts)`);
+      } else {
+        console.log("No Arithmetic scores found, defaulting time to 0%");
+      }
 
       // Calculate average score % for Solving category
       let avgSolvingPercent = 0;
@@ -143,9 +147,9 @@ const AdminRadar: React.FC = () => {
           totalSolvingScore += (s.score ?? 0);
         });
         avgSolvingPercent = Math.min(100, Math.round((totalSolvingScore / solvingScores.length) / MAX_SCORE * 100));
-        console.log(`Solving average: ${Math.round((totalSolvingScore / solvingScores.length))}/5 (${solvingScores.length} attempts) → ${avgSolvingPercent}%`);
+        console.log(`Arithmetic Solving average: ${Math.round((totalSolvingScore / solvingScores.length))}/5 (${solvingScores.length} attempts) → ${avgSolvingPercent}%`);
       } else {
-        console.log("No Solving scores found, defaulting to 0%");
+        console.log("No Arithmetic Solving scores found, defaulting to 0%");
       }
 
       // Calculate average score % for Problem Solving category
@@ -156,27 +160,71 @@ const AdminRadar: React.FC = () => {
           totalProblemSolvingScore += (s.score ?? 0);
         });
         avgProblemSolvingPercent = Math.min(100, Math.round((totalProblemSolvingScore / problemSolvingScores.length) / MAX_SCORE * 100));
-        console.log(`Problem Solving average: ${Math.round((totalProblemSolvingScore / problemSolvingScores.length))}/5 (${problemSolvingScores.length} attempts) → ${avgProblemSolvingPercent}%`);
+        console.log(`Arithmetic Problem Solving average: ${Math.round((totalProblemSolvingScore / problemSolvingScores.length))}/5 (${problemSolvingScores.length} attempts) → ${avgProblemSolvingPercent}%`);
       } else {
-        console.log("No Problem Solving scores found, defaulting to 0%");
+        console.log("No Arithmetic Problem Solving scores found, defaulting to 0%");
       }
 
-      // Update average state
+      // Update arithmetic state
       setAverageScore({
         time: avgTimePercent,
         solving: avgSolvingPercent,
         problemSolving: avgProblemSolvingPercent,
       });
 
-      console.log("Final average values:", {
+      console.log("Final arithmetic average values:", {
         time: avgTimePercent,
         solving: avgSolvingPercent,
         problemSolving: avgProblemSolvingPercent,
       });
 
+      // Physics Calculations (Uniform Motion in Physics)
+      const physicsScores: ScoreWithQuizzes[] = typedScores.filter(s => s.quizzes?.category === "Uniform Motion in Physics");
+
+      let physicsAvgTime = 0;
+      let physicsAvgSolving = 0;
+      let physicsAvgProblemSolving = 0;
+
+      if (physicsScores.length > 0) {
+        // Calculate average time performance for Physics
+        let totalTimePercent = 0;
+        physicsScores.forEach((score) => {
+          const rawTime = score.time_taken ?? 0;
+          totalTimePercent += Math.max(0, Math.round(((MAX_TIME - rawTime) / MAX_TIME) * 100));
+        });
+        physicsAvgTime = Math.round(totalTimePercent / physicsScores.length);
+        console.log(`Physics average time performance: ${physicsAvgTime}% (from ${physicsScores.length} attempts)`);
+
+        // Calculate average score % (used for both solving and problem solving since no sub-categories specified)
+        let totalScore = 0;
+        physicsScores.forEach((s) => {
+          totalScore += (s.score ?? 0);
+        });
+        const avgScorePercent = Math.min(100, Math.round((totalScore / physicsScores.length) / MAX_SCORE * 100));
+        physicsAvgSolving = avgScorePercent;
+        physicsAvgProblemSolving = avgScorePercent;
+        console.log(`Physics average score: ${Math.round((totalScore / physicsScores.length))}/5 (${physicsScores.length} attempts) → ${avgScorePercent}% (applied to both Solving and Problem Solving)`);
+      } else {
+        console.log("No Uniform Motion in Physics scores found, defaulting to 0%");
+      }
+
+      // Update physics state
+      setPhysicsAverageScore({
+        time: physicsAvgTime,
+        solving: physicsAvgSolving,
+        problemSolving: physicsAvgProblemSolving,
+      });
+
+      console.log("Final physics average values:", {
+        time: physicsAvgTime,
+        solving: physicsAvgSolving,
+        problemSolving: physicsAvgProblemSolving,
+      });
+
     } catch (err) {
       console.error("Error fetching data:", err);
       setAverageScore({ time: 0, solving: 0, problemSolving: 0 });
+      setPhysicsAverageScore({ time: 0, solving: 0, problemSolving: 0 });
     }
   };
 
@@ -242,14 +290,14 @@ const AdminRadar: React.FC = () => {
             formatter: (value) => `${value}%`,
           },
         },
-          scales: {
-            r: {
-              angleLines: { color: "rgba(156, 163, 175, 0.3)" },
-              grid: { circular: false, color: "rgba(209, 213, 219, 0.3)" }, // polygon instead of circle
-              pointLabels: { color: "#111827", font: { size: 14, weight: "bold" } },
-              suggestedMin: 0,
-              suggestedMax: 100,
-              ticks: {
+        scales: {
+          r: {
+            angleLines: { color: "rgba(156, 163, 175, 0.3)" },
+            grid: { circular: false, color: "rgba(209, 213, 219, 0.3)" }, // polygon instead of circle
+            pointLabels: { color: "#111827", font: { size: 14, weight: "bold" } },
+            suggestedMin: 0,
+            suggestedMax: 100,
+            ticks: {
               display: false, // Hide the numerical tick labels (0, 20, 40, 60, 80, 100)
               color: "#4b5563",
               backdropColor: "transparent",
@@ -264,6 +312,89 @@ const AdminRadar: React.FC = () => {
   }, [averageScore]);
 
   useEffect(() => {
+    if (!physicsRadarRef.current) return;
+
+    const ctx = physicsRadarRef.current.getContext("2d");
+    if (!ctx) return;
+
+    if (physicsChartInstance.current) physicsChartInstance.current.destroy();
+
+    const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+    gradient.addColorStop(0, "rgba(99, 102, 241, 0.4)");
+    gradient.addColorStop(1, "rgba(236, 72, 153, 0.4)");
+
+    physicsChartInstance.current = new ChartJS(ctx, {
+      type: "radar",
+      data: {
+        labels: ["⏱ Time", "🧮 Solving", "🧩 Problem Solving"],
+        datasets: [
+          {
+            label: "All Students Average",
+            data: [physicsAverageScore.time, physicsAverageScore.solving, physicsAverageScore.problemSolving],
+            fill: true,
+            backgroundColor: gradient,
+            borderColor: "rgb(147, 51, 234)",
+            borderWidth: 3,
+            pointBackgroundColor: "rgb(236, 72, 153)",
+            pointBorderColor: "#fff",
+            pointHoverBackgroundColor: "#fff",
+            pointHoverBorderColor: "rgb(236, 72, 153)",
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            display: true,
+            labels: { color: "#374151", font: { size: 14, weight: "bold", family: "Roboto, sans-serif" } },
+          },
+          title: {
+            display: true,
+            text: "📊 Uniform Motion in Physics Radar Chart (All Students)",
+            color: "#1f2937",
+            font: { size: 20, weight: "bold", family: "Roboto, sans-serif" },
+          },
+          tooltip: {
+            enabled: true,
+            bodyColor: "#ffffff", // White tooltip text
+            titleColor: "#ffffff", // White tooltip title
+            backgroundColor: "rgba(0,0,0,0.7)", // Dark background for contrast
+            callbacks: {
+              label: function (context) {
+                return `${context.dataset.label} - ${context.label}: ${context.raw}%`;
+              },
+            },
+          },
+          datalabels: {
+            color: "black", // Changed to black for % labels
+            font: { weight: 'bold', size: 12 },
+            formatter: (value) => `${value}%`,
+          },
+        },
+        scales: {
+          r: {
+            angleLines: { color: "rgba(156, 163, 175, 0.3)" },
+            grid: { circular: false, color: "rgba(209, 213, 219, 0.3)" }, // polygon instead of circle
+            pointLabels: { color: "#111827", font: { size: 14, weight: "bold" } },
+            suggestedMin: 0,
+            suggestedMax: 100,
+            ticks: {
+              display: false, // Hide the numerical tick labels (0, 20, 40, 60, 80, 100)
+              color: "#4b5563",
+              backdropColor: "transparent",
+            },
+          },
+        },
+      },
+      plugins: [ChartDataLabels],
+    });
+
+    return () => physicsChartInstance.current?.destroy();
+  }, [physicsAverageScore]);
+
+  useEffect(() => {
     fetchAllUsersData();
   }, []);
 
@@ -272,51 +403,72 @@ const AdminRadar: React.FC = () => {
       <IonHeader />
       <IonContent fullscreen>
         <div style={{ padding: "20px" }}>
-          <div
-            style={{
-              width: "100%",
-              height: "650px",
-              marginTop: "40px",
-              background: "white",
-              borderRadius: "20px",
-              boxShadow: "0px 8px 20px rgba(0,0,0,0.1)",
-              padding: "20px",
-              display: "flex",
-              flexDirection: "column",
-              justifyContent: "space-between",
-            }}
-          >
-            <div style={{ flex: 1 }}>
-              <canvas ref={radarRef} />
+          <div style={{ display: "flex", gap: "20px", marginTop: "40px" }}>
+            {/* Arithmetic Radar */}
+            <div
+              style={{
+                flex: 1,
+                height: "650px",
+                background: "white",
+                borderRadius: "20px",
+                boxShadow: "0px 8px 20px rgba(0,0,0,0.1)",
+                padding: "20px",
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "space-between",
+              }}
+            >
+              <div style={{ flex: 1 }}>
+                <canvas ref={radarRef} />
+              </div>
             </div>
 
-            <div style={{ textAlign: "center", marginTop: "15px" }}>
-              <button
-                onClick={fetchAllUsersData}
-                style={{
-                  padding: "12px 24px",
-                  background: "linear-gradient(90deg, #6366F1, #EC4899)",
-                  color: "white",
-                  fontSize: "16px",
-                  fontWeight: "bold",
-                  borderRadius: "12px",
-                  border: "none",
-                  cursor: "pointer",
-                  boxShadow: "0 4px 10px rgba(0,0,0,0.2)",
-                  transition: "0.3s",
-                  width: "100%",
-                  maxWidth: "250px",
-                }}
-                onMouseOver={(e) =>
-                  ((e.target as HTMLButtonElement).style.transform = "scale(1.05)")
-                }
-                onMouseOut={(e) =>
-                  ((e.target as HTMLButtonElement).style.transform = "scale(1)")
-                }
-              >
-                🔄 Refresh All Students Data
-              </button>
+            {/* Physics Radar */}
+            <div
+              style={{
+                flex: 1,
+                height: "650px",
+                background: "white",
+                borderRadius: "20px",
+                boxShadow: "0px 8px 20px rgba(0,0,0,0.1)",
+                padding: "20px",
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "space-between",
+              }}
+            >
+              <div style={{ flex: 1 }}>
+                <canvas ref={physicsRadarRef} />
+              </div>
             </div>
+          </div>
+
+          <div style={{ textAlign: "center", marginTop: "15px" }}>
+            <button
+              onClick={fetchAllUsersData}
+              style={{
+                padding: "12px 24px",
+                background: "linear-gradient(90deg, #6366F1, #EC4899)",
+                color: "white",
+                fontSize: "16px",
+                fontWeight: "bold",
+                borderRadius: "12px",
+                border: "none",
+                cursor: "pointer",
+                boxShadow: "0 4px 10px rgba(0,0,0,0.2)",
+                transition: "0.3s",
+                width: "100%",
+                maxWidth: "250px",
+              }}
+              onMouseOver={(e) =>
+                ((e.target as HTMLButtonElement).style.transform = "scale(1.05)")
+              }
+              onMouseOut={(e) =>
+                ((e.target as HTMLButtonElement).style.transform = "scale(1)")
+              }
+            >
+              🔄 Refresh All Students Data
+            </button>
           </div>
         </div>
       </IonContent>

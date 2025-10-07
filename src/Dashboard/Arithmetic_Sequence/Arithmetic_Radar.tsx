@@ -31,7 +31,7 @@ ChartJS.register(
 );
 
 const MAX_SCORE = 5;
-const MAX_TIME = 300; // seconds (5 minutes max for the quiz)
+const MAX_TIME = 300; // seconds (5 minutes)
 
 interface QuizInfo {
   id: string;
@@ -58,7 +58,6 @@ const Arithmetic_Radar: React.FC = () => {
     problemSolving: 0,
   });
 
-  // ✅ Type-safe mapper (no any used)
   const mapToScoreWithQuizzes = (rawData: Record<string, unknown>): ScoreWithQuizzes => {
     const quizzesData = rawData.quizzes as Record<string, unknown> | null;
 
@@ -66,9 +65,10 @@ const Arithmetic_Radar: React.FC = () => {
       id: String(rawData.id ?? ""),
       score: typeof rawData.score === "number" ? rawData.score : null,
       time_taken: typeof rawData.time_taken === "number" ? rawData.time_taken : null,
-      created_at: typeof rawData.created_at === "string"
-        ? rawData.created_at
-        : new Date().toISOString(),
+      created_at:
+        typeof rawData.created_at === "string"
+          ? rawData.created_at
+          : new Date().toISOString(),
       quiz_id: String(rawData.quiz_id ?? ""),
       quizzes: quizzesData
         ? {
@@ -95,7 +95,7 @@ const Arithmetic_Radar: React.FC = () => {
 
       const userId = user.id;
 
-      // ✅ Fetch scores joined with quizzes where subject = 'Arithmetic Sequence'
+      // ✅ Fetch scores only for Arithmetic Sequence
       const { data: allScores, error: scoresError } = await supabase
         .from("scores")
         .select(
@@ -113,8 +113,7 @@ const Arithmetic_Radar: React.FC = () => {
         `
         )
         .eq("user_id", userId)
-        .order("created_at", { ascending: false })
-        .limit(20);
+        .order("created_at", { ascending: false });
 
       if (scoresError) {
         console.error("Error fetching scores:", scoresError);
@@ -122,11 +121,11 @@ const Arithmetic_Radar: React.FC = () => {
         return;
       }
 
+      // ✅ Filter only "Arithmetic Sequence"
       const typedScores: ScoreWithQuizzes[] = (allScores ?? [])
         .map(mapToScoreWithQuizzes)
         .filter(
-          (score) =>
-            score.quizzes?.subject?.toLowerCase() === "arithmetic sequence"
+          (s) => s.quizzes?.subject?.toLowerCase().trim() === "arithmetic sequence"
         );
 
       if (typedScores.length === 0) {
@@ -135,48 +134,49 @@ const Arithmetic_Radar: React.FC = () => {
         return;
       }
 
-      // ✅ Filter by category (Solving / Problem Solving)
+      // ✅ Compute Time using the latest entry (like Motion_Radar)
+      const latestScore = typedScores[0];
+      const timePercent = Math.max(
+        0,
+        Math.round(((MAX_TIME - (latestScore.time_taken || 0)) / MAX_TIME) * 100)
+      );
+
+      // ✅ Compute Solving %
       const solvingScores = typedScores.filter(
         (s) => s.quizzes?.category === "Solving"
       );
+      const solvingPercent =
+        solvingScores.length > 0
+          ? Math.min(
+              100,
+              Math.round(
+                ((solvingScores[0].score || 0) / MAX_SCORE) * 100
+              )
+            )
+          : 0;
+
+      // ✅ Compute Problem Solving %
       const problemSolvingScores = typedScores.filter(
         (s) => s.quizzes?.category === "Problem Solving"
       );
+      const problemSolvingPercent =
+        problemSolvingScores.length > 0
+          ? Math.min(
+              100,
+              Math.round(
+                ((problemSolvingScores[0].score || 0) / MAX_SCORE) * 100
+              )
+            )
+          : 0;
 
-      // ✅ Calculate average time
-      const totalTimePercent = typedScores.reduce((acc, s) => {
-        const raw = s.time_taken ?? MAX_TIME;
-        const percent = Math.max(0, Math.round(((MAX_TIME - raw) / MAX_TIME) * 100));
-        return acc + percent;
-      }, 0);
-      const avgTimePercent = Math.round(totalTimePercent / typedScores.length);
-
-      // ✅ Average Solving %
-      const solvingPercent = solvingScores.length
-        ? Math.round(
-            (solvingScores.reduce((a, b) => a + (b.score ?? 0), 0) /
-              (solvingScores.length * MAX_SCORE)) *
-              100
-          )
-        : 0;
-
-      // ✅ Average Problem Solving %
-      const problemSolvingPercent = problemSolvingScores.length
-        ? Math.round(
-            (problemSolvingScores.reduce((a, b) => a + (b.score ?? 0), 0) /
-              (problemSolvingScores.length * MAX_SCORE)) *
-              100
-          )
-        : 0;
-
-      console.log("✅ Arithmetic only values:", {
-        avgTimePercent,
+      console.log("✅ Arithmetic Sequence (fixed) results:", {
+        timePercent,
         solvingPercent,
         problemSolvingPercent,
       });
 
       setPerformance({
-        time: avgTimePercent,
+        time: timePercent,
         solving: solvingPercent,
         problemSolving: problemSolvingPercent,
       });
@@ -186,88 +186,78 @@ const Arithmetic_Radar: React.FC = () => {
     }
   };
 
-  // ✅ Chart rendering
   useEffect(() => {
-    if (radarRef.current) {
-      const ctx = radarRef.current.getContext("2d");
-      if (!ctx) return;
+    if (!radarRef.current) return;
+    const ctx = radarRef.current.getContext("2d");
+    if (!ctx) return;
 
-      if (chartInstance.current) chartInstance.current.destroy();
+    if (chartInstance.current) chartInstance.current.destroy();
 
-      const gradient = ctx.createLinearGradient(0, 0, 0, 400);
-      gradient.addColorStop(0, "rgba(99, 102, 241, 0.4)");
-      gradient.addColorStop(1, "rgba(236, 72, 153, 0.4)");
+    const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+    gradient.addColorStop(0, "rgba(99, 102, 241, 0.4)");
+    gradient.addColorStop(1, "rgba(236, 72, 153, 0.4)");
 
-      chartInstance.current = new ChartJS(ctx, {
-        type: "radar",
-        data: {
-          labels: ["⏱ Time", "🧮 Solving", "🧩 Problem Solving"],
-          datasets: [
-            {
-              label: "✨ Arithmetic Performance",
-              data: [
-                performance.time,
-                performance.solving,
-                performance.problemSolving,
-              ],
-              fill: true,
-              backgroundColor: gradient,
-              borderColor: "rgb(147, 51, 234)",
-              borderWidth: 3,
-              pointBackgroundColor: "rgb(236, 72, 153)",
-              pointBorderColor: "#fff",
-              pointHoverBackgroundColor: "#fff",
-              pointHoverBorderColor: "rgb(236, 72, 153)",
-            },
-          ],
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: {
-              display: true,
-              labels: {
-                color: "#374151",
-                font: {
-                  size: 14,
-                  family: "Roboto, sans-serif",
-                  weight: "bold",
-                },
-              },
-            },
-            title: {
-              display: true,
-              text: "📊 Arithmetic Sequence Radar Chart",
-              color: "#1f2937",
-              font: {
-                size: 20,
-                weight: "bold",
-                family: "Roboto, sans-serif",
-              },
-            },
-            datalabels: {
-              color: "black",
-              font: { weight: "bold", size: 12 },
-              formatter: (value: number) => `${Math.round(value)}%`,
+    chartInstance.current = new ChartJS(ctx, {
+      type: "radar",
+      data: {
+        labels: ["⏱ Time", "🧮 Solving", "🧩 Problem Solving"],
+        datasets: [
+          {
+            label: "✨ Arithmetic Sequence Performance",
+            data: [
+              performance.time,
+              performance.solving,
+              performance.problemSolving,
+            ],
+            fill: true,
+            backgroundColor: gradient,
+            borderColor: "rgb(147, 51, 234)",
+            borderWidth: 3,
+            pointBackgroundColor: "rgb(236, 72, 153)",
+            pointBorderColor: "#fff",
+            pointHoverBackgroundColor: "#fff",
+            pointHoverBorderColor: "rgb(236, 72, 153)",
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            display: true,
+            labels: {
+              color: "#374151",
+              font: { size: 14, family: "Roboto, sans-serif", weight: "bold" },
             },
           },
-          scales: {
-            r: {
-              suggestedMin: 0,
-              suggestedMax: 100,
-              ticks: { display: false },
-              grid: { color: "rgba(209, 213, 219, 0.3)" },
-              pointLabels: {
-                color: "#111827",
-                font: { size: 14, weight: "bold" },
-              },
+          title: {
+            display: true,
+            text: "📊 Arithmetic Sequence Radar Chart",
+            color: "#1f2937",
+            font: { size: 20, weight: "bold", family: "Roboto, sans-serif" },
+          },
+          datalabels: {
+            color: "black",
+            font: { weight: "bold", size: 12 },
+            formatter: (value: number) => `${Math.round(value)}%`,
+          },
+        },
+        scales: {
+          r: {
+            suggestedMin: 0,
+            suggestedMax: 100,
+            ticks: { display: false },
+            grid: { color: "rgba(209, 213, 219, 0.3)" },
+            pointLabels: {
+              color: "#111827",
+              font: { size: 14, weight: "bold" },
             },
           },
         },
-        plugins: [ChartDataLabels],
-      });
-    }
+      },
+      plugins: [ChartDataLabels],
+    });
 
     return () => chartInstance.current?.destroy();
   }, [performance]);
@@ -311,17 +301,9 @@ const Arithmetic_Radar: React.FC = () => {
                   borderRadius: "12px",
                   border: "none",
                   cursor: "pointer",
-                  boxShadow: "0 4px 10px rgba(0,0,0,0.2)",
-                  transition: "0.3s",
                   width: "100%",
                   maxWidth: "250px",
                 }}
-                onMouseOver={(e) =>
-                  ((e.target as HTMLButtonElement).style.transform = "scale(1.05)")
-                }
-                onMouseOut={(e) =>
-                  ((e.target as HTMLButtonElement).style.transform = "scale(1)")
-                }
               >
                 🔄 Refresh My Data
               </button>

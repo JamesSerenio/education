@@ -15,7 +15,7 @@ import {
   RadarController,
   Title,
 } from "chart.js";
-import ChartDataLabels from 'chartjs-plugin-datalabels';
+import ChartDataLabels from "chartjs-plugin-datalabels";
 import { supabase } from "../../utils/supabaseClient";
 
 ChartJS.register(
@@ -33,17 +33,19 @@ ChartJS.register(
 const MAX_SCORE = 5;
 const MAX_TIME = 300; // seconds (5 minutes max for the quiz)
 
-// TypeScript interface for the fetched score data (with quizzes join)
+interface QuizInfo {
+  id: string;
+  subject: string;
+  category: string;
+}
+
 interface ScoreWithQuizzes {
   id: string;
   score: number | null;
   time_taken: number | null;
   created_at: string;
   quiz_id: string;
-  quizzes: {
-    id: string;
-    category: string;
-  } | null;
+  quizzes: QuizInfo | null;
 }
 
 const Arithmetic_Radar: React.FC = () => {
@@ -56,30 +58,34 @@ const Arithmetic_Radar: React.FC = () => {
     problemSolving: 0,
   });
 
-  // Helper function to map raw Supabase data to our typed interface
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const mapToScoreWithQuizzes = (rawData: any): ScoreWithQuizzes => {
+  // ✅ Type-safe mapper (no any used)
+  const mapToScoreWithQuizzes = (rawData: Record<string, unknown>): ScoreWithQuizzes => {
+    const quizzesData = rawData.quizzes as Record<string, unknown> | null;
+
     return {
-      id: rawData.id || '',
-      score: rawData.score || null,
-      time_taken: rawData.time_taken || null,
-      created_at: rawData.created_at || new Date().toISOString(), // Default if missing
-      quiz_id: rawData.quiz_id || '',
-      quizzes: rawData.quizzes 
+      id: String(rawData.id ?? ""),
+      score: typeof rawData.score === "number" ? rawData.score : null,
+      time_taken: typeof rawData.time_taken === "number" ? rawData.time_taken : null,
+      created_at: typeof rawData.created_at === "string"
+        ? rawData.created_at
+        : new Date().toISOString(),
+      quiz_id: String(rawData.quiz_id ?? ""),
+      quizzes: quizzesData
         ? {
-            id: rawData.quizzes.id || '',
-            category: rawData.quizzes.category || ''
+            id: String(quizzesData.id ?? ""),
+            subject: String(quizzesData.subject ?? ""),
+            category: String(quizzesData.category ?? ""),
           }
         : null,
     };
   };
 
-  const fetchRadarData = async () => {
+  const fetchRadarData = async (): Promise<void> => {
     try {
       const {
         data: { user },
         error: userError,
-      } = await supabase.auth.getUser   ();
+      } = await supabase.auth.getUser();
 
       if (userError || !user) {
         console.error("No user logged in:", userError);
@@ -89,21 +95,26 @@ const Arithmetic_Radar: React.FC = () => {
 
       const userId = user.id;
 
-      // Fetch ALL recent scores with category info (join with quizzes)
-      // Limit to last 10 attempts to keep it efficient
+      // ✅ Fetch scores joined with quizzes where subject = 'Arithmetic Sequence'
       const { data: allScores, error: scoresError } = await supabase
         .from("scores")
-        .select(`
+        .select(
+          `
           id,
           score,
           time_taken,
           created_at,
           quiz_id,
-          quizzes!quiz_id (id, category)
-        `)
+          quizzes!quiz_id (
+            id,
+            subject,
+            category
+          )
+        `
+        )
         .eq("user_id", userId)
         .order("created_at", { ascending: false })
-        .limit(10); // Adjust if you have more attempts
+        .limit(20);
 
       if (scoresError) {
         console.error("Error fetching scores:", scoresError);
@@ -111,95 +122,77 @@ const Arithmetic_Radar: React.FC = () => {
         return;
       }
 
-      // Map raw Supabase data to our typed interface (no casting needed!)
-      const typedScores: ScoreWithQuizzes[] = (allScores || []).map(mapToScoreWithQuizzes);
-
-      console.log("All fetched scores with categories:", typedScores); // DEBUG: Check this in console
+      const typedScores: ScoreWithQuizzes[] = (allScores ?? [])
+        .map(mapToScoreWithQuizzes)
+        .filter(
+          (score) =>
+            score.quizzes?.subject?.toLowerCase() === "arithmetic sequence"
+        );
 
       if (typedScores.length === 0) {
-        console.log("No scores found, defaulting to 0%");
+        console.log("No Arithmetic Sequence scores found");
         setPerformance({ time: 0, solving: 0, problemSolving: 0 });
         return;
       }
 
-      // Get latest overall time (most recent score, regardless of category)
-      const latestOverall = typedScores[0];
-      const rawTime = latestOverall.time_taken ?? 0;
-      const timePercent = Math.max(
-        0,
-        Math.round(((MAX_TIME - rawTime) / MAX_TIME) * 100)
+      // ✅ Filter by category (Solving / Problem Solving)
+      const solvingScores = typedScores.filter(
+        (s) => s.quizzes?.category === "Solving"
       );
-      console.log(`Latest time taken: ${rawTime}s → Time performance: ${timePercent}%`);
+      const problemSolvingScores = typedScores.filter(
+        (s) => s.quizzes?.category === "Problem Solving"
+      );
 
-      // Initialize typed arrays for each category
-      const solvingScores: ScoreWithQuizzes[] = [];
-      const problemSolvingScores: ScoreWithQuizzes[] = [];
+      // ✅ Calculate average time
+      const totalTimePercent = typedScores.reduce((acc, s) => {
+        const raw = s.time_taken ?? MAX_TIME;
+        const percent = Math.max(0, Math.round(((MAX_TIME - raw) / MAX_TIME) * 100));
+        return acc + percent;
+      }, 0);
+      const avgTimePercent = Math.round(totalTimePercent / typedScores.length);
 
-      // Group scores by category (manual JS filtering)
-      typedScores.forEach((score) => {
-        // Safe access to category with optional chaining
-        const category = score.quizzes?.category || null;
-        console.log(`Score ID ${score.id}: Score=${score.score}, Category='${category}'`); // DEBUG
+      // ✅ Average Solving %
+      const solvingPercent = solvingScores.length
+        ? Math.round(
+            (solvingScores.reduce((a, b) => a + (b.score ?? 0), 0) /
+              (solvingScores.length * MAX_SCORE)) *
+              100
+          )
+        : 0;
 
-        if (category === "Solving") {
-          solvingScores.push(score);
-        } else if (category === "Problem Solving") {
-          problemSolvingScores.push(score);
-        }
+      // ✅ Average Problem Solving %
+      const problemSolvingPercent = problemSolvingScores.length
+        ? Math.round(
+            (problemSolvingScores.reduce((a, b) => a + (b.score ?? 0), 0) /
+              (problemSolvingScores.length * MAX_SCORE)) *
+              100
+          )
+        : 0;
+
+      console.log("✅ Arithmetic only values:", {
+        avgTimePercent,
+        solvingPercent,
+        problemSolvingPercent,
       });
 
-      // Sort each by created_at DESC to get latest (most recent first)
-      solvingScores.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-      problemSolvingScores.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-
-      // Calculate percentages
-      let solvingPercent = 0;
-      if (solvingScores.length > 0) {
-        const latestSolving = solvingScores[0];
-        const rawScoreSolving = latestSolving.score ?? 0;
-        solvingPercent = Math.min(100, Math.round((rawScoreSolving / MAX_SCORE) * 100));
-        console.log(`Latest Solving: ${rawScoreSolving}/5 (${solvingScores.length} attempts) → ${solvingPercent}%`);
-      } else {
-        console.log("No Solving scores found, defaulting to 0%");
-      }
-
-      let problemSolvingPercent = 0;
-      if (problemSolvingScores.length > 0) {
-        const latestProblemSolving = problemSolvingScores[0];
-        const rawScoreProblemSolving = latestProblemSolving.score ?? 0;
-        problemSolvingPercent = Math.min(100, Math.round((rawScoreProblemSolving / MAX_SCORE) * 100));
-        console.log(`Latest Problem Solving: ${rawScoreProblemSolving}/5 (${problemSolvingScores.length} attempts) → ${problemSolvingPercent}%`);
-      } else {
-        console.log("No Problem Solving scores found, defaulting to 0%");
-      }
-
-      // Update performance state
       setPerformance({
-        time: timePercent,
+        time: avgTimePercent,
         solving: solvingPercent,
         problemSolving: problemSolvingPercent,
       });
-
-      console.log("Final performance values:", {
-        time: timePercent,
-        solving: solvingPercent,
-        problemSolving: problemSolvingPercent,
-      });
-
     } catch (err) {
       console.error("Error in fetchRadarData:", err);
       setPerformance({ time: 0, solving: 0, problemSolving: 0 });
     }
   };
 
+  // ✅ Chart rendering
   useEffect(() => {
     if (radarRef.current) {
       const ctx = radarRef.current.getContext("2d");
       if (!ctx) return;
 
-      if (chartInstance.current) {
-        chartInstance.current.destroy();
-      }
+      if (chartInstance.current) chartInstance.current.destroy();
 
       const gradient = ctx.createLinearGradient(0, 0, 0, 400);
       gradient.addColorStop(0, "rgba(99, 102, 241, 0.4)");
@@ -211,7 +204,7 @@ const Arithmetic_Radar: React.FC = () => {
           labels: ["⏱ Time", "🧮 Solving", "🧩 Problem Solving"],
           datasets: [
             {
-              label: "✨ My Performance",
+              label: "✨ Arithmetic Performance",
               data: [
                 performance.time,
                 performance.solving,
@@ -245,7 +238,7 @@ const Arithmetic_Radar: React.FC = () => {
             },
             title: {
               display: true,
-              text: "📊 Arithmetic Radar Chart",
+              text: "📊 Arithmetic Sequence Radar Chart",
               color: "#1f2937",
               font: {
                 size: 20,
@@ -254,25 +247,20 @@ const Arithmetic_Radar: React.FC = () => {
               },
             },
             datalabels: {
-              color: "black", // Black % labels on points
-              font: { weight: 'bold', size: 12 },
-              formatter: (value) => `${value}%`,
+              color: "black",
+              font: { weight: "bold", size: 12 },
+              formatter: (value: number) => `${Math.round(value)}%`,
             },
           },
           scales: {
             r: {
-              angleLines: { color: "rgba(156, 163, 175, 0.3)" },
+              suggestedMin: 0,
+              suggestedMax: 100,
+              ticks: { display: false },
               grid: { color: "rgba(209, 213, 219, 0.3)" },
               pointLabels: {
                 color: "#111827",
                 font: { size: 14, weight: "bold" },
-              },
-              suggestedMin: 0,
-              suggestedMax: 100,
-              ticks: {
-                display: false, // Hide the numerical tick labels (0, 20, 40, 60, 80, 100)
-                backdropColor: "transparent",
-                color: "#4b5563",
               },
             },
           },
@@ -281,9 +269,7 @@ const Arithmetic_Radar: React.FC = () => {
       });
     }
 
-    return () => {
-      chartInstance.current?.destroy();
-    };
+    return () => chartInstance.current?.destroy();
   }, [performance]);
 
   useEffect(() => {
@@ -313,14 +299,12 @@ const Arithmetic_Radar: React.FC = () => {
               <canvas ref={radarRef} />
             </div>
 
-            {/* Refresh Button Inside */}
             <div style={{ textAlign: "center", marginTop: "15px" }}>
               <button
                 onClick={fetchRadarData}
                 style={{
                   padding: "12px 24px",
-                  background:
-                    "linear-gradient(90deg, #6366F1, #EC4899)",
+                  background: "linear-gradient(90deg, #6366F1, #EC4899)",
                   color: "white",
                   fontSize: "16px",
                   fontWeight: "bold",
@@ -333,8 +317,7 @@ const Arithmetic_Radar: React.FC = () => {
                   maxWidth: "250px",
                 }}
                 onMouseOver={(e) =>
-                  ((e.target as HTMLButtonElement).style.transform =
-                    "scale(1.05)")
+                  ((e.target as HTMLButtonElement).style.transform = "scale(1.05)")
                 }
                 onMouseOut={(e) =>
                   ((e.target as HTMLButtonElement).style.transform = "scale(1)")

@@ -9,11 +9,27 @@ import {
 import { Trophy } from "lucide-react";
 import { supabase } from "../../utils/supabaseClient";
 
+interface Profile {
+  lastname: string;
+}
+
+interface Quiz {
+  category: string;
+  subject: string;
+}
+
+interface RawScoreRow {
+  score: number;
+  time_taken: number;
+  profiles: Profile | Profile[];
+  quizzes: Quiz | Quiz[];
+}
+
 interface LeaderboardRow {
   score: number;
   time_taken: number;
   profiles: { lastname: string };
-  quizzes: { category: string };
+  quizzes: { category: string; subject: string };
 }
 
 const ArithmeticLeaderboard: React.FC = () => {
@@ -23,29 +39,25 @@ const ArithmeticLeaderboard: React.FC = () => {
 
   useEffect(() => {
     fetchLeaderboards();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Normalize a raw Supabase row into our LeaderboardRow shape safely
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const normalizeRow = (r: any): LeaderboardRow => {
-    // profiles/quizzes might be returned as an object or an array depending on join form;
-    // handle both shapes defensively.
+  const normalizeRow = (r: RawScoreRow): LeaderboardRow => {
     let lastname = "";
     if (r?.profiles) {
-      if (Array.isArray(r.profiles)) {
-        lastname = r.profiles[0]?.lastname ?? "";
-      } else if (typeof r.profiles === "object") {
-        lastname = r.profiles.lastname ?? "";
-      }
+      lastname = Array.isArray(r.profiles)
+        ? r.profiles[0]?.lastname ?? ""
+        : r.profiles.lastname ?? "";
     }
 
     let category = "";
+    let subject = "";
     if (r?.quizzes) {
       if (Array.isArray(r.quizzes)) {
         category = r.quizzes[0]?.category ?? "";
-      } else if (typeof r.quizzes === "object") {
+        subject = r.quizzes[0]?.subject ?? "";
+      } else {
         category = r.quizzes.category ?? "";
+        subject = r.quizzes.subject ?? "";
       }
     }
 
@@ -53,7 +65,7 @@ const ArithmeticLeaderboard: React.FC = () => {
       score: Number(r?.score ?? 0),
       time_taken: Number(r?.time_taken ?? 0),
       profiles: { lastname },
-      quizzes: { category },
+      quizzes: { category, subject },
     };
   };
 
@@ -61,7 +73,7 @@ const ArithmeticLeaderboard: React.FC = () => {
     setLoading(true);
 
     try {
-      // Solving
+      // ✅ Solving - Arithmetic Sequence only
       const { data: solvingRaw, error: err1 } = await supabase
         .from("scores")
         .select(
@@ -69,9 +81,10 @@ const ArithmeticLeaderboard: React.FC = () => {
           score,
           time_taken,
           profiles!inner(lastname),
-          quizzes!inner(category)
+          quizzes!inner(category, subject)
         `
         )
+        .eq("quizzes.subject", "Arithmetic Sequence")
         .eq("quizzes.category", "Solving")
         .order("score", { ascending: false })
         .order("time_taken", { ascending: true });
@@ -79,13 +92,12 @@ const ArithmeticLeaderboard: React.FC = () => {
       if (err1) {
         console.error("Solving Error:", err1);
         setSolvingData([]);
-      } else {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const mapped = (solvingRaw ?? []).map((r: any) => normalizeRow(r));
+      } else if (solvingRaw) {
+        const mapped = (solvingRaw as RawScoreRow[]).map(normalizeRow);
         setSolvingData(mapped);
       }
 
-      // Problem Solving
+      // ✅ Problem Solving - Arithmetic Sequence only
       const { data: problemRaw, error: err2 } = await supabase
         .from("scores")
         .select(
@@ -93,9 +105,10 @@ const ArithmeticLeaderboard: React.FC = () => {
           score,
           time_taken,
           profiles!inner(lastname),
-          quizzes!inner(category)
+          quizzes!inner(category, subject)
         `
         )
+        .eq("quizzes.subject", "Arithmetic Sequence")
         .eq("quizzes.category", "Problem Solving")
         .order("score", { ascending: false })
         .order("time_taken", { ascending: true });
@@ -103,9 +116,8 @@ const ArithmeticLeaderboard: React.FC = () => {
       if (err2) {
         console.error("Problem Solving Error:", err2);
         setProblemSolvingData([]);
-      } else {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const mapped = (problemRaw ?? []).map((r: any) => normalizeRow(r));
+      } else if (problemRaw) {
+        const mapped = (problemRaw as RawScoreRow[]).map(normalizeRow);
         setProblemSolvingData(mapped);
       }
     } catch (e) {
@@ -117,7 +129,7 @@ const ArithmeticLeaderboard: React.FC = () => {
     }
   };
 
-  // helper to format seconds into mm:ss
+  // Helper: format seconds to mm:ss
   const formatTime = (seconds: number) => {
     if (!Number.isFinite(seconds)) return "0:00";
     const mins = Math.floor(seconds / 60);
@@ -141,7 +153,7 @@ const ArithmeticLeaderboard: React.FC = () => {
             <tr key={index} style={{ borderBottom: "1px solid #e5e7eb" }}>
               <td style={tdStyle}>{index + 1}</td>
               <td style={tdStyle}>{row.profiles?.lastname || "-"}</td>
-              <td style={tdStyle}>{row.score}</td>
+              <td style={tdStyle}>{Math.round(row.score)}</td>
               <td style={tdStyle}>{formatTime(row.time_taken)}</td>
             </tr>
           ))
@@ -160,7 +172,7 @@ const ArithmeticLeaderboard: React.FC = () => {
     <IonPage>
       <IonHeader>
         <IonToolbar>
-          <IonTitle>Arithmetic Leaderboard</IonTitle>
+          <IonTitle>Arithmetic Sequence Leaderboard</IonTitle>
         </IonToolbar>
       </IonHeader>
 
@@ -185,7 +197,7 @@ const ArithmeticLeaderboard: React.FC = () => {
   );
 };
 
-/* small inline styles to avoid tailwind dependency in this snippet */
+/* Inline styles */
 const cardStyle: React.CSSProperties = {
   maxWidth: 720,
   margin: "0 auto",

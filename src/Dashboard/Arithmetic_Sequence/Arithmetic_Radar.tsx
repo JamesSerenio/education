@@ -134,11 +134,12 @@ const Arithmetic_Radar: React.FC = () => {
         return;
       }
 
-      // ✅ Compute Time using the latest entry (like Motion_Radar)
+      // ✅ Compute Time using latest entry
       const latestScore = typedScores[0];
+      const timeTaken = latestScore.time_taken || 0;
       const timePercent = Math.max(
         0,
-        Math.round(((MAX_TIME - (latestScore.time_taken || 0)) / MAX_TIME) * 100)
+        parseFloat((((MAX_TIME - timeTaken) / MAX_TIME) * 100).toFixed(2))
       );
 
       // ✅ Compute Solving %
@@ -147,11 +148,8 @@ const Arithmetic_Radar: React.FC = () => {
       );
       const solvingPercent =
         solvingScores.length > 0
-          ? Math.min(
-              100,
-              Math.round(
-                ((solvingScores[0].score || 0) / MAX_SCORE) * 100
-              )
+          ? parseFloat(
+              (((solvingScores[0].score || 0) / MAX_SCORE) * 100).toFixed(2)
             )
           : 0;
 
@@ -161,11 +159,8 @@ const Arithmetic_Radar: React.FC = () => {
       );
       const problemSolvingPercent =
         problemSolvingScores.length > 0
-          ? Math.min(
-              100,
-              Math.round(
-                ((problemSolvingScores[0].score || 0) / MAX_SCORE) * 100
-              )
+          ? parseFloat(
+              (((problemSolvingScores[0].score || 0) / MAX_SCORE) * 100).toFixed(2)
             )
           : 0;
 
@@ -236,6 +231,16 @@ const Arithmetic_Radar: React.FC = () => {
             text: "📊 Arithmetic Sequence Radar Chart",
             color: "#1f2937",
             font: { size: 20, weight: "bold", family: "Roboto, sans-serif" },
+          },
+          tooltip: {
+            enabled: true,
+            callbacks: {
+              label: (context) => {
+                const label = context.label || "";
+                const value = context.formattedValue || "0";
+                return `${label}: ${value}%`;
+              },
+            },
           },
           datalabels: {
             color: "black",

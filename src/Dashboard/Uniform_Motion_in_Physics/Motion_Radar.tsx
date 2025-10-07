@@ -39,7 +39,7 @@ interface ScoreWithQuizzes {
   time_taken: number | null;
   created_at: string;
   quiz_id: string;
-  quizzes: { id: string; category: string; subject: string } | null;
+  quizzes: { id: string; category: string; subject?: string } | null;
 }
 
 const Motion_Radar: React.FC = () => {
@@ -52,7 +52,7 @@ const Motion_Radar: React.FC = () => {
     problemSolving: 0,
   });
 
-  // Map raw Supabase data to typed interface
+  // Map Supabase raw data
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const mapToScoreWithQuizzes = (rawData: any): ScoreWithQuizzes => ({
     id: rawData.id || "",
@@ -84,21 +84,12 @@ const Motion_Radar: React.FC = () => {
 
       const userId = user.id;
 
-      // ✅ Fetch scores that belong ONLY to Uniform Motion in Physics
       const { data: allScores, error: scoresError } = await supabase
         .from("scores")
-        .select(`
-          id,
-          score,
-          time_taken,
-          created_at,
-          quiz_id,
-          quizzes!quiz_id(id, category, subject)
-        `)
+        .select(`id, score, time_taken, created_at, quiz_id, quizzes!quiz_id(id, category, subject)`)
         .eq("user_id", userId)
-        .eq("quizzes.subject", "Uniform Motion in Physics") // 🔥 Only this subject
         .order("created_at", { ascending: false })
-        .limit(20);
+        .limit(50);
 
       if (scoresError) {
         console.error("Error fetching scores:", scoresError);
@@ -107,58 +98,54 @@ const Motion_Radar: React.FC = () => {
       }
 
       const typedScores: ScoreWithQuizzes[] = (allScores || []).map(mapToScoreWithQuizzes);
-
       if (!typedScores.length) {
         setPerformance({ time: 0, solving: 0, problemSolving: 0 });
         return;
       }
 
-      // ✅ Filter each category
-      const timeScores = typedScores.filter(
-        (s) => s.quizzes?.category === "Time"
-      );
-      const solvingScores = typedScores.filter(
-        (s) => s.quizzes?.category === "Solving"
-      );
-      const problemSolvingScores = typedScores.filter(
-        (s) => s.quizzes?.category === "Problem Solving"
+      // ✅ Filter only "Uniform Motion in Physics" subject
+      const uniformMotionScores = typedScores.filter(
+        s => s.quizzes?.subject === "Uniform Motion in Physics"
       );
 
-      // ✅ Compute average time percent (if multiple time_taken values)
-      const timePercent =
-        timeScores.length > 0
-          ? Math.round(
-              timeScores.reduce((acc, s) => {
-                const t = s.time_taken || 0;
-                const pct = ((MAX_TIME - t) / MAX_TIME) * 100;
-                return acc + pct;
-              }, 0) / timeScores.length
-            )
-          : 0;
+      // Default values
+      let timePercent = 0;
+      let solvingPercent = 0;
+      let problemSolvingPercent = 0;
 
-      const solvingPercent =
-        solvingScores.length > 0
-          ? Math.min(
-              100,
-              Math.round(
-                solvingScores.reduce((acc, s) => acc + ((s.score || 0) / MAX_SCORE) * 100, 0) /
-                  solvingScores.length
-              )
-            )
-          : 0;
+      if (uniformMotionScores.length > 0) {
+        // ✅ TIME calculation (average time)
+        const avgTime =
+          uniformMotionScores.reduce((sum, s) => sum + (s.time_taken || 0), 0) /
+          uniformMotionScores.length;
 
-      const problemSolvingPercent =
-        problemSolvingScores.length > 0
-          ? Math.min(
-              100,
-              Math.round(
-                problemSolvingScores.reduce(
-                  (acc, s) => acc + ((s.score || 0) / MAX_SCORE) * 100,
-                  0
-                ) / problemSolvingScores.length
-              )
-            )
-          : 0;
+        timePercent = Math.max(
+          0,
+          Math.min(100, Math.round(((MAX_TIME - avgTime) / MAX_TIME) * 100))
+        );
+
+        // ✅ SOLVING
+        const solvingScores = uniformMotionScores.filter(
+          s => s.quizzes?.category === "Solving" && s.score !== null
+        );
+        if (solvingScores.length > 0) {
+          const avgSolving =
+            solvingScores.reduce((sum, s) => sum + (s.score || 0), 0) /
+            solvingScores.length;
+          solvingPercent = Math.min(100, Math.round((avgSolving / MAX_SCORE) * 100));
+        }
+
+        // ✅ PROBLEM SOLVING
+        const problemSolvingScores = uniformMotionScores.filter(
+          s => s.quizzes?.category === "Problem Solving" && s.score !== null
+        );
+        if (problemSolvingScores.length > 0) {
+          const avgProblemSolving =
+            problemSolvingScores.reduce((sum, s) => sum + (s.score || 0), 0) /
+            problemSolvingScores.length;
+          problemSolvingPercent = Math.min(100, Math.round((avgProblemSolving / MAX_SCORE) * 100));
+        }
+      }
 
       setPerformance({
         time: timePercent,
@@ -171,6 +158,7 @@ const Motion_Radar: React.FC = () => {
     }
   };
 
+  // Chart rendering
   useEffect(() => {
     if (!radarRef.current) return;
     const ctx = radarRef.current.getContext("2d");
@@ -185,11 +173,11 @@ const Motion_Radar: React.FC = () => {
     chartInstance.current = new ChartJS(ctx, {
       type: "radar",
       data: {
-        labels: ["⏱ Time", "🧮 Solving", "🧩 Problem Solving"],
+        labels: ["⏱ Time", "🧩 Problem Solving", "🧮 Solving"],
         datasets: [
           {
-            label: "✨ My Performance",
-            data: [performance.time, performance.solving, performance.problemSolving],
+            label: "✨ My Performance (Uniform Motion in Physics)",
+            data: [performance.time, performance.problemSolving, performance.solving],
             fill: true,
             backgroundColor: gradient,
             borderColor: "rgb(54, 162, 235)",
@@ -211,14 +199,14 @@ const Motion_Radar: React.FC = () => {
           },
           title: {
             display: true,
-            text: "📊 Motion Radar Chart (Uniform Motion in Physics)",
+            text: "📊 Uniform Motion in Physics",
             color: "#111",
             font: { size: 20, weight: "bold" },
           },
           datalabels: {
             color: "#000",
             font: { weight: "bold", size: 12 },
-            formatter: (val) => `${val}%`,
+            formatter: val => `${val}%`,
           },
         },
         scales: {

@@ -39,7 +39,7 @@ interface ScoreWithQuizzes {
   time_taken: number | null;
   created_at: string;
   quiz_id: string;
-  quizzes: { id: string; category: string } | null;
+  quizzes: { id: string; category: string; subject: string } | null;
 }
 
 const Motion_Radar: React.FC = () => {
@@ -61,7 +61,11 @@ const Motion_Radar: React.FC = () => {
     created_at: rawData.created_at || new Date().toISOString(),
     quiz_id: rawData.quiz_id || "",
     quizzes: rawData.quizzes
-      ? { id: rawData.quizzes.id || "", category: rawData.quizzes.category || "" }
+      ? {
+          id: rawData.quizzes.id || "",
+          category: rawData.quizzes.category || "",
+          subject: rawData.quizzes.subject || "",
+        }
       : null,
   });
 
@@ -80,12 +84,21 @@ const Motion_Radar: React.FC = () => {
 
       const userId = user.id;
 
+      // ✅ Fetch scores that belong ONLY to Uniform Motion in Physics
       const { data: allScores, error: scoresError } = await supabase
         .from("scores")
-        .select(`id, score, time_taken, created_at, quiz_id, quizzes!quiz_id(id, category)`)
+        .select(`
+          id,
+          score,
+          time_taken,
+          created_at,
+          quiz_id,
+          quizzes!quiz_id(id, category, subject)
+        `)
         .eq("user_id", userId)
+        .eq("quizzes.subject", "Uniform Motion in Physics") // 🔥 Only this subject
         .order("created_at", { ascending: false })
-        .limit(10);
+        .limit(20);
 
       if (scoresError) {
         console.error("Error fetching scores:", scoresError);
@@ -100,25 +113,51 @@ const Motion_Radar: React.FC = () => {
         return;
       }
 
-      // Latest overall time
-      const latestOverall = typedScores[0];
-      const timePercent = Math.max(
-        0,
-        Math.round(((MAX_TIME - (latestOverall.time_taken || 0)) / MAX_TIME) * 100)
+      // ✅ Filter each category
+      const timeScores = typedScores.filter(
+        (s) => s.quizzes?.category === "Time"
+      );
+      const solvingScores = typedScores.filter(
+        (s) => s.quizzes?.category === "Solving"
+      );
+      const problemSolvingScores = typedScores.filter(
+        (s) => s.quizzes?.category === "Problem Solving"
       );
 
-      // Filter by category
-      const solvingScores = typedScores.filter(s => s.quizzes?.category === "Solving");
-      const problemSolvingScores = typedScores.filter(s => s.quizzes?.category === "Problem Solving");
+      // ✅ Compute average time percent (if multiple time_taken values)
+      const timePercent =
+        timeScores.length > 0
+          ? Math.round(
+              timeScores.reduce((acc, s) => {
+                const t = s.time_taken || 0;
+                const pct = ((MAX_TIME - t) / MAX_TIME) * 100;
+                return acc + pct;
+              }, 0) / timeScores.length
+            )
+          : 0;
 
       const solvingPercent =
         solvingScores.length > 0
-          ? Math.min(100, Math.round(((solvingScores[0].score || 0) / MAX_SCORE) * 100))
+          ? Math.min(
+              100,
+              Math.round(
+                solvingScores.reduce((acc, s) => acc + ((s.score || 0) / MAX_SCORE) * 100, 0) /
+                  solvingScores.length
+              )
+            )
           : 0;
 
       const problemSolvingPercent =
         problemSolvingScores.length > 0
-          ? Math.min(100, Math.round(((problemSolvingScores[0].score || 0) / MAX_SCORE) * 100))
+          ? Math.min(
+              100,
+              Math.round(
+                problemSolvingScores.reduce(
+                  (acc, s) => acc + ((s.score || 0) / MAX_SCORE) * 100,
+                  0
+                ) / problemSolvingScores.length
+              )
+            )
           : 0;
 
       setPerformance({
@@ -146,11 +185,11 @@ const Motion_Radar: React.FC = () => {
     chartInstance.current = new ChartJS(ctx, {
       type: "radar",
       data: {
-        labels: ["⏱ Time", "🧩 Problem Solving", "🧮 Solving"],
+        labels: ["⏱ Time", "🧮 Solving", "🧩 Problem Solving"],
         datasets: [
           {
             label: "✨ My Performance",
-            data: [performance.time, performance.problemSolving, performance.solving],
+            data: [performance.time, performance.solving, performance.problemSolving],
             fill: true,
             backgroundColor: gradient,
             borderColor: "rgb(54, 162, 235)",
@@ -172,14 +211,14 @@ const Motion_Radar: React.FC = () => {
           },
           title: {
             display: true,
-            text: "📊 Motion Radar Chart",
+            text: "📊 Motion Radar Chart (Uniform Motion in Physics)",
             color: "#111",
             font: { size: 20, weight: "bold" },
           },
           datalabels: {
             color: "#000",
             font: { weight: "bold", size: 12 },
-            formatter: val => `${val}%`,
+            formatter: (val) => `${val}%`,
           },
         },
         scales: {

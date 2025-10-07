@@ -277,5 +277,4 @@ const Motion_Radar: React.FC = () => {
     </IonPage>
   );
 };
-
 export default Motion_Radar;

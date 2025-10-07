@@ -35,10 +35,8 @@ const AdminLeaderboard: React.FC = () => {
 
   useEffect(() => {
     fetchLeaderboards();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Normalize row from Supabase
   const normalizeRow = (r: Record<string, unknown>): LeaderboardRow => {
     const profile = r.profiles as Profile | Profile[] | null;
     const quiz = r.quizzes as Quiz | Quiz[] | null;
@@ -63,50 +61,56 @@ const AdminLeaderboard: React.FC = () => {
   const fetchLeaderboards = async () => {
     setLoading(true);
     try {
-      // Arithmetic - Solving
+      // ✅ Arithmetic - Solving (IGNORE Motion)
       const { data: solvingRaw, error: err1 } = await supabase
         .from("scores")
-        .select(`score,time_taken,profiles!inner(lastname),quizzes!inner(category)`)
+        .select(
+          `score,time_taken,profiles!inner(lastname),quizzes!inner(category,subject)`
+        )
         .eq("quizzes.category", "Solving")
+        .eq("quizzes.subject", "Arithmetic Sequence") // ✅ only arithmetic
         .order("score", { ascending: false })
         .order("time_taken", { ascending: true });
 
       if (!err1 && solvingRaw)
         setSolvingData(solvingRaw.map((r) => normalizeRow(r)));
 
-      // Arithmetic - Problem Solving
+      // ✅ Arithmetic - Problem Solving (IGNORE Motion)
       const { data: problemRaw, error: err2 } = await supabase
         .from("scores")
-        .select(`score,time_taken,profiles!inner(lastname),quizzes!inner(category)`)
+        .select(
+          `score,time_taken,profiles!inner(lastname),quizzes!inner(category,subject)`
+        )
         .eq("quizzes.category", "Problem Solving")
+        .eq("quizzes.subject", "Arithmetic Sequence") // ✅ only arithmetic
         .order("score", { ascending: false })
         .order("time_taken", { ascending: true });
 
       if (!err2 && problemRaw)
         setProblemSolvingData(problemRaw.map((r) => normalizeRow(r)));
 
-      // Motion - Solving
+      // ✅ Motion - Solving (IGNORE Arithmetic)
       const { data: motionSolvingRaw, error: err3 } = await supabase
         .from("scores")
         .select(
           `score,time_taken,profiles!inner(lastname),quizzes!inner(category,subject)`
         )
         .eq("quizzes.category", "Solving")
-        .eq("quizzes.subject", "Uniform Motion in Physics")
+        .eq("quizzes.subject", "Uniform Motion in Physics") // ✅ only motion
         .order("score", { ascending: false })
         .order("time_taken", { ascending: true });
 
       if (!err3 && motionSolvingRaw)
         setMotionSolvingData(motionSolvingRaw.map((r) => normalizeRow(r)));
 
-      // Motion - Problem Solving
+      // ✅ Motion - Problem Solving (IGNORE Arithmetic)
       const { data: motionProblemRaw, error: err4 } = await supabase
         .from("scores")
         .select(
           `score,time_taken,profiles!inner(lastname),quizzes!inner(category,subject)`
         )
         .eq("quizzes.category", "Problem Solving")
-        .eq("quizzes.subject", "Uniform Motion in Physics")
+        .eq("quizzes.subject", "Uniform Motion in Physics") // ✅ only motion
         .order("score", { ascending: false })
         .order("time_taken", { ascending: true });
 
@@ -170,7 +174,7 @@ const AdminLeaderboard: React.FC = () => {
       </IonHeader>
 
       <IonContent className="ion-padding">
-        {/* Arithmetic Section */}
+        {/* ✅ Arithmetic Leaderboard (only Arithmetic Sequence) */}
         <h1 style={mainTitle}>Arithmetic Leaderboard</h1>
 
         <div style={cardStyle}>
@@ -189,8 +193,10 @@ const AdminLeaderboard: React.FC = () => {
           {loading ? <p>Loading...</p> : renderTable(problemSolvingData)}
         </div>
 
-        {/* Motion Section */}
-        <h1 style={{ ...mainTitle, marginTop: 30 }}>Uniform Motion Leaderboard</h1>
+        {/* ✅ Motion Leaderboard (only Uniform Motion in Physics) */}
+        <h1 style={{ ...mainTitle, marginTop: 30 }}>
+          Uniform Motion Leaderboard
+        </h1>
 
         <div style={cardStyle}>
           <h2 style={blackTitle}>Solving</h2>

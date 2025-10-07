@@ -227,7 +227,7 @@ const AdminRadar: React.FC = () => {
           },
           title: {
             display: true,
-            text: "📊 Arithmetic Sequence Radar Chart",
+            text: "📊 Arithmetic Sequence Radar Chart (All Studens)",
             color: "#1f2937",
             font: { size: 20, weight: "bold", family: "Roboto, sans-serif" },
           },

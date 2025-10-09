@@ -14,9 +14,9 @@ import ArithmeticHome from "./Dashboard/Arithmetic_Sequence/Arithmetic_Home";
 import ArithmeticModule from "./Dashboard/Arithmetic_Sequence/Arithmetic_Module";
 import ArithmeticLeaderboard from "./Dashboard/Arithmetic_Sequence/Arithmetic_Leaderboard";
 import ArithmeticRadar from "./Dashboard/Arithmetic_Sequence/Arithmetic_Radar";
-import ArithmeticQuiz from "./Dashboard/Arithmetic_Sequence/Arithmetic_Quiz";
+import ArithmeticQuiz from "./Dashboard/Arithmetic_Sequence/arithmetic_quiz";
 
-import MotionQuiz from "./Dashboard/Uniform_Motion_in_Physics/Motion_Quiz";
+import MotionQuiz from "./Dashboard/Uniform_Motion_in_Physics/motion_quiz";
 import MotionPractice from "./Dashboard/Uniform_Motion_in_Physics/Motion_Practice";
 // ✅ Admin Dashboard
 import AdminDashboard from "./admin/admin_dashboard";

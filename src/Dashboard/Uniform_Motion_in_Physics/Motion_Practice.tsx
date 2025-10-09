@@ -13,7 +13,7 @@ import {
   IonSelectOption,
   IonText,
 } from "@ionic/react";
-import MotionQuiz from "./Motion_Quiz";
+import MotionQuiz from "./motion_quiz";
 
 const Motion_Practice: React.FC = () => {
   const [category, setCategory] = useState<string>("v");

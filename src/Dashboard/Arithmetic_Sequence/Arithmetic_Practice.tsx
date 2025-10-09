@@ -16,7 +16,7 @@ import {
   IonText,
 } from "@ionic/react";
 import { useHistory } from "react-router-dom"; 
-import ArithmeticQuiz from "./Arithmetic_Quiz";
+import ArithmeticQuiz from "./arithmetic_quiz";
 
 /**
  * Arithmetic_Practice.tsx

@@ -72,16 +72,16 @@ const AdminRadar: React.FC = () => {
     problemSolving: 0,
   });
 
-  const mapToScoreWithQuizzes = (rawData: unknown): ScoreWithQuizzes => {
-    const d = rawData as Record<string, unknown>;
-    const quiz = d.quizzes as Record<string, unknown> | null;
+  // ✅ Mapping function (no any)
+  const mapToScoreWithQuizzes = (rawData: Record<string, unknown>): ScoreWithQuizzes => {
+    const quiz = rawData.quizzes as Record<string, unknown> | null;
 
     return {
-      id: (d.id as string) || "",
-      score: (d.score as number) ?? null,
-      time_taken: (d.time_taken as number) ?? null,
-      created_at: (d.created_at as string) || new Date().toISOString(),
-      quiz_id: (d.quiz_id as string) || "",
+      id: (rawData.id as string) || "",
+      score: (rawData.score as number) ?? null,
+      time_taken: (rawData.time_taken as number) ?? null,
+      created_at: (rawData.created_at as string) || new Date().toISOString(),
+      quiz_id: (rawData.quiz_id as string) || "",
       quizzes: quiz
         ? {
             id: (quiz.id as string) || "",
@@ -92,75 +92,72 @@ const AdminRadar: React.FC = () => {
     };
   };
 
-  // 🔹 Fetch subject-specific data
-  const fetchSubjectData = async (subject: string) => {
+  // ✅ Fetch data per subject (filtered properly)
+  const fetchSubjectData = async (subject: string): Promise<UserScore> => {
     try {
       const { data, error } = await supabase
         .from("scores")
-        .select(
-          `
-          id,
-          score,
-          time_taken,
-          created_at,
-          quiz_id,
+        .select(`
+          id, score, time_taken, created_at, quiz_id,
           quizzes!quiz_id (id, category, subject)
-        `
-        )
+        `)
         .eq("quizzes.subject", subject)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
 
-      const typedScores: ScoreWithQuizzes[] = (data || []).map(mapToScoreWithQuizzes);
-      if (typedScores.length === 0) {
+      const scores: ScoreWithQuizzes[] = (data || []).map(mapToScoreWithQuizzes);
+
+      if (scores.length === 0) {
         return { time: 0, solving: 0, problemSolving: 0 };
       }
 
-      // 🕒 TIME % (Subject-specific)
-      const subjectTimeScores = typedScores.filter(
+      // ✅ Filter strictly by subject
+      const subjectScores = scores.filter(
         (s) => s.quizzes?.subject === subject
       );
-      const timePercents = subjectTimeScores.map((s) =>
-        Math.max(0, Math.round(((MAX_TIME - (s.time_taken ?? 0)) / MAX_TIME) * 100))
+
+      // ✅ TIME → Decimal (average of all time_taken)
+      const avgTime =
+        subjectScores.reduce((sum, s) => sum + (s.time_taken || 0), 0) /
+        subjectScores.length;
+      const timePercent = Math.max(
+        0,
+        Math.min(100, parseFloat((((MAX_TIME - avgTime) / MAX_TIME) * 100).toFixed(2)))
       );
-      const timeAvg =
-        timePercents.length > 0
-          ? Math.round(
-              timePercents.reduce((a, b) => a + b, 0) / timePercents.length
+
+      // ✅ SOLVING → Whole number
+      const solvingScores = subjectScores.filter(
+        (s) => s.quizzes?.category === "Solving" && s.score !== null
+      );
+      const solvingPercent =
+        solvingScores.length > 0
+          ? Math.floor(
+              (solvingScores.reduce((sum, s) => sum + (s.score || 0), 0) /
+                solvingScores.length /
+                MAX_SCORE) *
+                100
             )
           : 0;
 
-      // 🧮 SOLVING %
-      const solvingScores = typedScores.filter((s) => s.quizzes?.category === "Solving");
-      const solvingPercents = solvingScores.map((s) =>
-        Math.min(100, Math.round(((s.score ?? 0) / MAX_SCORE) * 100))
+      // ✅ PROBLEM SOLVING → Whole number
+      const problemScores = subjectScores.filter(
+        (s) => s.quizzes?.category === "Problem Solving" && s.score !== null
       );
-      const solvingAvg =
-        solvingPercents.length > 0
-          ? Math.round(
-              solvingPercents.reduce((a, b) => a + b, 0) / solvingPercents.length
-            )
-          : 0;
-
-      // 🧩 PROBLEM SOLVING %
-      const problemSolvingScores = typedScores.filter(
-        (s) => s.quizzes?.category === "Problem Solving"
-      );
-      const problemPercents = problemSolvingScores.map((s) =>
-        Math.min(100, Math.round(((s.score ?? 0) / MAX_SCORE) * 100))
-      );
-      const problemAvg =
-        problemPercents.length > 0
-          ? Math.round(
-              problemPercents.reduce((a, b) => a + b, 0) / problemPercents.length
+      const problemSolvingPercent =
+        problemScores.length > 0
+          ? Math.floor(
+              (problemScores.reduce((sum, s) => sum + (s.score || 0), 0) /
+                problemScores.length /
+                MAX_SCORE) *
+                100
             )
           : 0;
 
       return {
-        time: timeAvg,
-        solving: solvingAvg,
-        problemSolving: problemAvg,
+        time: timePercent,
+        solving: solvingPercent,
+        problemSolving: problemSolvingPercent,
       };
     } catch (err) {
       console.error(`Error fetching ${subject} data:`, err);
@@ -168,7 +165,7 @@ const AdminRadar: React.FC = () => {
     }
   };
 
-  // 🔹 Fetch both subjects
+  // ✅ Fetch both subjects separately
   const fetchAllData = async () => {
     const arithmetic = await fetchSubjectData("Arithmetic Sequence");
     const physics = await fetchSubjectData("Uniform Motion in Physics");
@@ -176,27 +173,27 @@ const AdminRadar: React.FC = () => {
     setPhysicsScore(physics);
   };
 
-  // 🔹 Create Radar Chart
+  // ✅ Create radar chart (consistent styling)
   const createRadarChart = (
     ctx: CanvasRenderingContext2D,
     data: UserScore,
     title: string
   ) => {
     const gradient = ctx.createLinearGradient(0, 0, 0, 400);
-    gradient.addColorStop(0, "rgba(99, 102, 241, 0.4)");
-    gradient.addColorStop(1, "rgba(236, 72, 153, 0.4)");
+    gradient.addColorStop(0, "rgba(54, 162, 235, 0.3)");
+    gradient.addColorStop(1, "rgba(236, 72, 153, 0.3)");
 
     return new ChartJS(ctx, {
       type: "radar",
       data: {
-        labels: ["⏱ Time", "🧮 Solving", "🧩 Problem Solving"],
+        labels: ["⏱ Time", "🧩 Problem Solving", "🧮 Solving"],
         datasets: [
           {
             label: `${title} Average`,
-            data: [data.time, data.solving, data.problemSolving],
+            data: [data.time, data.problemSolving, data.solving],
             fill: true,
             backgroundColor: gradient,
-            borderColor: "rgb(147, 51, 234)",
+            borderColor: "rgb(54, 162, 235)",
             borderWidth: 3,
             pointBackgroundColor: "rgb(236, 72, 153)",
             pointBorderColor: "#fff",
@@ -211,36 +208,30 @@ const AdminRadar: React.FC = () => {
         plugins: {
           legend: {
             display: true,
-            labels: {
-              color: "#374151",
-              font: { size: 14, weight: "bold" },
-            },
+            labels: { color: "#111", font: { size: 14, weight: "bold" } },
           },
           title: {
             display: true,
-            text: `${title} (All Students)`,
-            color: "#1f2937",
-            font: { size: 18, weight: "bold" },
-          },
-          tooltip: {
-            enabled: true,
-            backgroundColor: "rgba(0,0,0,0.8)",
-            callbacks: {
-              label: (ctx) => `${ctx.formattedValue}%`,
-            },
+            text: `📊 ${title}`,
+            color: "#111",
+            font: { size: 20, weight: "bold" },
           },
           datalabels: {
-            color: "black",
+            color: "#000",
             font: { weight: "bold", size: 12 },
-            formatter: (value) => `${value}%`,
+            formatter: (val, ctx) =>
+              ctx.dataIndex === 0
+                ? `${val.toFixed(2)}%` // Time has decimals
+                : `${Math.round(val)}%`, // Others are whole
           },
         },
         scales: {
           r: {
+            angleLines: { color: "rgba(156, 163, 175, 0.3)" },
+            grid: { color: "rgba(209, 213, 219, 0.3)" },
+            pointLabels: { color: "#111", font: { size: 14, weight: "bold" } },
             suggestedMin: 0,
             suggestedMax: 100,
-            grid: { color: "rgba(209,213,219,0.3)" },
-            pointLabels: { color: "#111827", font: { size: 14, weight: "bold" } },
             ticks: { display: false },
           },
         },
@@ -249,14 +240,16 @@ const AdminRadar: React.FC = () => {
     });
   };
 
+  // ✅ Render both charts
   useEffect(() => {
     if (!radarRefArithmetic.current || !radarRefPhysics.current) return;
+
     const ctxA = radarRefArithmetic.current.getContext("2d");
     const ctxP = radarRefPhysics.current.getContext("2d");
     if (!ctxA || !ctxP) return;
 
-    if (chartArithmetic.current) chartArithmetic.current.destroy();
-    if (chartPhysics.current) chartPhysics.current.destroy();
+    chartArithmetic.current?.destroy();
+    chartPhysics.current?.destroy();
 
     chartArithmetic.current = createRadarChart(
       ctxA,
@@ -292,7 +285,7 @@ const AdminRadar: React.FC = () => {
               justifyContent: "center",
             }}
           >
-            {/* Arithmetic Sequence Radar */}
+            {/* Arithmetic Sequence Chart */}
             <div
               style={{
                 width: "500px",
@@ -306,7 +299,7 @@ const AdminRadar: React.FC = () => {
               <canvas ref={radarRefArithmetic} />
             </div>
 
-            {/* Uniform Motion in Physics Radar */}
+            {/* Uniform Motion in Physics Chart */}
             <div
               style={{
                 width: "500px",
@@ -333,17 +326,9 @@ const AdminRadar: React.FC = () => {
                 borderRadius: "12px",
                 border: "none",
                 cursor: "pointer",
-                boxShadow: "0 4px 10px rgba(0,0,0,0.2)",
-                transition: "0.3s",
                 width: "100%",
-                maxWidth: "300px",
+                maxWidth: "250px",
               }}
-              onMouseOver={(e) =>
-                ((e.target as HTMLButtonElement).style.transform = "scale(1.05)")
-              }
-              onMouseOut={(e) =>
-                ((e.target as HTMLButtonElement).style.transform = "scale(1)")
-              }
             >
               🔄 Refresh Both Subjects
             </button>

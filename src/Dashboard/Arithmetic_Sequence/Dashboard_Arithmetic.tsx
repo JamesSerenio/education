@@ -22,7 +22,6 @@ import ArithmeticModule from "./Arithmetic_Module";
 import ArithmeticLeaderboard from "./Arithmetic_Leaderboard";
 import ArithmeticRadar from "./Arithmetic_Radar";
 
-
 import iconHome from "../../assets/icon_home.gif";
 import iconModule from "../../assets/icon_module.gif";
 import iconLeaderboard from "../../assets/icon_leaderboard.gif";

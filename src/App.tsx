@@ -98,7 +98,7 @@ const App: React.FC = () => (
           component={AdminDashboard}
         />
 
-        {/* 🔹 Default Redirect */}
+{/* 🔹 Default Redirect */}
         <Route exact path="/education/">
           <Redirect to="/education/login" />
         </Route>

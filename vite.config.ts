@@ -7,9 +7,9 @@ import tailwindcss from '@tailwindcss/vite'
 
 export default defineConfig({
   plugins: [react(), tailwindcss(), legacy()],
-  base: "/",  // ✅ only root path
+  base: "/", // ✅ only root path
   build: {
-    outDir: "dist", // ensure correct output directory
+    outDir: "dist",
   },
   test: {
     globals: true,

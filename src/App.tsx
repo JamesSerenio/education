@@ -8,16 +8,14 @@ import Home from "./pages/Home";
 
 import Dashboard_Arithmetic from "./Dashboard/Arithmetic_Sequence/Dashboard_Arithmetic";
 import Dashboard_Motion from "./Dashboard/Uniform_Motion_in_Physics/Dashboard_Motion";
-import Arithmetic_Practice from "./Dashboard/Arithmetic_Sequence/Arithmetic_Practice";
+
 
 import ArithmeticHome from "./Dashboard/Arithmetic_Sequence/Arithmetic_Home";
 import ArithmeticModule from "./Dashboard/Arithmetic_Sequence/Arithmetic_Module";
 import ArithmeticLeaderboard from "./Dashboard/Arithmetic_Sequence/Arithmetic_Leaderboard";
 import ArithmeticRadar from "./Dashboard/Arithmetic_Sequence/Arithmetic_Radar";
-import ArithmeticQuiz from "./Dashboard/Arithmetic_Sequence/Arithmetic_Quiz";
 
-import MotionQuiz from "./Dashboard/Uniform_Motion_in_Physics/Motion_Quiz";
-import MotionPractice from "./Dashboard/Uniform_Motion_in_Physics/Motion_Practice";
+
 // ✅ Admin Dashboard
 import AdminDashboard from "./admin/admin_dashboard";
 
@@ -71,13 +69,6 @@ const App: React.FC = () => (
           component={Dashboard_Motion}
         />
 
-        {/* 🔹 Arithmetic Practice */}
-        <Route
-          exact
-          path="/education/arithmetic_practice"
-          component={Arithmetic_Practice}
-        />
-
         {/* 🔹 Arithmetic Sub Pages */}
         <Route
           exact
@@ -98,23 +89,6 @@ const App: React.FC = () => (
           exact
           path="/education/arithmetic_radar"
           component={ArithmeticRadar}
-        />
-        <Route
-          exact
-          path="/education/arithmetic_quiz"
-          component={ArithmeticQuiz}
-        />
-
-        <Route
-          exact
-          path="/education/motion_practice"
-          component={MotionPractice}
-        />
-
-         <Route
-          exact
-          path="/education/motion_quiz"
-          component={MotionQuiz}
         />
 
         {/* 🔹 Admin Dashboard */}

@@ -26,7 +26,8 @@ interface Quiz {
 }
 
 const ArithmeticQuiz: React.FC = () => {
-  const [quizzes, setQuizzes] = useState<Quiz[]>([]);
+  const [allQuizzes, setAllQuizzes] = useState<Quiz[]>([]); // all fetched quizzes for the subject
+  const [quizzes, setQuizzes] = useState<Quiz[]>([]); // selected one-per-level quizzes (ordered level 1..5)
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [currentQuiz, setCurrentQuiz] = useState<Quiz | null>(null);
   const [userAnswer, setUserAnswer] = useState<string>("");
@@ -42,7 +43,6 @@ const ArithmeticQuiz: React.FC = () => {
   // Timer state
   const [timeLeft, setTimeLeft] = useState<number>(TIME_PER_QUESTION);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
   const questionIdRef = useRef<string | null>(null);
 
   // Track total time taken
@@ -50,103 +50,175 @@ const ArithmeticQuiz: React.FC = () => {
 
   // Autofocus input
   const inputRef = useRef<HTMLIonInputElement | null>(null);
- 
-  // ✅ Fetch quizzes from supabase
+
+  // ---------- Helper: pick 1 random per level (1..5) from a pool ----------
+  const pickOnePerLevel = (pool: Quiz[], minLevel = 1, maxLevel = 5): Quiz[] => {
+    const picks: Quiz[] = [];
+    for (let lvl = minLevel; lvl <= maxLevel; lvl++) {
+      const items = pool.filter((q) => q.level === lvl);
+      if (items.length === 0) continue; // skip if no questions for that level
+      const idx = Math.floor(Math.random() * items.length);
+      picks.push(items[idx]);
+    }
+    // Ensure ordered by level ascending
+    picks.sort((a, b) => a.level - b.level);
+    return picks;
+  };
+
+  // ---------- Fetch ALL quizzes for the subject (once) ----------
   useEffect(() => {
-    const fetchQuizzes = async () => {
+    const fetchAll = async () => {
       const { data, error } = await supabase
         .from("quizzes")
         .select("*")
-        .eq("subject", "Arithmetic Sequence")
-        .order("level", { ascending: true });
+        .eq("subject", "Arithmetic Sequence");
 
-      if (error) console.error("Error fetching quizzes:", error.message);
-      else setQuizzes(data || []);
+      if (error) {
+        console.error("Error fetching quizzes:", error.message);
+        setAllQuizzes([]);
+        return;
+      }
+      // store raw pool — selection per category happens on category select
+      setAllQuizzes((data || []) as Quiz[]);
     };
-    fetchQuizzes();
+
+    fetchAll();
   }, []);
 
-  // ✅ Handle next with validation
-const handleNext = useCallback(() => {
-  if (!currentQuiz || !selectedCategory) return;
+  // ---------- When user selects a category: build one-random-per-level set ----------
+  const handleCategorySelect = useCallback(
+    (category: string) => {
+      setSelectedCategory(category);
 
-  if (!userAnswer.trim()) {
-    setErrorMessage("Please enter your answer before proceeding.");
-    return;
-  }
+      // Filter from allQuizzes by chosen category
+      const pool = allQuizzes.filter((q) => q.category === category);
 
-  setErrorMessage("");
+      // pick one per level (1..5). If a level has 0 items, it will be skipped.
+      const selectedPerLevel = pickOnePerLevel(pool, 1, 5);
 
-  const isCorrect =
-    userAnswer.trim().toLowerCase() ===
-    currentQuiz.answer.trim().toLowerCase();
+      // set the "quizzes" to the selected set and start from the first one
+      setQuizzes(selectedPerLevel);
+      setCurrentQuiz(selectedPerLevel.length > 0 ? selectedPerLevel[0] : null);
+      setScore(0);
+      setUserSolutions([]);
+      setUserAnswer("");
+      setErrorMessage("");
+      setStartTime(Date.now());
 
-  // 🔧 FIX: use local variable para siguradong tama yung score
-  let newScore = score;
-  if (isCorrect) {
-    newScore = score + 1;
-    setScore(newScore);
-  }
-
-  setUserSolutions((prev) => [
-    ...prev,
-    {
-      question: currentQuiz.question,
-      correct: currentQuiz.answer,
-      solution: currentQuiz.solution,
-      isCorrect,
+      // reset timer for first question
+      setTimeLeft(TIME_PER_QUESTION);
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
     },
-  ]);
+    [allQuizzes]
+  );
 
-  const filtered = quizzes
-    .filter((q) => q.category === selectedCategory)
-    .sort((a, b) => a.level - b.level);
+  // ---------- Next button handler ----------
+  const handleNext = useCallback(() => {
+    if (!currentQuiz || !selectedCategory) return;
 
-  const currentIndex = filtered.findIndex((q) => q.id === currentQuiz.id);
+    // Validate answer
+    if (!userAnswer.trim()) {
+      setErrorMessage("Please enter your answer before proceeding.");
+      return;
+    }
+    setErrorMessage("");
 
-  if (currentIndex < filtered.length - 1) {
-    setCurrentQuiz(filtered[currentIndex + 1]);
-    setUserAnswer("");
-  } else {
-    setShowResultModal(true);
-    if (timerRef.current) clearInterval(timerRef.current);
+    const isCorrect =
+      userAnswer.trim().toLowerCase() === currentQuiz.answer.trim().toLowerCase();
 
-    // ✅ Save result with the final newScore
-    saveResult(filtered[0].id, newScore);
-  }
-}, [currentQuiz, selectedCategory, quizzes, userAnswer, score]);
+    // update score using local var to avoid stale state issues
+    setScore((prev) => (isCorrect ? prev + 1 : prev));
 
+    setUserSolutions((prev) => [
+      ...prev,
+      {
+        question: currentQuiz.question,
+        correct: currentQuiz.answer,
+        solution: currentQuiz.solution,
+        isCorrect,
+      },
+    ]);
 
-  // ✅ Timer effect
-useEffect(() => {
-  if (!currentQuiz) return;
+    // find index within the selected 'quizzes' array (the one-per-level set)
+    const idx = quizzes.findIndex((q) => q.id === currentQuiz.id);
 
-  // ✅ Check kung bago ang question
-  if (questionIdRef.current !== currentQuiz.id) {
-    questionIdRef.current = currentQuiz.id;
+    // clear timer for current question immediately
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
 
-    // Reset timer for new question
-    setTimeLeft(TIME_PER_QUESTION);
+    if (idx >= 0 && idx < quizzes.length - 1) {
+      // move to next question in the selected set
+      const next = quizzes[idx + 1];
+      setCurrentQuiz(next);
+      setUserAnswer("");
+      setTimeLeft(TIME_PER_QUESTION);
+      // start timer for next question in the timer effect (it watches currentQuiz)
+    } else {
+      // quiz finished
+      setShowResultModal(true);
 
-    // Clear previous interval
-    if (timerRef.current) clearInterval(timerRef.current);
+      // compute total time taken in seconds
+      const timeTaken = startTime ? Math.floor((Date.now() - startTime) / 1000) : 0;
 
-    // Start new interval (hindi maaapektuhan kahit mag-type ka)
-    timerRef.current = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev <= 1) {
-          clearInterval(timerRef.current!);
-          handleNext(); // auto next question
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-  }
+      // Save result (uses first selected quiz id as representative; adjust if you need different mapping)
+      // You can change quizId to some static id if you have a quiz set id in your schema.
+      const quizIdToSave = quizzes[0]?.id ?? currentQuiz.id;
+      saveResult(quizIdToSave, isCorrect ? score + 1 : score, timeTaken);
+    }
+  }, [currentQuiz, selectedCategory, userAnswer, quizzes, score, startTime]);
 
-}, [currentQuiz,]);
+  // ---------- Timer effect: restart on new currentQuiz ----------
+  useEffect(() => {
+    if (!currentQuiz) return;
 
-  // ✅ Auto-focus input whenever new question appears
+    // If question changed, reset timer
+    if (questionIdRef.current !== currentQuiz.id) {
+      questionIdRef.current = currentQuiz.id;
+
+      // reset time left
+      setTimeLeft(TIME_PER_QUESTION);
+
+      // clear old interval
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+
+      // start new interval
+      timerRef.current = setInterval(() => {
+        setTimeLeft((prev) => {
+          if (prev <= 1) {
+            // time's up -> auto next
+            if (timerRef.current) {
+              clearInterval(timerRef.current);
+              timerRef.current = null;
+            }
+            // call handleNext (wrap in setTimeout to avoid React state update during render)
+            setTimeout(() => {
+              handleNext();
+            }, 0);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+
+    // cleanup when currentQuiz changes/unmount
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+    };
+  }, [currentQuiz, handleNext]);
+
+  // ---------- Auto-focus input when question changes ----------
   useEffect(() => {
     if (currentQuiz && inputRef.current) {
       setTimeout(() => {
@@ -155,56 +227,39 @@ useEffect(() => {
     }
   }, [currentQuiz]);
 
-  const handleCategorySelect = (category: string) => {
-    setSelectedCategory(category);
-    const filtered = quizzes
-      .filter((q) => q.category === category)
-      .sort((a, b) => a.level - b.level);
-    if (filtered.length > 0) {
-      setCurrentQuiz(filtered[0]);
-      setScore(0);
-      setUserSolutions([]);
-      setStartTime(Date.now());
-    }
-  };
+  // ---------- Save result to Supabase ----------
+  const saveResult = async (quizId: string, finalScore: number, timeTakenSeconds?: number) => {
+    try {
+      const {
+        data: { session },
+        error,
+      } = await supabase.auth.getSession();
 
-  // ✅ Save quiz result in Supabase
-const saveResult = async (quizId: string, finalScore: number) => {
-  try {
-    const {
-      data: { session },
-      error,
-    } = await supabase.auth.getSession();
+      if (error || !session) {
+        console.warn("⚠️ No active session. Cannot save score.");
+        return;
+      }
 
-    if (error || !session) {
-      console.warn("⚠️ No active session. Cannot save score.");
-      return;
-    }
+      const userId = session.user.id;
 
-    const userId = session.user.id;
-    console.log("👉 Saving score for user:", userId);
-
-    const timeTaken = startTime ? Math.floor((Date.now() - startTime) / 1000) : 0;
-
-    const { error: insertError } = await supabase.from("scores").insert([
-      {
+      const payload = {
         user_id: userId,
         quiz_id: quizId,
-        score: finalScore, // ✅ siguradong tama
-        time_taken: timeTaken,
-      },
-    ]);
+        score: finalScore,
+        time_taken: timeTakenSeconds ?? (startTime ? Math.floor((Date.now() - startTime!) / 1000) : 0),
+      };
 
-    if (insertError) {
-      console.error("❌ Error saving score:", insertError.message);
-    } else {
-      console.log("✅ Score saved successfully!");
+      const { error: insertError } = await supabase.from("scores").insert([payload]);
+
+      if (insertError) {
+        console.error("❌ Error saving score:", insertError.message);
+      } else {
+        console.log("✅ Score saved successfully!", payload);
+      }
+    } catch (err) {
+      console.error("Unexpected error saving score:", err);
     }
-  } catch (err) {
-    console.error("Unexpected error saving score:", err);
-  }
-};
-
+  };
 
   const getMessage = () => {
     switch (score) {
@@ -254,18 +309,10 @@ const saveResult = async (quizId: string, finalScore: number) => {
           >
             <h2 style={{ marginBottom: "20px" }}>Select Categories</h2>
             <div style={{ display: "flex", gap: "15px" }}>
-              <IonButton
-                expand="block"
-                color="primary"
-                onClick={() => handleCategorySelect("Problem Solving")}
-              >
+              <IonButton expand="block" color="primary" onClick={() => handleCategorySelect("Problem Solving")}>
                 Problem Solving
               </IonButton>
-              <IonButton
-                expand="block"
-                color="secondary"
-                onClick={() => handleCategorySelect("Solving")}
-              >
+              <IonButton expand="block" color="secondary" onClick={() => handleCategorySelect("Solving")}>
                 Number Solving
               </IonButton>
             </div>
@@ -297,17 +344,11 @@ const saveResult = async (quizId: string, finalScore: number) => {
               Time Left: {formatTime(timeLeft)}
             </div>
 
-            <h2 style={{ fontSize: "22px", marginBottom: "10px", color: "#666" }}>
-              {selectedCategory}
-            </h2>
+            <h2 style={{ fontSize: "22px", marginBottom: "10px", color: "#666" }}>{selectedCategory}</h2>
 
-            <h1 style={{ fontSize: "28px", marginBottom: "15px" }}>
-              Level {currentQuiz.level}
-            </h1>
+            <h1 style={{ fontSize: "28px", marginBottom: "15px" }}>Level {currentQuiz.level}</h1>
 
-            <p style={{ fontSize: "20px", marginBottom: "25px" }}>
-              {currentQuiz.question}
-            </p>
+            <p style={{ fontSize: "20px", marginBottom: "25px" }}>{currentQuiz.question}</p>
 
             <IonItem
               style={{
@@ -321,7 +362,7 @@ const saveResult = async (quizId: string, finalScore: number) => {
                 ref={inputRef}
                 value={userAnswer}
                 placeholder="Enter your answer"
-                onIonInput={(e) => setUserAnswer(e.detail.value!)}
+                onIonInput={(e) => setUserAnswer((e.target as unknown as HTMLInputElement).value ?? "")}
                 clearInput
                 style={{ textAlign: "center", fontSize: "18px" }}
               />
@@ -359,7 +400,7 @@ const saveResult = async (quizId: string, finalScore: number) => {
           <p style={{ textAlign: "center", marginTop: "50px" }}>Loading quizzes...</p>
         )}
 
-        {/* ✅ Result Modal */}
+        {/* Result Modal */}
         <IonModal isOpen={showResultModal} backdropDismiss={false}>
           <div
             style={{
@@ -369,15 +410,11 @@ const saveResult = async (quizId: string, finalScore: number) => {
               padding: "20px",
             }}
           >
-            <div
-              style={{
-                flex: 1,
-                overflowY: "auto",
-                paddingRight: "10px",
-              }}
-            >
+            <div style={{ flex: 1, overflowY: "auto", paddingRight: "10px" }}>
               <h2>{getMessage()}</h2>
-              <h3>Your Score: {score}/{userSolutions.length}</h3>
+              <h3>
+                Your Score: {score}/{userSolutions.length}
+              </h3>
 
               <div style={{ textAlign: "left", marginTop: "20px" }}>
                 <h4>Answers & Solutions:</h4>
@@ -410,11 +447,11 @@ const saveResult = async (quizId: string, finalScore: number) => {
               </div>
             </div>
 
-            {/* Button stays at bottom */}
             <IonButton
               expand="block"
               style={{ marginTop: "15px" }}
               onClick={() => {
+                // Reset everything and go back to categories
                 setSelectedCategory(null);
                 setCurrentQuiz(null);
                 setUserAnswer("");
@@ -422,6 +459,10 @@ const saveResult = async (quizId: string, finalScore: number) => {
                 setScore(0);
                 setUserSolutions([]);
                 setShowResultModal(false);
+                if (timerRef.current) {
+                  clearInterval(timerRef.current);
+                  timerRef.current = null;
+                }
               }}
             >
               Back to Categories

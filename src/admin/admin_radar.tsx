@@ -212,7 +212,7 @@ const AdminRadar: React.FC = () => {
           },
           title: {
             display: true,
-            text: `📊 ${title}`,
+            text: `📊(All Students) ${title}`,
             color: "#111",
             font: { size: 20, weight: "bold" },
           },

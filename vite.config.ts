@@ -7,7 +7,7 @@ import tailwindcss from '@tailwindcss/vite'
 
 export default defineConfig({
   plugins: [react(), tailwindcss(), legacy()],
-  base: process.env.VITE_BASE_PATH || "/education",            // ✅ must be root path only
+  base: "/",            // ✅ must be root path only
   test: {
     globals: true,
     environment: "jsdom",

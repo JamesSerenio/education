@@ -7,7 +7,10 @@ import tailwindcss from '@tailwindcss/vite'
 
 export default defineConfig({
   plugins: [react(), tailwindcss(), legacy()],
-  base: "/",            // ✅ must be root path only
+  base: "/",  // ✅ only root path
+  build: {
+    outDir: "dist", // ensure correct output directory
+  },
   test: {
     globals: true,
     environment: "jsdom",

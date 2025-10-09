@@ -52,7 +52,7 @@ const Motion_Radar: React.FC = () => {
     problemSolving: 0,
   });
 
-  // Map Supabase raw data
+  // Convert raw Supabase data to typed object
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const mapToScoreWithQuizzes = (rawData: any): ScoreWithQuizzes => ({
     id: rawData.id || "",
@@ -86,7 +86,9 @@ const Motion_Radar: React.FC = () => {
 
       const { data: allScores, error: scoresError } = await supabase
         .from("scores")
-        .select(`id, score, time_taken, created_at, quiz_id, quizzes!quiz_id(id, category, subject)`)
+        .select(
+          `id, score, time_taken, created_at, quiz_id, quizzes!quiz_id(id, category, subject)`
+        )
         .eq("user_id", userId)
         .order("created_at", { ascending: false })
         .limit(50);
@@ -98,52 +100,50 @@ const Motion_Radar: React.FC = () => {
       }
 
       const typedScores: ScoreWithQuizzes[] = (allScores || []).map(mapToScoreWithQuizzes);
+
       if (!typedScores.length) {
         setPerformance({ time: 0, solving: 0, problemSolving: 0 });
         return;
       }
 
-      // ✅ Filter only "Uniform Motion in Physics" subject
+      // ✅ Filter only "Uniform Motion in Physics"
       const uniformMotionScores = typedScores.filter(
-        s => s.quizzes?.subject === "Uniform Motion in Physics"
+        (s) => s.quizzes?.subject === "Uniform Motion in Physics"
       );
 
-      // Default values
       let timePercent = 0;
       let solvingPercent = 0;
       let problemSolvingPercent = 0;
 
       if (uniformMotionScores.length > 0) {
-        // ✅ TIME calculation (average time)
+        // ✅ TIME (average time taken)
         const avgTime =
           uniformMotionScores.reduce((sum, s) => sum + (s.time_taken || 0), 0) /
           uniformMotionScores.length;
 
-        timePercent = Math.max(
-          0,
-          Math.min(100, Math.round(((MAX_TIME - avgTime) / MAX_TIME) * 100))
-        );
+        const timeRaw = ((MAX_TIME - avgTime) / MAX_TIME) * 100;
+        timePercent = Math.max(0, Math.min(100, parseFloat(timeRaw.toFixed(2)))); // keep decimals for time
 
-        // ✅ SOLVING
+        // ✅ SOLVING (whole number)
         const solvingScores = uniformMotionScores.filter(
-          s => s.quizzes?.category === "Solving" && s.score !== null
+          (s) => s.quizzes?.category === "Solving" && s.score !== null
         );
         if (solvingScores.length > 0) {
           const avgSolving =
             solvingScores.reduce((sum, s) => sum + (s.score || 0), 0) /
             solvingScores.length;
-          solvingPercent = Math.min(100, Math.round((avgSolving / MAX_SCORE) * 100));
+          solvingPercent = Math.floor((avgSolving / MAX_SCORE) * 100); // no decimals
         }
 
-        // ✅ PROBLEM SOLVING
+        // ✅ PROBLEM SOLVING (whole number)
         const problemSolvingScores = uniformMotionScores.filter(
-          s => s.quizzes?.category === "Problem Solving" && s.score !== null
+          (s) => s.quizzes?.category === "Problem Solving" && s.score !== null
         );
         if (problemSolvingScores.length > 0) {
           const avgProblemSolving =
             problemSolvingScores.reduce((sum, s) => sum + (s.score || 0), 0) /
             problemSolvingScores.length;
-          problemSolvingPercent = Math.min(100, Math.round((avgProblemSolving / MAX_SCORE) * 100));
+          problemSolvingPercent = Math.floor((avgProblemSolving / MAX_SCORE) * 100); // no decimals
         }
       }
 
@@ -158,7 +158,7 @@ const Motion_Radar: React.FC = () => {
     }
   };
 
-  // Chart rendering
+  // ✅ Chart Rendering
   useEffect(() => {
     if (!radarRef.current) return;
     const ctx = radarRef.current.getContext("2d");
@@ -206,7 +206,8 @@ const Motion_Radar: React.FC = () => {
           datalabels: {
             color: "#000",
             font: { weight: "bold", size: 12 },
-            formatter: val => `${val}%`,
+            formatter: (val, ctx) =>
+              ctx.dataIndex === 0 ? `${val.toFixed(2)}%` : `${Math.round(val)}%`, // Time = decimal, others = whole
           },
         },
         scales: {
@@ -277,4 +278,5 @@ const Motion_Radar: React.FC = () => {
     </IonPage>
   );
 };
+
 export default Motion_Radar;

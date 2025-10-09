@@ -8,7 +8,7 @@ import {
 import { mailOutline, lockClosedOutline } from "ionicons/icons";
 import { useState } from "react";
 import { Link, useHistory } from "react-router-dom";
-import { supabase } from "../utils/supabaseClient"; 
+import { supabase } from "../utils/supabaseClient";
 
 const Login: React.FC = () => {
   const [email, setEmail] = useState("");
@@ -20,18 +20,56 @@ const Login: React.FC = () => {
     e.preventDefault();
     setErrorMsg(null);
 
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    try {
+      // 1️⃣ Login with Supabase Auth
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-    if (error) {
-      setErrorMsg(error.message);
-      console.error("Login error:", error);
-    } else {
+      if (error) {
+        setErrorMsg("Invalid email or password");
+        console.error("Login error:", error);
+        return;
+      }
+
+      if (!data.user) {
+        setErrorMsg("No user found");
+        return;
+      }
+
       console.log("Logged in user:", data.user);
-      // Redirect to home page or wherever you want
-      history.push("/education/home");
+
+      // 2️⃣ Fetch the user's profile from "profiles" table
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("id, firstname, lastname, role")
+        .eq("id", data.user.id) // link by Supabase Auth UUID
+        .single();
+
+      if (profileError || !profile) {
+        console.error("Profile fetch error:", profileError);
+        setErrorMsg("Profile not found. Contact admin.");
+        return;
+      }
+
+      // 3️⃣ Save profile info in localStorage
+      localStorage.setItem("profile_id", profile.id);
+      localStorage.setItem("firstname", profile.firstname || "");
+      localStorage.setItem("lastname", profile.lastname || "");
+      localStorage.setItem("role", profile.role || "user");
+
+      console.log("Profile stored:", profile);
+
+      // 4️⃣ Redirect based on role
+      if (profile.role === "admin") {
+        history.push("/education/admin/admin_dashboard");
+      } else {
+        history.push("/education/home");
+      }
+    } catch (err) {
+      console.error("Unexpected login error:", err);
+      setErrorMsg("An unexpected error occurred. Please try again.");
     }
   };
 
@@ -76,7 +114,10 @@ const Login: React.FC = () => {
 
             <p className="login-register">
               Don’t have an account?{" "}
-              <Link to="/education/register" className="text-blue-600 font-medium">
+              <Link
+                to="/education/register"
+                className="text-blue-600 font-medium"
+              >
                 Register
               </Link>
             </p>

@@ -26,6 +26,7 @@ interface Quiz {
 }
 
 const MotionQuiz: React.FC = () => {
+  const [allQuizzes, setAllQuizzes] = useState<Quiz[]>([]);
   const [quizzes, setQuizzes] = useState<Quiz[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [currentQuiz, setCurrentQuiz] = useState<Quiz | null>(null);
@@ -42,30 +43,45 @@ const MotionQuiz: React.FC = () => {
   const inputRef = useRef<HTMLIonInputElement | null>(null);
   const [questionStart, setQuestionStart] = useState<number>(Date.now());
 
+  // 🔹 Helper: pick 1 random per level (1–5)
+  const pickOnePerLevel = (pool: Quiz[]): Quiz[] => {
+    const picks: Quiz[] = [];
+    for (let lvl = 1; lvl <= 5; lvl++) {
+      const items = pool.filter((q) => q.level === lvl);
+      if (items.length > 0) {
+        const randomIndex = Math.floor(Math.random() * items.length);
+        picks.push(items[randomIndex]);
+      }
+    }
+    // Sort ascending by level
+    picks.sort((a, b) => a.level - b.level);
+    return picks;
+  };
+
   // ✅ Fetch quizzes once
   useEffect(() => {
     const fetchQuizzes = async () => {
       const { data, error } = await supabase
         .from("quizzes")
         .select("*")
-        .eq("subject", "Uniform Motion in Physics")
-        .order("level", { ascending: true });
+        .eq("subject", "Uniform Motion in Physics");
 
       if (error) console.error("Error fetching quizzes:", error.message);
-      else setQuizzes(data || []);
+      else setAllQuizzes(data || []);
     };
     fetchQuizzes();
   }, []);
 
-  // ✅ Start quiz by category
+  // ✅ Start quiz by category with shuffle per level
   const handleCategorySelect = (category: string) => {
     setSelectedCategory(category);
-    const filtered = quizzes
-      .filter((q) => q.category === category)
-      .sort((a, b) => a.level - b.level);
 
-    if (filtered.length > 0) {
-      setCurrentQuiz(filtered[0]);
+    const filtered = allQuizzes.filter((q) => q.category === category);
+    const randomPerLevel = pickOnePerLevel(filtered);
+
+    if (randomPerLevel.length > 0) {
+      setQuizzes(randomPerLevel);
+      setCurrentQuiz(randomPerLevel[0]);
       setScore(0);
       setUserSolutions([]);
       setStartTime(Date.now());
@@ -127,7 +143,7 @@ const MotionQuiz: React.FC = () => {
     };
   }, [currentQuiz, questionStart]);
 
-  // ✅ Go to next question
+  // ✅ Next question
   const handleNext = useCallback(
     (auto = false) => {
       if (!currentQuiz || !selectedCategory) return;
@@ -140,8 +156,7 @@ const MotionQuiz: React.FC = () => {
       setErrorMessage("");
       const isCorrect =
         userAnswer.trim().toLowerCase() === currentQuiz.answer.trim().toLowerCase();
-      let newScore = score;
-      if (isCorrect) newScore += 1;
+      const newScore = isCorrect ? score + 1 : score;
 
       setScore(newScore);
       setUserSolutions((prev) => [
@@ -154,20 +169,16 @@ const MotionQuiz: React.FC = () => {
         },
       ]);
 
-      const filtered = quizzes
-        .filter((q) => q.category === selectedCategory)
-        .sort((a, b) => a.level - b.level);
-
-      const currentIndex = filtered.findIndex((q) => q.id === currentQuiz.id);
-      if (currentIndex < filtered.length - 1) {
-        setCurrentQuiz(filtered[currentIndex + 1]);
+      const currentIndex = quizzes.findIndex((q) => q.id === currentQuiz.id);
+      if (currentIndex < quizzes.length - 1) {
+        setCurrentQuiz(quizzes[currentIndex + 1]);
         setUserAnswer("");
         setTimeLeft(TIME_PER_QUESTION);
         setQuestionStart(Date.now());
       } else {
         setShowResultModal(true);
         clearInterval(timerRef.current!);
-        saveResult(filtered[0].id, newScore);
+        saveResult(quizzes[0].id, newScore);
       }
     },
     [currentQuiz, selectedCategory, quizzes, userAnswer, score]
@@ -204,6 +215,7 @@ const MotionQuiz: React.FC = () => {
 
       <IonContent fullscreen>
         {!selectedCategory ? (
+          // 🔹 Category screen
           <div
             style={{
               display: "flex",
@@ -223,6 +235,7 @@ const MotionQuiz: React.FC = () => {
             </div>
           </div>
         ) : currentQuiz ? (
+          // 🔹 Quiz screen
           <div
             style={{
               display: "flex",
@@ -289,7 +302,7 @@ const MotionQuiz: React.FC = () => {
           <p style={{ textAlign: "center", marginTop: "50px" }}>Loading...</p>
         )}
 
-        {/* ✅ Scrollable Modal for Answers & Solutions */}
+        {/* ✅ Result Modal */}
         <IonModal isOpen={showResultModal} backdropDismiss={false}>
           <IonHeader>
             <IonToolbar>
@@ -297,7 +310,6 @@ const MotionQuiz: React.FC = () => {
             </IonToolbar>
           </IonHeader>
 
-          {/* Scrollable content area */}
           <IonContent
             style={{
               padding: "20px",

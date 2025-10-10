@@ -16,6 +16,7 @@ import {
 import { IonIcon } from "@ionic/react";
 import { logOutOutline } from "ionicons/icons";
 import { useHistory } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion"; // ✅ Animation library
 
 import ArithmeticHome from "./Arithmetic_Home";
 import ArithmeticModule from "./Arithmetic_Module";
@@ -31,7 +32,6 @@ const Dashboard_Arithmetic: React.FC = () => {
   const history = useHistory();
   const [activePage, setActivePage] = useState("Home");
 
-  // ✅ use custom icons for all menu items
   const menuItems = [
     { name: "Home", key: "Home", icon: iconHome },
     { name: "Module", key: "module", icon: iconModule },
@@ -58,6 +58,22 @@ const Dashboard_Arithmetic: React.FC = () => {
     }
   };
 
+  // ✅ Animation variants for staggered entrance
+  const listVariants = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.15, // delay between each item
+      },
+    },
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, x: -30 },
+    show: { opacity: 1, x: 0 },
+  };
+
   return (
     <IonPage>
       <IonSplitPane contentId="main" when="(min-width: 768px)">
@@ -68,64 +84,77 @@ const Dashboard_Arithmetic: React.FC = () => {
               <IonTitle>Menu</IonTitle>
             </IonToolbar>
           </IonHeader>
-          <IonContent>
-            {menuItems.map((item, index) => (
-              <IonMenuToggle key={index} autoHide={false}>
-                <IonItem
-                  button
-                  onClick={() => setActivePage(item.key)}
-                  lines="none"
-                >
-                  {/* ✅ Custom icons */}
-                  <img
-                    src={item.icon}
-                    alt={item.name}
-                    style={{
-                      width: "24px",
-                      height: "24px",
-                      borderRadius: "4px",
-                      marginRight: "8px",
-                    }}
-                  />
 
-                  <span
-                    style={{
-                      marginLeft: "8px",
-                      position: "relative",
-                      paddingBottom: "4px",
-                    }}
-                  >
-                    {item.name}
-                    {activePage === item.key && (
-                      <span
+          <IonContent>
+            <motion.div
+              variants={listVariants}
+              initial="hidden"
+              animate="show"
+              transition={{ duration: 0.4, ease: "easeOut" }}
+              style={{ paddingTop: "1rem" }}
+            >
+              {menuItems.map((item, index) => (
+                <motion.div key={index} variants={itemVariants}>
+                  <IonMenuToggle autoHide={false}>
+                    <IonItem
+                      button
+                      onClick={() => setActivePage(item.key)}
+                      lines="none"
+                    >
+                      <img
+                        src={item.icon}
+                        alt={item.name}
                         style={{
-                          position: "absolute",
-                          left: 0,
-                          bottom: 0,
-                          width: "100%",
-                          height: "2px",
-                          backgroundColor: "#3b82f6", // underline
-                          borderRadius: "2px",
+                          width: "24px",
+                          height: "24px",
+                          borderRadius: "4px",
+                          marginRight: "8px",
                         }}
                       />
-                    )}
-                  </span>
-                </IonItem>
-              </IonMenuToggle>
-            ))}
+                      <span
+                        style={{
+                          marginLeft: "8px",
+                          position: "relative",
+                          paddingBottom: "4px",
+                        }}
+                      >
+                        {item.name}
+                        {activePage === item.key && (
+                          <span
+                            style={{
+                              position: "absolute",
+                              left: 0,
+                              bottom: 0,
+                              width: "100%",
+                              height: "2px",
+                              backgroundColor: "#3b82f6",
+                              borderRadius: "2px",
+                            }}
+                          />
+                        )}
+                      </span>
+                    </IonItem>
+                  </IonMenuToggle>
+                </motion.div>
+              ))}
 
-            {/* Logout Button → Home */}
-            <IonMenuToggle autoHide={false}>
-              <IonButton
-                expand="block"
-                color="primary"
+              {/* Logout Button */}
+              <motion.div
+                variants={itemVariants}
                 style={{ marginTop: "1rem" }}
-                onClick={() => history.push("/education/home")}
               >
-                <IonIcon icon={logOutOutline} slot="start" />
-                Logout
-              </IonButton>
-            </IonMenuToggle>
+                <IonMenuToggle autoHide={false}>
+                  <IonButton
+                    expand="block"
+                    color="primary"
+                    onClick={() => history.push("/education/home")}
+                  >
+                    <IonIcon icon={logOutOutline} slot="start" />
+                    Logout
+                  </IonButton>
+                </IonMenuToggle>
+              </motion.div>
+            </motion.div>
           </IonContent>
         </IonMenu>
 
@@ -143,7 +172,19 @@ const Dashboard_Arithmetic: React.FC = () => {
             </IonToolbar>
           </IonHeader>
 
-          <IonContent>{renderContent()}</IonContent>
+          <IonContent>
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={activePage}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.3, ease: "easeOut" }}
+              >
+                {renderContent()}
+              </motion.div>
+            </AnimatePresence>
+          </IonContent>
         </IonPage>
       </IonSplitPane>
     </IonPage>

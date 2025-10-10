@@ -15,24 +15,23 @@ import {
   IonIcon,
 } from "@ionic/react";
 import { logOutOutline } from "ionicons/icons";
-import { useHistory } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
-import ArithmeticHome from "./Motion_Home";
-import ArithmeticModule from "./Motion_Module";
-import ArithmeticLeaderboard from "./Motion_Leaderboard";
-import ArithmeticRadar from "./Motion_Radar";
+import MotionHome from "./Motion_Home";
+import MotionModule from "./Motion_Module";
+import MotionLeaderboard from "./Motion_Leaderboard";
+import MotionRadar from "./Motion_Radar";
 
-// ✅ Import custom icons
+// ✅ Custom icons
 import iconHome from "../../assets/icon_home.gif";
 import iconModule from "../../assets/icon_module.gif";
 import iconLeaderboard from "../../assets/icon_leaderboard.gif";
 import iconRadar from "../../assets/icon_radar.png";
 
 const Dashboard_Motion: React.FC = () => {
-  const history = useHistory();
+  const navigate = useNavigate(); // ✅ Correct hook usage
   const [activePage, setActivePage] = useState("Home");
 
-  // ✅ Use custom icons for all menu items
   const menuItems = [
     { name: "Home", key: "Home", icon: iconHome },
     { name: "Module", key: "module", icon: iconModule },
@@ -43,13 +42,13 @@ const Dashboard_Motion: React.FC = () => {
   const renderContent = () => {
     switch (activePage) {
       case "Home":
-        return <ArithmeticHome />;
+        return <MotionHome />;
       case "module":
-        return <ArithmeticModule />;
+        return <MotionModule />;
       case "leaderboard":
-        return <ArithmeticLeaderboard />;
+        return <MotionLeaderboard />;
       case "radar":
-        return <ArithmeticRadar />;
+        return <MotionRadar />;
       default:
         return (
           <h2 style={{ textAlign: "center", marginTop: "2rem" }}>
@@ -62,13 +61,14 @@ const Dashboard_Motion: React.FC = () => {
   return (
     <IonPage>
       <IonSplitPane contentId="main" when="(min-width: 768px)">
-        {/* Side Menu */}
+        {/* ✅ Side Menu */}
         <IonMenu contentId="main">
           <IonHeader>
             <IonToolbar>
               <IonTitle>Menu</IonTitle>
             </IonToolbar>
           </IonHeader>
+
           <IonContent>
             {menuItems.map((item, index) => (
               <IonMenuToggle key={index} autoHide={false}>
@@ -77,7 +77,6 @@ const Dashboard_Motion: React.FC = () => {
                   onClick={() => setActivePage(item.key)}
                   lines="none"
                 >
-                  {/* ✅ Custom icons */}
                   <img
                     src={item.icon}
                     alt={item.name}
@@ -105,7 +104,7 @@ const Dashboard_Motion: React.FC = () => {
                           bottom: 0,
                           width: "100%",
                           height: "2px",
-                          backgroundColor: "#3b82f6", // underline
+                          backgroundColor: "#3b82f6",
                           borderRadius: "2px",
                         }}
                       />
@@ -115,13 +114,13 @@ const Dashboard_Motion: React.FC = () => {
               </IonMenuToggle>
             ))}
 
-            {/* Logout Button → Home */}
+            {/* ✅ Logout Button → Home */}
             <IonMenuToggle autoHide={false}>
               <IonButton
                 expand="block"
                 color="primary"
                 style={{ marginTop: "1rem" }}
-                onClick={() => history.push("/education/home")}
+                onClick={() => navigate("/education/home")} // ✅ Fixed
               >
                 <IonIcon icon={logOutOutline} slot="start" />
                 Logout
@@ -130,7 +129,7 @@ const Dashboard_Motion: React.FC = () => {
           </IonContent>
         </IonMenu>
 
-        {/* Main Content */}
+        {/* ✅ Main Content */}
         <IonPage id="main">
           <IonHeader>
             <IonToolbar>

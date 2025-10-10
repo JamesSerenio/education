@@ -24,10 +24,16 @@ const Register: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+  // Sanitize function to handle special characters properly
+  const sanitizeInput = (text: string) => text.normalize("NFC").trim();
+
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!lastname || !firstname || !email || !password || !confirmPassword) {
+    const cleanLastname = sanitizeInput(lastname);
+    const cleanFirstname = sanitizeInput(firstname);
+
+    if (!cleanLastname || !cleanFirstname || !email || !password || !confirmPassword) {
       setError("Please fill in all fields.");
       return;
     }
@@ -71,8 +77,8 @@ const Register: React.FC = () => {
       const { error: profileError } = await supabase.from("profiles").insert([
         {
           id: user.id, // link profile to auth user id
-          firstname,
-          lastname,
+          firstname: cleanFirstname,
+          lastname: cleanLastname,
           email,
         },
       ]);
@@ -105,6 +111,8 @@ const Register: React.FC = () => {
                 <div className="login-input" style={{ flex: 1 }}>
                   <IonIcon icon={personOutline} />
                   <IonInput
+                    type="text"
+                    inputmode="text"
                     placeholder="Lastname"
                     value={lastname}
                     onIonChange={(e) => setLastname(e.detail.value ?? "")}
@@ -115,6 +123,8 @@ const Register: React.FC = () => {
                 <div className="login-input" style={{ flex: 1 }}>
                   <IonIcon icon={personOutline} />
                   <IonInput
+                    type="text"
+                    inputmode="text"
                     placeholder="Firstname"
                     value={firstname}
                     onIonChange={(e) => setFirstname(e.detail.value ?? "")}

@@ -10,6 +10,7 @@ import {
 } from "@ionic/react";
 import { useState } from "react";
 import { useHistory, Link } from "react-router-dom";
+import { motion } from "framer-motion";
 import { personOutline, mailOutline, lockClosedOutline } from "ionicons/icons";
 import { supabase } from "../utils/supabaseClient";
 
@@ -24,7 +25,7 @@ const Register: React.FC = () => {
   const [agreeTerms, setAgreeTerms] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [showAlert, setShowAlert] = useState(false); // 👈 modal control
+  const [showAlert, setShowAlert] = useState(false);
 
   // 🔠 Normalize + auto-capitalize
   const sanitizeInput = (text: string) => {
@@ -66,7 +67,6 @@ const Register: React.FC = () => {
     setLoading(true);
 
     try {
-      // 1️⃣ Register user in Supabase Auth
       const { data, error: signUpError } = await supabase.auth.signUp({
         email: email.toLowerCase(),
         password,
@@ -76,14 +76,12 @@ const Register: React.FC = () => {
 
       const user = data.user;
 
-      // 2️⃣ If Supabase requires email confirmation
       if (!user) {
-        setShowAlert(true); // show modal
+        setShowAlert(true);
         setLoading(false);
         return;
       }
 
-      // 3️⃣ Insert new profile manually
       const { error: profileError } = await supabase.from("profiles").insert([
         {
           id: user.id,
@@ -97,7 +95,6 @@ const Register: React.FC = () => {
 
       if (profileError) throw profileError;
 
-      // 4️⃣ Show modal to confirm email
       setShowAlert(true);
     } catch (err) {
       console.error("Registration error:", err);
@@ -114,14 +111,40 @@ const Register: React.FC = () => {
   return (
     <IonPage>
       <IonContent fullscreen>
-        <div className="login-wrapper">
-          <div className="login-card">
-            <h2 className="login-title">Register</h2>
+        <motion.div
+          className="login-wrapper"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.8 }}
+        >
+          <motion.div
+            className="login-card"
+            initial={{ scale: 0.9, y: 30, opacity: 0 }}
+            animate={{ scale: 1, y: 0, opacity: 1 }}
+            transition={{ duration: 0.6, ease: "easeOut" }}
+          >
+            <motion.h2
+              className="login-title"
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3, duration: 0.5 }}
+            >
+              Register
+            </motion.h2>
 
-            <form className="login-form" onSubmit={handleRegister}>
+            <motion.form
+              className="login-form"
+              onSubmit={handleRegister}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.4, duration: 0.6 }}
+            >
               {/* Name Fields */}
-              <div
+              <motion.div
                 style={{ display: "flex", gap: "1rem", marginBottom: "1rem" }}
+                initial={{ opacity: 0, x: -30 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.5, duration: 0.5 }}
               >
                 <div className="login-input" style={{ flex: 1 }}>
                   <IonIcon icon={personOutline} />
@@ -146,10 +169,15 @@ const Register: React.FC = () => {
                     required
                   />
                 </div>
-              </div>
+              </motion.div>
 
               {/* Email */}
-              <div className="login-input">
+              <motion.div
+                className="login-input"
+                initial={{ opacity: 0, x: 30 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.6, duration: 0.5 }}
+              >
                 <IonIcon icon={mailOutline} />
                 <IonInput
                   type="email"
@@ -158,10 +186,15 @@ const Register: React.FC = () => {
                   onIonChange={(e) => setEmail(e.detail.value ?? "")}
                   required
                 />
-              </div>
+              </motion.div>
 
               {/* Password */}
-              <div className="login-input">
+              <motion.div
+                className="login-input"
+                initial={{ opacity: 0, x: -30 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.7, duration: 0.5 }}
+              >
                 <IonIcon icon={lockClosedOutline} />
                 <IonInput
                   type="password"
@@ -170,10 +203,15 @@ const Register: React.FC = () => {
                   onIonChange={(e) => setPassword(e.detail.value ?? "")}
                   required
                 />
-              </div>
+              </motion.div>
 
               {/* Confirm Password */}
-              <div className="login-input">
+              <motion.div
+                className="login-input"
+                initial={{ opacity: 0, x: 30 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.8, duration: 0.5 }}
+              >
                 <IonIcon icon={lockClosedOutline} />
                 <IonInput
                   type="password"
@@ -182,15 +220,18 @@ const Register: React.FC = () => {
                   onIonChange={(e) => setConfirmPassword(e.detail.value ?? "")}
                   required
                 />
-              </div>
+              </motion.div>
 
               {/* Terms Checkbox */}
-              <div
+              <motion.div
                 style={{
                   display: "flex",
                   alignItems: "center",
                   marginTop: "0.5rem",
                 }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.9 }}
               >
                 <IonCheckbox
                   checked={agreeTerms}
@@ -207,38 +248,56 @@ const Register: React.FC = () => {
                 >
                   I agree to the terms and conditions
                 </label>
-              </div>
+              </motion.div>
 
               {/* Error Display */}
               {error && (
-                <IonText
-                  color="danger"
-                  style={{ marginTop: "1rem", display: "block" }}
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 1 }}
                 >
-                  {error}
-                </IonText>
+                  <IonText
+                    color="danger"
+                    style={{ marginTop: "1rem", display: "block" }}
+                  >
+                    {error}
+                  </IonText>
+                </motion.div>
               )}
 
               {/* Submit Button */}
-              <IonButton
-                expand="block"
-                type="submit"
-                className="login-button"
-                style={{ marginTop: "1rem" }}
-                disabled={!agreeTerms || loading}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 1.1, duration: 0.5 }}
               >
-                {loading ? "Registering..." : "Register"}
-              </IonButton>
-            </form>
+                <IonButton
+                  expand="block"
+                  type="submit"
+                  className="login-button"
+                  style={{ marginTop: "1rem" }}
+                  disabled={!agreeTerms || loading}
+                >
+                  {loading ? "Registering..." : "Register"}
+                </IonButton>
+              </motion.div>
+            </motion.form>
 
-            <p className="login-register" style={{ marginTop: "1rem" }}>
+            <motion.p
+              className="login-register"
+              style={{ marginTop: "1rem" }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 1.3 }}
+            >
               Have already an account?{" "}
               <Link to="/education/login" className="text-blue-600 font-medium">
                 Login here
               </Link>
-            </p>
-          </div>
-        </div>
+            </motion.p>
+          </motion.div>
+        </motion.div>
 
         {/* ✅ Modal Alert */}
         <IonAlert

@@ -13,6 +13,7 @@ import {
 } from "ionicons/icons";
 import { useState, useEffect } from "react";
 import { Link, useHistory } from "react-router-dom";
+import { motion } from "framer-motion";
 import { supabase } from "../utils/supabaseClient";
 
 const Login: React.FC = () => {
@@ -77,20 +78,43 @@ const Login: React.FC = () => {
   return (
     <IonPage>
       <IonContent className="login-content" fullscreen>
-        {/* 🔘 Light/Dark mode toggle */}
-        <div className="mode-toggle" onClick={() => setDarkMode(!darkMode)}>
+        {/* 🌙 Light/Dark Mode Toggle */}
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="mode-toggle"
+          onClick={() => setDarkMode(!darkMode)}
+        >
           <IonIcon
             icon={darkMode ? sunnyOutline : moonOutline}
-            className="mode-icon"
+            className="mode-icon cursor-pointer text-2xl"
           />
-        </div>
+        </motion.div>
 
         <div className="login-wrapper">
-          <div className="login-card">
-            <h2 className="login-title">LOGIN</h2>
+          <motion.div
+            className="login-card"
+            initial={{ opacity: 0, scale: 0.9, y: 30 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            transition={{ duration: 0.6, ease: "easeOut" }}
+          >
+            <motion.h2
+              className="login-title"
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3, duration: 0.5 }}
+            >
+              LOGIN
+            </motion.h2>
 
             <form className="login-form" onSubmit={handleSubmit}>
-              <div className="login-input">
+              <motion.div
+                className="login-input"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.4, duration: 0.5 }}
+              >
                 <IonIcon icon={mailOutline} />
                 <IonInput
                   type="email"
@@ -99,9 +123,14 @@ const Login: React.FC = () => {
                   onIonChange={(e) => setEmail(e.detail.value!)}
                   required
                 />
-              </div>
+              </motion.div>
 
-              <div className="login-input">
+              <motion.div
+                className="login-input"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.5, duration: 0.5 }}
+              >
                 <IonIcon icon={lockClosedOutline} />
                 <IonInput
                   type="password"
@@ -110,18 +139,36 @@ const Login: React.FC = () => {
                   onIonChange={(e) => setPassword(e.detail.value!)}
                   required
                 />
-              </div>
+              </motion.div>
 
               {errorMsg && (
-                <p style={{ color: "red", marginBottom: "1rem" }}>{errorMsg}</p>
+                <motion.p
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.6 }}
+                  style={{ color: "red", marginBottom: "1rem" }}
+                >
+                  {errorMsg}
+                </motion.p>
               )}
 
-              <IonButton expand="block" type="submit" className="login-button">
-                Login
-              </IonButton>
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.7, duration: 0.5 }}
+              >
+                <IonButton expand="block" type="submit" className="login-button">
+                  Login
+                </IonButton>
+              </motion.div>
             </form>
 
-            <p className="login-register">
+            <motion.p
+              className="login-register"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.8 }}
+            >
               Don’t have an account?{" "}
               <Link
                 to="/education/register"
@@ -129,8 +176,8 @@ const Login: React.FC = () => {
               >
                 Register
               </Link>
-            </p>
-          </div>
+            </motion.p>
+          </motion.div>
         </div>
       </IonContent>
     </IonPage>

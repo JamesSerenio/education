@@ -7,11 +7,13 @@ import {
   IonCardTitle,
   IonCardContent,
 } from "@ionic/react";
+import { useHistory } from "react-router-dom"; // ✅ Import useHistory
 
 const Home: React.FC = () => {
+  const history = useHistory(); // ✅ Initialize history
+
   const handleNavigate = (path: string) => {
-    // Hard refresh para laging fresh yung page (GH Pages friendly)
-    window.location.href = path;
+    history.push(path); // ✅ No page reload — GH Pages safe
   };
 
   return (

@@ -7,11 +7,15 @@ import tailwindcss from '@tailwindcss/vite'
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  plugins: [react(), tailwindcss(), legacy()],
-  base: "/", // ✅ Correct for root-based deployment
+  plugins: [
+    react(),
+    tailwindcss(),
+    legacy()
+  ],
+  base: "education",
   test: {
     globals: true,
-    environment: "jsdom",
-    setupFiles: "./src/setupTests.ts",
+    environment: 'jsdom',
+    setupFiles: './src/setupTests.ts',
   },
 });

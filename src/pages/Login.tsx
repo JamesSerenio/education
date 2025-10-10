@@ -5,8 +5,13 @@ import {
   IonButton,
   IonIcon,
 } from "@ionic/react";
-import { mailOutline, lockClosedOutline } from "ionicons/icons";
-import { useState } from "react";
+import {
+  mailOutline,
+  lockClosedOutline,
+  moonOutline,
+  sunnyOutline,
+} from "ionicons/icons";
+import { useState, useEffect } from "react";
 import { Link, useHistory } from "react-router-dom";
 import { supabase } from "../utils/supabaseClient";
 
@@ -14,14 +19,19 @@ const Login: React.FC = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [darkMode, setDarkMode] = useState(false);
   const history = useHistory();
+
+  // Apply dark mode class to body
+  useEffect(() => {
+    document.body.classList.toggle("dark-mode", darkMode);
+  }, [darkMode]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg(null);
 
     try {
-      // 1️⃣ Login with Supabase Auth
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -29,7 +39,6 @@ const Login: React.FC = () => {
 
       if (error) {
         setErrorMsg("Invalid email or password");
-        console.error("Login error:", error);
         return;
       }
 
@@ -38,37 +47,29 @@ const Login: React.FC = () => {
         return;
       }
 
-      console.log("Logged in user:", data.user);
-
-      // 2️⃣ Fetch the user's profile from "profiles" table
       const { data: profile, error: profileError } = await supabase
         .from("profiles")
         .select("id, firstname, lastname, role")
-        .eq("id", data.user.id) // link by Supabase Auth UUID
+        .eq("id", data.user.id)
         .single();
 
       if (profileError || !profile) {
-        console.error("Profile fetch error:", profileError);
         setErrorMsg("Profile not found. Contact admin.");
         return;
       }
 
-      // 3️⃣ Save profile info in localStorage
       localStorage.setItem("profile_id", profile.id);
       localStorage.setItem("firstname", profile.firstname || "");
       localStorage.setItem("lastname", profile.lastname || "");
       localStorage.setItem("role", profile.role || "user");
 
-      console.log("Profile stored:", profile);
-
-      // 4️⃣ Redirect based on role
       if (profile.role === "admin") {
         history.push("/education/admin/admin_dashboard");
       } else {
         history.push("/education/home");
       }
-    } catch (err) {
-      console.error("Unexpected login error:", err);
+    } catch (error) {
+      console.error("Unexpected login error:", error);
       setErrorMsg("An unexpected error occurred. Please try again.");
     }
   };
@@ -76,6 +77,14 @@ const Login: React.FC = () => {
   return (
     <IonPage>
       <IonContent className="login-content" fullscreen>
+        {/* 🔘 Light/Dark mode toggle */}
+        <div className="mode-toggle" onClick={() => setDarkMode(!darkMode)}>
+          <IonIcon
+            icon={darkMode ? sunnyOutline : moonOutline}
+            className="mode-icon"
+          />
+        </div>
+
         <div className="login-wrapper">
           <div className="login-card">
             <h2 className="login-title">LOGIN</h2>

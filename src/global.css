@@ -79,3 +79,96 @@ html, body, #root {
   text-align: center;
 }
 
+/* Smooth transitions */
+* {
+  transition: background-color 0.4s ease, color 0.4s ease;
+}
+
+/* Wrapper */
+.login-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--background-color);
+  color: var(--text-color);
+  min-height: 100vh;
+}
+
+/* Light theme */
+:root {
+  --background-color: #f9f9f9;
+  --card-bg: white;
+  --text-color: #222;
+  --button-bg: #ff4757;
+  --button-text: white;
+}
+
+/* Dark theme */
+.dark-mode {
+  --background-color: #111;
+  --card-bg: #1c1c1c;
+  --text-color: #eee;
+  --button-bg: #ff6b81;
+  --button-text: #fff;
+}
+
+/* Card */
+.login-card {
+  background: var(--card-bg);
+  padding: 2rem;
+  border-radius: 20px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+  width: 90%;
+  max-width: 400px;
+  text-align: center;
+}
+
+.login-title {
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin-bottom: 1.5rem;
+  color: var(--text-color);
+}
+
+.login-input {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--background-color);
+  border-radius: 10px;
+  padding: 0.8rem 1rem;
+  margin-bottom: 1rem;
+}
+
+.login-button {
+  background: var(--button-bg);
+  color: var(--button-text);
+  border-radius: 10px;
+  font-weight: 600;
+}
+
+.login-register {
+  margin-top: 1rem;
+}
+
+/* 🌙 Mode Toggle */
+.mode-toggle {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: var(--card-bg);
+  border-radius: 50%;
+  padding: 0.6rem;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+  transition: transform 0.3s ease;
+}
+
+.mode-toggle:hover {
+  transform: rotate(30deg);
+}
+
+.mode-icon {
+  font-size: 1.4rem;
+  color: var(--text-color);
+}

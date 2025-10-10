@@ -6,11 +6,12 @@ import {
   IonCheckbox,
   IonIcon,
   IonText,
+  IonAlert,
 } from "@ionic/react";
 import { useState } from "react";
 import { useHistory, Link } from "react-router-dom";
 import { personOutline, mailOutline, lockClosedOutline } from "ionicons/icons";
-import { supabase } from "../utils/supabaseClient"; // adjust path if needed
+import { supabase } from "../utils/supabaseClient";
 
 const Register: React.FC = () => {
   const history = useHistory();
@@ -23,9 +24,16 @@ const Register: React.FC = () => {
   const [agreeTerms, setAgreeTerms] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [showAlert, setShowAlert] = useState(false); // 👈 modal control
 
-  // Sanitize function to handle special characters properly
-  const sanitizeInput = (text: string) => text.normalize("NFC").trim();
+  // 🔠 Normalize + auto-capitalize
+  const sanitizeInput = (text: string) => {
+    if (!text) return "";
+    const normalized = text.normalize("NFC").trim();
+    return (
+      normalized.charAt(0).toUpperCase() + normalized.slice(1).toLowerCase()
+    );
+  };
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,7 +41,13 @@ const Register: React.FC = () => {
     const cleanLastname = sanitizeInput(lastname);
     const cleanFirstname = sanitizeInput(firstname);
 
-    if (!cleanLastname || !cleanFirstname || !email || !password || !confirmPassword) {
+    if (
+      !cleanLastname ||
+      !cleanFirstname ||
+      !email ||
+      !password ||
+      !confirmPassword
+    ) {
       setError("Please fill in all fields.");
       return;
     }
@@ -52,48 +66,46 @@ const Register: React.FC = () => {
     setLoading(true);
 
     try {
-      // 1. Sign up user with Supabase Auth
-      const { data, error } = await supabase.auth.signUp({
-        email,
+      // 1️⃣ Register user in Supabase Auth
+      const { data, error: signUpError } = await supabase.auth.signUp({
+        email: email.toLowerCase(),
         password,
       });
 
-      if (error) {
-        setError(error.message);
-        setLoading(false);
-        return;
-      }
+      if (signUpError) throw signUpError;
 
-      const user = data?.user;
+      const user = data.user;
 
+      // 2️⃣ If Supabase requires email confirmation
       if (!user) {
-        // If email confirmation is enabled, user may be null here
-        setError("Please check your email to confirm registration.");
+        setShowAlert(true); // show modal
         setLoading(false);
         return;
       }
 
-      // 2. Insert additional profile data into 'profiles' table
+      // 3️⃣ Insert new profile manually
       const { error: profileError } = await supabase.from("profiles").insert([
         {
-          id: user.id, // link profile to auth user id
+          id: user.id,
           firstname: cleanFirstname,
           lastname: cleanLastname,
-          email,
+          email: email.toLowerCase(),
+          role: "user",
+          created_at: new Date(),
         },
       ]);
 
-      if (profileError) {
-        setError("Failed to save profile data: " + profileError.message);
-        setLoading(false);
-        return;
-      }
+      if (profileError) throw profileError;
 
-      // 3. Registration successful, redirect to login
-      history.push("/education/login");
+      // 4️⃣ Show modal to confirm email
+      setShowAlert(true);
     } catch (err) {
-      setError("An unexpected error occurred. Please try again.");
-      console.error("Unexpected error:", err);
+      console.error("Registration error:", err);
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError("An unexpected error occurred.");
+      }
     } finally {
       setLoading(false);
     }
@@ -107,12 +119,15 @@ const Register: React.FC = () => {
             <h2 className="login-title">Register</h2>
 
             <form className="login-form" onSubmit={handleRegister}>
-              <div style={{ display: "flex", gap: "1rem", marginBottom: "1rem" }}>
+              {/* Name Fields */}
+              <div
+                style={{ display: "flex", gap: "1rem", marginBottom: "1rem" }}
+              >
                 <div className="login-input" style={{ flex: 1 }}>
                   <IonIcon icon={personOutline} />
                   <IonInput
                     type="text"
-                    inputmode="text"
+                    inputMode="text"
                     placeholder="Lastname"
                     value={lastname}
                     onIonChange={(e) => setLastname(e.detail.value ?? "")}
@@ -124,7 +139,7 @@ const Register: React.FC = () => {
                   <IonIcon icon={personOutline} />
                   <IonInput
                     type="text"
-                    inputmode="text"
+                    inputMode="text"
                     placeholder="Firstname"
                     value={firstname}
                     onIonChange={(e) => setFirstname(e.detail.value ?? "")}
@@ -133,6 +148,7 @@ const Register: React.FC = () => {
                 </div>
               </div>
 
+              {/* Email */}
               <div className="login-input">
                 <IonIcon icon={mailOutline} />
                 <IonInput
@@ -144,6 +160,7 @@ const Register: React.FC = () => {
                 />
               </div>
 
+              {/* Password */}
               <div className="login-input">
                 <IonIcon icon={lockClosedOutline} />
                 <IonInput
@@ -155,6 +172,7 @@ const Register: React.FC = () => {
                 />
               </div>
 
+              {/* Confirm Password */}
               <div className="login-input">
                 <IonIcon icon={lockClosedOutline} />
                 <IonInput
@@ -166,6 +184,7 @@ const Register: React.FC = () => {
                 />
               </div>
 
+              {/* Terms Checkbox */}
               <div
                 style={{
                   display: "flex",
@@ -190,6 +209,7 @@ const Register: React.FC = () => {
                 </label>
               </div>
 
+              {/* Error Display */}
               {error && (
                 <IonText
                   color="danger"
@@ -199,6 +219,7 @@ const Register: React.FC = () => {
                 </IonText>
               )}
 
+              {/* Submit Button */}
               <IonButton
                 expand="block"
                 type="submit"
@@ -218,6 +239,22 @@ const Register: React.FC = () => {
             </p>
           </div>
         </div>
+
+        {/* ✅ Modal Alert */}
+        <IonAlert
+          isOpen={showAlert}
+          header="Confirm Your Email"
+          message="Registration successful! Please check your email and confirm your account before logging in."
+          buttons={[
+            {
+              text: "OK",
+              handler: () => {
+                setShowAlert(false);
+                history.push("/education/login");
+              },
+            },
+          ]}
+        />
       </IonContent>
     </IonPage>
   );

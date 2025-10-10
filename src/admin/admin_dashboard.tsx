@@ -16,6 +16,7 @@ import {
 } from "@ionic/react";
 import { logOutOutline } from "ionicons/icons";
 import { useHistory } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion"; // ✅ Animation library
 
 // ✅ Import your page components
 import AdminHome from "./admin_home";
@@ -46,7 +47,7 @@ const AdminDashboard: React.FC = () => {
     { name: "Radar", key: "radar", icon: iconRadar },
   ];
 
-  // ✅ Decide which component to render
+  // ✅ Switch between dashboard content
   const renderContent = () => {
     switch (activePage) {
       case "Home":
@@ -62,82 +63,106 @@ const AdminDashboard: React.FC = () => {
       case "radar":
         return <AdminRadar />;
       default:
-        return <h2 style={{ padding: "1rem" }}>Dashboard Arithmetic</h2>;
+        return <h2 style={{ padding: "1rem" }}>Welcome to Admin Dashboard</h2>;
     }
+  };
+
+  // ✅ Animation settings
+  const listVariants = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: { staggerChildren: 0.15 },
+    },
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, x: -25 },
+    show: { opacity: 1, x: 0 },
   };
 
   return (
     <IonPage>
       <IonSplitPane contentId="main" when="(min-width: 768px)">
-        {/* Side Menu */}
+        {/* ✅ Animated Side Menu */}
         <IonMenu contentId="main">
           <IonHeader>
             <IonToolbar>
               <IonTitle>Menu</IonTitle>
             </IonToolbar>
           </IonHeader>
-          <IonContent>
-            {menuItems.map((item, index) => (
-              <IonMenuToggle key={index} autoHide={false}>
-                <IonItem
-                  button
-                  onClick={() => setActivePage(item.key)}
-                  lines="none"
-                >
-                  {/* ✅ Custom icon (image instead of IonIcon) */}
-                  <img
-                    src={item.icon}
-                    alt={item.name}
-                    style={{
-                      width: "24px",
-                      height: "24px",
-                      marginRight: "8px",
-                      borderRadius: "4px",
-                    }}
-                  />
 
-                  <span
-                    style={{
-                      marginLeft: "8px",
-                      position: "relative",
-                      paddingBottom: "4px",
-                    }}
-                  >
-                    {item.name}
-                    {activePage === item.key && (
-                      <span
+          <IonContent>
+            <motion.div
+              variants={listVariants}
+              initial="hidden"
+              animate="show"
+              transition={{ duration: 0.4, ease: "easeOut" }}
+              style={{ paddingTop: "1rem" }}
+            >
+              {menuItems.map((item, index) => (
+                <motion.div key={index} variants={itemVariants}>
+                  <IonMenuToggle autoHide={false}>
+                    <IonItem
+                      button
+                      onClick={() => setActivePage(item.key)}
+                      lines="none"
+                    >
+                      <img
+                        src={item.icon}
+                        alt={item.name}
                         style={{
-                          position: "absolute",
-                          left: 0,
-                          bottom: 0,
-                          width: "100%",
-                          height: "2px",
-                          backgroundColor: "#3b82f6", // underline
-                          borderRadius: "2px",
+                          width: "24px",
+                          height: "24px",
+                          marginRight: "8px",
+                          borderRadius: "4px",
                         }}
                       />
-                    )}
-                  </span>
-                </IonItem>
-              </IonMenuToggle>
-            ))}
+                      <span
+                        style={{
+                          marginLeft: "8px",
+                          position: "relative",
+                          paddingBottom: "4px",
+                        }}
+                      >
+                        {item.name}
+                        {activePage === item.key && (
+                          <span
+                            style={{
+                              position: "absolute",
+                              left: 0,
+                              bottom: 0,
+                              width: "100%",
+                              height: "2px",
+                              backgroundColor: "#3b82f6",
+                              borderRadius: "2px",
+                            }}
+                          />
+                        )}
+                      </span>
+                    </IonItem>
+                  </IonMenuToggle>
+                </motion.div>
+              ))}
 
-            {/* Logout Button → Login */}
-            <IonMenuToggle autoHide={false}>
-              <IonButton
-                expand="block"
-                color="primary"
-                style={{ marginTop: "1rem" }}
-                onClick={() => history.push("/education/login")}
-              >
-                <IonIcon icon={logOutOutline} slot="start" />
-                Logout
-              </IonButton>
-            </IonMenuToggle>
+              {/* ✅ Animated Logout Button */}
+              <motion.div variants={itemVariants} style={{ marginTop: "1rem" }}>
+                <IonMenuToggle autoHide={false}>
+                  <IonButton
+                    expand="block"
+                    color="primary"
+                    onClick={() => history.push("/education/login")}
+                  >
+                    <IonIcon icon={logOutOutline} slot="start" />
+                    Logout
+                  </IonButton>
+                </IonMenuToggle>
+              </motion.div>
+            </motion.div>
           </IonContent>
         </IonMenu>
 
-        {/* Main Content */}
+        {/* ✅ Animated Main Content */}
         <IonPage id="main">
           <IonHeader>
             <IonToolbar>
@@ -146,12 +171,24 @@ const AdminDashboard: React.FC = () => {
               </IonButtons>
               <IonTitle>
                 {menuItems.find((m) => m.key === activePage)?.name ||
-                  "Dashboard Arithmetic"}
+                  "Admin Dashboard"}
               </IonTitle>
             </IonToolbar>
           </IonHeader>
 
-          <IonContent>{renderContent()}</IonContent>
+          <IonContent>
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={activePage}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.3, ease: "easeOut" }}
+              >
+                {renderContent()}
+              </motion.div>
+            </AnimatePresence>
+          </IonContent>
         </IonPage>
       </IonSplitPane>
     </IonPage>

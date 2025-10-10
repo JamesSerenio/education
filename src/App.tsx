@@ -1,6 +1,5 @@
 import { IonApp, IonRouterOutlet, setupIonicReact } from "@ionic/react";
-import { IonReactRouter } from "@ionic/react-router";
-import { Redirect, Route } from "react-router-dom";
+import { HashRouter as Router, Route, Redirect } from "react-router-dom";
 
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -18,48 +17,36 @@ import ArithmeticQuiz from "./Dashboard/Arithmetic_Sequence/arithmetic_quiz";
 
 import MotionQuiz from "./Dashboard/Uniform_Motion_in_Physics/motion_quiz";
 import MotionPractice from "./Dashboard/Uniform_Motion_in_Physics/Motion_Practice";
-// ✅ Admin Dashboard
 import AdminDashboard from "./admin/admin_dashboard";
 
 /* Core CSS required for Ionic components to work properly */
 import "@ionic/react/css/core.css";
-
-/* Basic CSS for apps built with Ionic */
 import "@ionic/react/css/normalize.css";
 import "@ionic/react/css/structure.css";
 import "@ionic/react/css/typography.css";
-
-/* Optional CSS utils that can be commented out */
 import "@ionic/react/css/padding.css";
-import "@ionic/react/css/float-elements.css";
-import "@ionic/react/css/text-alignment.css";
-import "@ionic/react/css/text-transformation.css";
 import "@ionic/react/css/flex-utils.css";
 import "@ionic/react/css/display.css";
-
-/* Ionic Dark Mode */
 import "@ionic/react/css/palettes/dark.system.css";
 
-/* Tailwind + Global CSS */
 import "./global.css";
-
-/* Theme variables */
 import "./theme/variables.css";
 
 setupIonicReact();
 
 const App: React.FC = () => (
   <IonApp>
-    <IonReactRouter>
+    {/* ✅ HashRouter fixes GitHub Pages refresh issues */}
+    <Router>
       <IonRouterOutlet>
-        {/* 🔹 Auth Pages */}
+        {/* Auth */}
         <Route exact path="/education/login" component={Login} />
         <Route exact path="/education/register" component={Register} />
 
-        {/* 🔹 Home */}
+        {/* Home */}
         <Route exact path="/education/home" component={Home} />
 
-        {/* 🔹 Dashboards */}
+        {/* Dashboards */}
         <Route
           exact
           path="/education/dashboard_arithmetic"
@@ -71,14 +58,12 @@ const App: React.FC = () => (
           component={Dashboard_Motion}
         />
 
-        {/* 🔹 Arithmetic Practice */}
+        {/* Arithmetic */}
         <Route
           exact
           path="/education/arithmetic_practice"
           component={Arithmetic_Practice}
         />
-
-        {/* 🔹 Arithmetic Sub Pages */}
         <Route
           exact
           path="/education/arithmetic_home"
@@ -105,31 +90,27 @@ const App: React.FC = () => (
           component={ArithmeticQuiz}
         />
 
+        {/* Motion */}
         <Route
           exact
           path="/education/motion_practice"
           component={MotionPractice}
         />
+        <Route exact path="/education/motion_quiz" component={MotionQuiz} />
 
-         <Route
-          exact
-          path="/education/motion_quiz"
-          component={MotionQuiz}
-        />
-
-        {/* 🔹 Admin Dashboard */}
+        {/* Admin */}
         <Route
           exact
           path="/education/admin/admin_dashboard"
           component={AdminDashboard}
         />
 
-        {/* 🔹 Default Redirect */}
-        <Route exact path="/education/">
+        {/* Default redirect */}
+        <Route exact path="/">
           <Redirect to="/education/login" />
         </Route>
       </IonRouterOutlet>
-    </IonReactRouter>
+    </Router>
   </IonApp>
 );
 

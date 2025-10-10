@@ -15,7 +15,7 @@ import {
   IonSelectOption,
   IonText,
 } from "@ionic/react";
-import { useNavigate } from "react-router-dom"; 
+import { useHistory } from "react-router-dom"; 
 import ArithmeticQuiz from "./arithmetic_quiz";
 
 /**
@@ -27,7 +27,7 @@ import ArithmeticQuiz from "./arithmetic_quiz";
  */
 
 const Arithmetic_Practice: React.FC = () => {
-  const history = useNavigate();
+  const history = useHistory();
   const [category, setCategory] = useState<string>("an");
   const [a1, setA1] = useState<string>("");
   const [an, setAn] = useState<string>("");

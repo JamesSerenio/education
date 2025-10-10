@@ -15,7 +15,7 @@ import {
 } from "@ionic/react";
 import { IonIcon } from "@ionic/react";
 import { logOutOutline } from "ionicons/icons";
-import { useNavigate } from "react-router-dom";
+import { useHistory } from "react-router-dom";
 
 import ArithmeticHome from "./Arithmetic_Home";
 import ArithmeticModule from "./Arithmetic_Module";
@@ -28,10 +28,10 @@ import iconLeaderboard from "../../assets/icon_leaderboard.gif";
 import iconRadar from "../../assets/icon_radar.png";
 
 const Dashboard_Arithmetic: React.FC = () => {
-  const navigate = useNavigate(); // ✅ Correct useNavigate hook
+  const history = useHistory();
   const [activePage, setActivePage] = useState("Home");
 
-  // ✅ Menu items
+  // ✅ use custom icons for all menu items
   const menuItems = [
     { name: "Home", key: "Home", icon: iconHome },
     { name: "Module", key: "module", icon: iconModule },
@@ -76,7 +76,7 @@ const Dashboard_Arithmetic: React.FC = () => {
                   onClick={() => setActivePage(item.key)}
                   lines="none"
                 >
-                  {/* Custom icons */}
+                  {/* ✅ Custom icons */}
                   <img
                     src={item.icon}
                     alt={item.name}
@@ -104,7 +104,7 @@ const Dashboard_Arithmetic: React.FC = () => {
                           bottom: 0,
                           width: "100%",
                           height: "2px",
-                          backgroundColor: "#3b82f6",
+                          backgroundColor: "#3b82f6", // underline
                           borderRadius: "2px",
                         }}
                       />
@@ -114,13 +114,13 @@ const Dashboard_Arithmetic: React.FC = () => {
               </IonMenuToggle>
             ))}
 
-            {/* ✅ Logout Button */}
+            {/* Logout Button → Home */}
             <IonMenuToggle autoHide={false}>
               <IonButton
                 expand="block"
                 color="primary"
                 style={{ marginTop: "1rem" }}
-                onClick={() => navigate("/education/home")} // ✅ Fixed
+                onClick={() => history.push("/education/home")}
               >
                 <IonIcon icon={logOutOutline} slot="start" />
                 Logout

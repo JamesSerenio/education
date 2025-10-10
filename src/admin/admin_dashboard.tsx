@@ -15,7 +15,7 @@ import {
   IonIcon,
 } from "@ionic/react";
 import { logOutOutline } from "ionicons/icons";
-import { useNavigate } from "react-router-dom";
+import { useHistory } from "react-router-dom";
 
 // ✅ Import your page components
 import AdminHome from "./admin_home";
@@ -34,8 +34,7 @@ import iconLeaderboard from "../assets/icon_leaderboard.gif";
 import iconRadar from "../assets/icon_radar.png";
 
 const AdminDashboard: React.FC = () => {
-  // ✅ Rename variable (more meaningful)
-  const navigate = useNavigate();
+  const history = useHistory();
   const [activePage, setActivePage] = useState("Home");
 
   const menuItems = [
@@ -85,6 +84,7 @@ const AdminDashboard: React.FC = () => {
                   onClick={() => setActivePage(item.key)}
                   lines="none"
                 >
+                  {/* ✅ Custom icon (image instead of IonIcon) */}
                   <img
                     src={item.icon}
                     alt={item.name}
@@ -122,13 +122,13 @@ const AdminDashboard: React.FC = () => {
               </IonMenuToggle>
             ))}
 
-            {/* ✅ Logout Button → Login */}
+            {/* Logout Button → Login */}
             <IonMenuToggle autoHide={false}>
               <IonButton
                 expand="block"
                 color="primary"
                 style={{ marginTop: "1rem" }}
-                onClick={() => navigate("/education/login")}
+                onClick={() => history.push("/education/login")}
               >
                 <IonIcon icon={logOutOutline} slot="start" />
                 Logout

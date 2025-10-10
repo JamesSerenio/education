@@ -1,6 +1,6 @@
 import { IonApp, IonRouterOutlet, setupIonicReact } from "@ionic/react";
 import { IonReactRouter } from "@ionic/react-router";
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Redirect, Route } from "react-router-dom";
 
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -18,88 +18,116 @@ import ArithmeticQuiz from "./Dashboard/Arithmetic_Sequence/arithmetic_quiz";
 
 import MotionQuiz from "./Dashboard/Uniform_Motion_in_Physics/motion_quiz";
 import MotionPractice from "./Dashboard/Uniform_Motion_in_Physics/Motion_Practice";
+// ✅ Admin Dashboard
 import AdminDashboard from "./admin/admin_dashboard";
 
-/* CSS */
+/* Core CSS required for Ionic components to work properly */
 import "@ionic/react/css/core.css";
+
+/* Basic CSS for apps built with Ionic */
 import "@ionic/react/css/normalize.css";
 import "@ionic/react/css/structure.css";
 import "@ionic/react/css/typography.css";
+
+/* Optional CSS utils that can be commented out */
 import "@ionic/react/css/padding.css";
+import "@ionic/react/css/float-elements.css";
+import "@ionic/react/css/text-alignment.css";
+import "@ionic/react/css/text-transformation.css";
+import "@ionic/react/css/flex-utils.css";
 import "@ionic/react/css/display.css";
+
+/* Ionic Dark Mode */
 import "@ionic/react/css/palettes/dark.system.css";
 
+/* Tailwind + Global CSS */
 import "./global.css";
+
+/* Theme variables */
 import "./theme/variables.css";
 
 setupIonicReact();
 
 const App: React.FC = () => (
   <IonApp>
-    {/* ✅ useHash no longer supported directly in v6, use HashRouter instead if needed */}
     <IonReactRouter>
       <IonRouterOutlet>
-        <Routes>
-          {/* Auth */}
-          <Route path="/education/login" element={<Login />} />
-          <Route path="/education/register" element={<Register />} />
-          <Route path="/education/home" element={<Home />} />
+        {/* 🔹 Auth Pages */}
+        <Route exact path="/education/login" component={Login} />
+        <Route exact path="/education/register" component={Register} />
 
-          {/* Dashboards */}
-          <Route
-            path="/education/dashboard_arithmetic"
-            element={<Dashboard_Arithmetic />}
-          />
-          <Route
-            path="/education/dashboard_motion"
-            element={<Dashboard_Motion />}
-          />
+        {/* 🔹 Home */}
+        <Route exact path="/education/home" component={Home} />
 
-          {/* Arithmetic */}
-          <Route
-            path="/education/arithmetic_practice"
-            element={<Arithmetic_Practice />}
-          />
-          <Route
-            path="/education/arithmetic_home"
-            element={<ArithmeticHome />}
-          />
-          <Route
-            path="/education/arithmetic_module"
-            element={<ArithmeticModule />}
-          />
-          <Route
-            path="/education/arithmetic_leaderboard"
-            element={<ArithmeticLeaderboard />}
-          />
-          <Route
-            path="/education/arithmetic_radar"
-            element={<ArithmeticRadar />}
-          />
-          <Route
-            path="/education/arithmetic_quiz"
-            element={<ArithmeticQuiz />}
-          />
+        {/* 🔹 Dashboards */}
+        <Route
+          exact
+          path="/education/dashboard_arithmetic"
+          component={Dashboard_Arithmetic}
+        />
+        <Route
+          exact
+          path="/education/dashboard_motion"
+          component={Dashboard_Motion}
+        />
 
-          {/* Motion */}
-          <Route
-            path="/education/motion_practice"
-            element={<MotionPractice />}
-          />
-          <Route path="/education/motion_quiz" element={<MotionQuiz />} />
+        {/* 🔹 Arithmetic Practice */}
+        <Route
+          exact
+          path="/education/arithmetic_practice"
+          component={Arithmetic_Practice}
+        />
 
-          {/* Admin */}
-          <Route
-            path="/education/admin/admin_dashboard"
-            element={<AdminDashboard />}
-          />
+        {/* 🔹 Arithmetic Sub Pages */}
+        <Route
+          exact
+          path="/education/arithmetic_home"
+          component={ArithmeticHome}
+        />
+        <Route
+          exact
+          path="/education/arithmetic_module"
+          component={ArithmeticModule}
+        />
+        <Route
+          exact
+          path="/education/arithmetic_leaderboard"
+          component={ArithmeticLeaderboard}
+        />
+        <Route
+          exact
+          path="/education/arithmetic_radar"
+          component={ArithmeticRadar}
+        />
+        <Route
+          exact
+          path="/education/arithmetic_quiz"
+          component={ArithmeticQuiz}
+        />
 
-          {/* Default redirect */}
-          <Route
-            path="/education"
-            element={<Navigate to="/education/login" replace />}
-          />
-        </Routes>
+        <Route
+          exact
+          path="/education/motion_practice"
+          component={MotionPractice}
+        />
+
+         <Route
+          exact
+          path="/education/motion_quiz"
+          component={MotionQuiz}
+        />
+
+        {/* 🔹 Admin Dashboard */}
+        <Route
+          exact
+          path="/education/admin/admin_dashboard"
+          component={AdminDashboard}
+        />
+
+        {/* 🔹 Default Redirect */}
+        <Route exact path="/education/">
+          <Redirect to="/education/login" />
+        </Route>
       </IonRouterOutlet>
     </IonReactRouter>
   </IonApp>

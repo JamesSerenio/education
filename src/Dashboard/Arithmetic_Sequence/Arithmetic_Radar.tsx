@@ -114,6 +114,7 @@ const Arithmetic_Radar: React.FC = () => {
       let problemSolvingPercent = 0;
 
       if (arithmeticScores.length > 0) {
+        // ✅ Compute Time Performance
         const avgTime =
           arithmeticScores.reduce((sum, s) => sum + (s.time_taken || 0), 0) /
           arithmeticScores.length;
@@ -121,15 +122,18 @@ const Arithmetic_Radar: React.FC = () => {
         const timeRaw = ((MAX_TIME - avgTime) / MAX_TIME) * 100;
         timePercent = Math.max(0, Math.min(100, parseFloat(timeRaw.toFixed(2))));
 
+        // ✅ Compute Solving Performance
         const solvingScores = arithmeticScores.filter(
           (s) => s.quizzes?.category === "Solving" && s.score !== null
         );
         if (solvingScores.length > 0) {
           const avgSolving =
-            solvingScores.reduce((sum, s) => sum + (s.score || 0), 0) / solvingScores.length;
+            solvingScores.reduce((sum, s) => sum + (s.score || 0), 0) /
+            solvingScores.length;
           solvingPercent = Math.floor((avgSolving / MAX_SCORE) * 100);
         }
 
+        // ✅ Compute Problem Solving Performance
         const problemSolvingScores = arithmeticScores.filter(
           (s) => s.quizzes?.category === "Problem Solving" && s.score !== null
         );
@@ -199,10 +203,10 @@ const Arithmetic_Radar: React.FC = () => {
           datalabels: {
             color: "#000",
             font: { weight: "bold", size: 11 },
-            formatter: (val: number, context: { dataIndex: number }) => {
-              const labelIndex = context.dataIndex;
-              if (labelIndex === 0) return `${val.toFixed(2)}%`;
-              return `${Math.round(val)}%`;
+            formatter: (val: number) => {
+              // ✅ Automatically decide whether to show decimals
+              const isDecimal = val % 1 !== 0;
+              return isDecimal ? `${val.toFixed(2)}%` : `${Math.round(val)}%`;
             },
           },
         },

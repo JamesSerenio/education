@@ -52,7 +52,6 @@ const Arithmetic_Radar: React.FC = () => {
     problemSolving: 0,
   });
 
-  // Map Supabase data
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const mapToScoreWithQuizzes = (rawData: any): ScoreWithQuizzes => ({
     id: rawData.id || "",
@@ -127,8 +126,7 @@ const Arithmetic_Radar: React.FC = () => {
         );
         if (solvingScores.length > 0) {
           const avgSolving =
-            solvingScores.reduce((sum, s) => sum + (s.score || 0), 0) /
-            solvingScores.length;
+            solvingScores.reduce((sum, s) => sum + (s.score || 0), 0) / solvingScores.length;
           solvingPercent = Math.floor((avgSolving / MAX_SCORE) * 100);
         }
 
@@ -161,7 +159,7 @@ const Arithmetic_Radar: React.FC = () => {
 
     if (chartInstance.current) chartInstance.current.destroy();
 
-    const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+    const gradient = ctx.createLinearGradient(0, 0, 0, 500);
     gradient.addColorStop(0, "rgba(54, 162, 235, 0.3)");
     gradient.addColorStop(1, "rgba(236, 72, 153, 0.3)");
 
@@ -186,8 +184,7 @@ const Arithmetic_Radar: React.FC = () => {
       },
       options: {
         responsive: true,
-        maintainAspectRatio: true,
-        aspectRatio: 1,
+        maintainAspectRatio: false, // 🔥 allows flexible height
         plugins: {
           legend: {
             display: true,
@@ -201,13 +198,13 @@ const Arithmetic_Radar: React.FC = () => {
           },
           datalabels: {
             color: "#000",
-            font: { weight: "bold", size: 10 },
+            font: { weight: "bold", size: 11 },
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             formatter: (val: number, context: any) => {
-              // Show 2 decimal places for "⏱ Time" only
               const labelIndex = context.dataIndex;
-              if (labelIndex === 0) return `${val.toFixed(2)}%`; // Time
-              return `${Math.round(val)}%`; // Others
+              // ✅ Always show 2 decimals for Time
+              if (labelIndex === 0) return `${val.toFixed(2)}%`;
+              return `${Math.round(val)}%`;
             },
           },
         },
@@ -243,14 +240,14 @@ const Arithmetic_Radar: React.FC = () => {
             flexDirection: "column",
             alignItems: "center",
             justifyContent: "center",
-            minHeight: "90vh",
+            minHeight: "100vh",
           }}
         >
           <div
             style={{
               width: "100%",
               maxWidth: "500px",
-              height: "auto",
+              height: "450px", // ✅ taller chart (works on mobile)
               background: "white",
               borderRadius: "16px",
               boxShadow: "0px 8px 20px rgba(0,0,0,0.08)",
@@ -261,7 +258,7 @@ const Arithmetic_Radar: React.FC = () => {
               justifyContent: "center",
             }}
           >
-            <div style={{ width: "100%", aspectRatio: "1" }}>
+            <div style={{ width: "100%", height: "100%" }}>
               <canvas ref={radarRef} style={{ width: "100%", height: "100%" }} />
             </div>
             <button

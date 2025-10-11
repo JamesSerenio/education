@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { IonPage, IonHeader, IonToolbar, IonTitle, IonContent } from "@ionic/react";
 import { Trophy } from "lucide-react";
+import { motion } from "framer-motion";
 import { supabase } from "../../utils/supabaseClient";
 
 interface LeaderboardRow {
@@ -100,12 +101,18 @@ const MotionLeaderboard: React.FC = () => {
       <tbody>
         {data.length > 0 ? (
           data.map((row, index) => (
-            <tr key={index} style={{ borderBottom: "1px solid #e5e7eb" }}>
+            <motion.tr
+              key={index}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: index * 0.05 }}
+              style={{ borderBottom: "1px solid #e5e7eb" }}
+            >
               <td style={tdStyle}>{index + 1}</td>
               <td style={tdStyle}>{row.profiles.lastname || "-"}</td>
               <td style={tdStyle}>{row.score}</td>
               <td style={tdStyle}>{formatTime(row.time_taken)}</td>
-            </tr>
+            </motion.tr>
           ))
         ) : (
           <tr>
@@ -127,21 +134,40 @@ const MotionLeaderboard: React.FC = () => {
       </IonHeader>
 
       <IonContent className="ion-padding">
-        <div style={cardStyle}>
-          <h2 style={blackTitle}>Solving Leaderboard</h2>
-          <div style={iconWrapper}>
-            <Trophy size={24} color="#f59e0b" />
-          </div>
-          {loading ? <p>Loading...</p> : renderTable(solvingData)}
-        </div>
+        {/* Wrapper for fade-in and stagger animation */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ staggerChildren: 0.3, delayChildren: 0.2 }}
+        >
+          {/* Solving Leaderboard Card */}
+          <motion.div
+            initial={{ opacity: 0, y: 40 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, ease: "easeOut" }}
+            style={cardStyle}
+          >
+            <h2 style={blackTitle}>Solving Leaderboard</h2>
+            <div style={iconWrapper}>
+              <Trophy size={24} color="#f59e0b" />
+            </div>
+            {loading ? <p>Loading...</p> : renderTable(solvingData)}
+          </motion.div>
 
-        <div style={{ ...cardStyle, marginTop: 20 }}>
-          <h2 style={blackTitle}>Problem Solving Leaderboard</h2>
-          <div style={iconWrapper}>
-            <Trophy size={24} color="#3b82f6" />
-          </div>
-          {loading ? <p>Loading...</p> : renderTable(problemSolvingData)}
-        </div>
+          {/* Problem Solving Leaderboard Card */}
+          <motion.div
+            initial={{ opacity: 0, y: 40 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, ease: "easeOut", delay: 0.3 }}
+            style={{ ...cardStyle, marginTop: 20 }}
+          >
+            <h2 style={blackTitle}>Problem Solving Leaderboard</h2>
+            <div style={iconWrapper}>
+              <Trophy size={24} color="#3b82f6" />
+            </div>
+            {loading ? <p>Loading...</p> : renderTable(problemSolvingData)}
+          </motion.div>
+        </motion.div>
       </IonContent>
     </IonPage>
   );
@@ -160,7 +186,7 @@ const cardStyle: React.CSSProperties = {
 
 const blackTitle: React.CSSProperties = {
   textAlign: "center",
-  color: "#000", // black text
+  color: "#000",
   fontSize: 22,
   margin: 0,
 };

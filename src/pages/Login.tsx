@@ -5,13 +5,8 @@ import {
   IonButton,
   IonIcon,
 } from "@ionic/react";
-import {
-  mailOutline,
-  lockClosedOutline,
-  moonOutline,
-  sunnyOutline,
-} from "ionicons/icons";
-import { useState, useEffect } from "react";
+import { mailOutline, lockClosedOutline } from "ionicons/icons";
+import { useState } from "react";
 import { Link, useHistory } from "react-router-dom";
 import { motion } from "framer-motion";
 import { supabase } from "../utils/supabaseClient";
@@ -20,13 +15,7 @@ const Login: React.FC = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [darkMode, setDarkMode] = useState(false);
   const history = useHistory();
-
-  // Apply dark mode class to body
-  useEffect(() => {
-    document.body.classList.toggle("dark-mode", darkMode);
-  }, [darkMode]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -78,20 +67,6 @@ const Login: React.FC = () => {
   return (
     <IonPage>
       <IonContent className="login-content" fullscreen>
-        {/* 🌙 Light/Dark Mode Toggle */}
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="mode-toggle"
-          onClick={() => setDarkMode(!darkMode)}
-        >
-          <IonIcon
-            icon={darkMode ? sunnyOutline : moonOutline}
-            className="mode-icon cursor-pointer text-2xl"
-          />
-        </motion.div>
-
         <div className="login-wrapper">
           <motion.div
             className="login-card"
@@ -141,16 +116,7 @@ const Login: React.FC = () => {
                 />
               </motion.div>
 
-              {errorMsg && (
-                <motion.p
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.6 }}
-                  style={{ color: "red", marginBottom: "1rem" }}
-                >
-                  {errorMsg}
-                </motion.p>
-              )}
+              {errorMsg && <p className="login-error">{errorMsg}</p>}
 
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
@@ -170,10 +136,7 @@ const Login: React.FC = () => {
               transition={{ delay: 0.8 }}
             >
               Don’t have an account?{" "}
-              <Link
-                to="/education/register"
-                className="text-blue-600 font-medium"
-              >
+              <Link to="/education/register" className="login-link">
                 Register
               </Link>
             </motion.p>

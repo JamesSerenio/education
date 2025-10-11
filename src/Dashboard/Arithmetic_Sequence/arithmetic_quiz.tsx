@@ -211,8 +211,6 @@ const ArithmeticQuiz: React.FC = () => {
   return (
     <IonPage>
       <IonHeader>
-        <IonToolbar>
-        </IonToolbar>
       </IonHeader>
 
       <IonContent fullscreen scrollEvents>

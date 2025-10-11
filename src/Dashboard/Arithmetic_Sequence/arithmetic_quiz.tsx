@@ -327,7 +327,7 @@ const ArithmeticQuiz: React.FC = () => {
               alignItems: "center",
               textAlign: "center",
               height: "100%",
-              padding: "30px 20px",
+              padding: "5vh 5vw",
               boxSizing: "border-box",
             }}
           >
@@ -346,18 +346,20 @@ const ArithmeticQuiz: React.FC = () => {
 
             <h2 style={{ fontSize: "22px", marginBottom: "10px", color: "#666" }}>{selectedCategory}</h2>
 
-            <h1 style={{ fontSize: "28px", marginBottom: "15px" }}>Level {currentQuiz.level}</h1>
+            <h1 style={{ fontSize: "clamp(20px, 5vw, 28px)", marginBottom: "15px" }}>
+              Level {currentQuiz.level}
+            </h1>
 
             <p style={{ fontSize: "20px", marginBottom: "25px" }}>{currentQuiz.question}</p>
 
-            <IonItem
-              style={{
-                maxWidth: "400px",
-                width: "100%",
-                marginBottom: "10px",
-                justifyContent: "center",
-              }}
-            >
+              <IonItem
+                style={{
+                  width: "90%",
+                  maxWidth: "400px",
+                  margin: "0 auto 10px",
+                }}
+              >
+
               <IonInput
                 ref={inputRef}
                 value={userAnswer}
@@ -374,7 +376,7 @@ const ArithmeticQuiz: React.FC = () => {
               </IonText>
             )}
 
-            <IonButton expand="block" onClick={handleNext} style={{ marginTop: "15px" }}>
+            <IonButton expand="block" size="small" onClick={handleNext} style={{ marginTop: "15px" }}>
               Next
             </IonButton>
 
@@ -401,7 +403,12 @@ const ArithmeticQuiz: React.FC = () => {
         )}
 
         {/* Result Modal */}
-        <IonModal isOpen={showResultModal} backdropDismiss={false}>
+        <IonModal
+          isOpen={showResultModal}
+          backdropDismiss={false}
+          className="mobile-modal"
+        >
+
           <div
             style={{
               display: "flex",

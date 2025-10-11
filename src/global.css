@@ -102,3 +102,15 @@ ion-item:hover {
   transition: transform 0.2s ease;
 }
 
+/* ===== arithmetic_quiz Styles ===== */
+
+.mobile-modal {
+  --height: 100%;
+  --width: 100%;
+  --border-radius: 0;
+}
+
+.mobile-modal .modal-wrapper {
+  max-height: 100vh;
+  overflow-y: auto;
+}

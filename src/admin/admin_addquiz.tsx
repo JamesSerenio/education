@@ -1,3 +1,4 @@
+// src/pages/AdminAddQuiz.tsx
 import React, { useState } from "react";
 import {
   IonPage,
@@ -10,7 +11,10 @@ import {
   IonInput,
   IonTextarea,
   IonButton,
+  IonList,
+  IonIcon,
 } from "@ionic/react";
+import { closeCircleOutline } from "ionicons/icons";
 import { supabase } from "../utils/supabaseClient"; // ✅ import supabase client
 
 const AdminAddQuiz: React.FC = () => {
@@ -21,36 +25,72 @@ const AdminAddQuiz: React.FC = () => {
   const [solution, setSolution] = useState("");
   const [answer, setAnswer] = useState("");
 
+  // NEW: alternate / accepted answers list
+  const [altInput, setAltInput] = useState("");
+  const [acceptedAnswers, setAcceptedAnswers] = useState<string[]>([]);
+
+  const addAcceptedAnswer = () => {
+    const v = (altInput || "").trim();
+    if (!v) return;
+    // dedupe (case-insensitive)
+    const exists = acceptedAnswers.some((a) => a.toLowerCase() === v.toLowerCase());
+    if (!exists) setAcceptedAnswers((p) => [...p, v]);
+    setAltInput("");
+  };
+
+  const removeAcceptedAnswer = (idx: number) => {
+    setAcceptedAnswers((p) => p.filter((_, i) => i !== idx));
+  };
+
   const handleSubmit = async () => {
     if (!subject || !category || !level || !question || !answer) {
       alert("Please fill in all required fields!");
       return;
     }
 
-    const { data, error } = await supabase.from("quizzes").insert([
-      { subject, category, level, question, solution, answer },
-    ]);
+    try {
+      // insert accepted_answers as JSONB array into column `accepted_answers`
+      const payload: Record<string, unknown> = {
+        subject,
+        category,
+        level,
+        question,
+        solution,
+        answer,
+      };
 
-    if (error) {
-      console.error("Error inserting quiz:", error.message);
-      alert("Failed to save quiz!");
-    } else {
-      console.log("Quiz Saved:", data);
-      alert("Quiz saved successfully!");
-      setSubject("");
-      setCategory("");
-      setLevel(null);
-      setQuestion("");
-      setSolution("");
-      setAnswer("");
+      // only attach accepted_answers if we have any
+      if (acceptedAnswers.length > 0) {
+        payload.accepted_answers = acceptedAnswers; // stored as JSON/array
+      }
+
+      const { data, error } = await supabase.from("quizzes").insert([payload]);
+
+      if (error) {
+        console.error("Error inserting quiz:", error.message);
+        alert("Failed to save quiz! (check DB) — " + error.message);
+      } else {
+        console.log("Quiz Saved:", data);
+        alert("Quiz saved successfully!");
+        // reset
+        setSubject("");
+        setCategory("");
+        setLevel(null);
+        setQuestion("");
+        setSolution("");
+        setAnswer("");
+        setAcceptedAnswers([]);
+        setAltInput("");
+      }
+    } catch (err) {
+      console.error("Unexpected error inserting quiz:", err);
+      alert("Unexpected error. Check console.");
     }
   };
 
   return (
     <IonPage>
-      <IonHeader>
-      </IonHeader>
-
+      <IonHeader />
       <IonContent className="ion-padding">
         {/* Select Subject */}
         <IonItem>
@@ -111,25 +151,50 @@ const AdminAddQuiz: React.FC = () => {
         </IonItem>
 
         {/* Solution */}
-          <IonItem>
-            <IonLabel position="stacked">Solution</IonLabel>
-            <IonTextarea
-              placeholder="Write the solution"
-              value={solution}
-              autoGrow={true}  // ✅ para mag-expand kapag mahaba
-              onIonChange={(e) => setSolution(e.detail.value!)}
-            />
-          </IonItem>
-
-        {/* Answer */}
         <IonItem>
-          <IonLabel position="stacked">Answer</IonLabel>
+          <IonLabel position="stacked">Solution</IonLabel>
+          <IonTextarea
+            placeholder="Write the solution"
+            value={solution}
+            autoGrow={true}
+            onIonChange={(e) => setSolution(e.detail.value!)}
+          />
+        </IonItem>
+
+        {/* Answer (primary) */}
+        <IonItem>
+          <IonLabel position="stacked">Primary Answer (required)</IonLabel>
           <IonInput
-            placeholder="Enter correct answer"
+            placeholder="Enter correct answer (primary)"
             value={answer}
             onIonChange={(e) => setAnswer(e.detail.value!)}
           />
         </IonItem>
+
+        {/* Accepted / alternate answers UI */}
+        <IonItem>
+          <IonLabel position="stacked">Alternate / Accepted Answers (optional)</IonLabel>
+          <div style={{ display: "flex", gap: 8, width: "100%" }}>
+            <IonInput
+              placeholder="e.g. 2,300 or 2300"
+              value={altInput}
+              onIonChange={(e) => setAltInput(e.detail.value!)}
+            />
+            <IonButton onClick={addAcceptedAnswer}>Add</IonButton>
+          </div>
+        </IonItem>
+
+        {/* List alternate answers */}
+        <IonList>
+          {acceptedAnswers.map((a, i) => (
+            <IonItem key={i}>
+              <div style={{ flex: 1 }}>{a}</div>
+              <IonButton fill="clear" onClick={() => removeAcceptedAnswer(i)}>
+                <IonIcon icon={closeCircleOutline} />
+              </IonButton>
+            </IonItem>
+          ))}
+        </IonList>
 
         {/* Submit */}
         <IonButton

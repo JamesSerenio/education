@@ -122,9 +122,9 @@ const Motion_Radar: React.FC = () => {
           uniformMotionScores.length;
 
         const timeRaw = ((MAX_TIME - avgTime) / MAX_TIME) * 100;
-        timePercent = Math.max(0, Math.min(100, parseFloat(timeRaw.toFixed(2)))); // keep decimals for time
+        timePercent = Math.max(0, Math.min(100, parseFloat(timeRaw.toFixed(2))));
 
-        // ✅ SOLVING (whole number)
+        // ✅ SOLVING
         const solvingScores = uniformMotionScores.filter(
           (s) => s.quizzes?.category === "Solving" && s.score !== null
         );
@@ -132,10 +132,10 @@ const Motion_Radar: React.FC = () => {
           const avgSolving =
             solvingScores.reduce((sum, s) => sum + (s.score || 0), 0) /
             solvingScores.length;
-          solvingPercent = Math.floor((avgSolving / MAX_SCORE) * 100); // no decimals
+          solvingPercent = parseFloat(((avgSolving / MAX_SCORE) * 100).toFixed(2));
         }
 
-        // ✅ PROBLEM SOLVING (whole number)
+        // ✅ PROBLEM SOLVING
         const problemSolvingScores = uniformMotionScores.filter(
           (s) => s.quizzes?.category === "Problem Solving" && s.score !== null
         );
@@ -143,7 +143,7 @@ const Motion_Radar: React.FC = () => {
           const avgProblemSolving =
             problemSolvingScores.reduce((sum, s) => sum + (s.score || 0), 0) /
             problemSolvingScores.length;
-          problemSolvingPercent = Math.floor((avgProblemSolving / MAX_SCORE) * 100); // no decimals
+          problemSolvingPercent = parseFloat(((avgProblemSolving / MAX_SCORE) * 100).toFixed(2));
         }
       }
 
@@ -206,8 +206,11 @@ const Motion_Radar: React.FC = () => {
           datalabels: {
             color: "#000",
             font: { weight: "bold", size: 12 },
-            formatter: (val, ctx) =>
-              ctx.dataIndex === 0 ? `${val.toFixed(2)}%` : `${Math.round(val)}%`, // Time = decimal, others = whole
+            // ✅ Smart formatter: shows decimals only if needed
+            formatter: (val: number) => {
+              const hasDecimal = val % 1 !== 0;
+              return hasDecimal ? `${val.toFixed(2)}%` : `${Math.round(val)}%`;
+            },
           },
         },
         scales: {

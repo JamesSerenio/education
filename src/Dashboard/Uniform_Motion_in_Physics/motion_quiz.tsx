@@ -24,6 +24,7 @@ interface Quiz {
   question: string;
   solution: string;
   answer: string;
+  accepted_answers?: string[];
 }
 
 const MotionQuiz: React.FC = () => {
@@ -44,7 +45,7 @@ const MotionQuiz: React.FC = () => {
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const inputRef = useRef<HTMLIonInputElement | null>(null);
 
-  // 🔹 Pick one per level (1–5)
+  // 🔹 Pick one per level
   const pickOnePerLevel = (pool: Quiz[]): Quiz[] => {
     const picks: Quiz[] = [];
     for (let lvl = 1; lvl <= 5; lvl++) {
@@ -64,6 +65,7 @@ const MotionQuiz: React.FC = () => {
         .from("quizzes")
         .select("*")
         .eq("subject", "Uniform Motion in Physics");
+
       if (error) console.error("Error fetching quizzes:", error.message);
       else setAllQuizzes(data || []);
     };
@@ -112,6 +114,13 @@ const MotionQuiz: React.FC = () => {
     }
   };
 
+  // 🔹 Normalize answers for comparison
+  const normalizeAnswer = (ans: string) =>
+    ans
+      .toLowerCase()
+      .replace(/₱|,|\.00/g, "")
+      .trim();
+
   // 🔹 Timer
   useEffect(() => {
     if (!currentQuiz) return;
@@ -145,8 +154,14 @@ const MotionQuiz: React.FC = () => {
       }
 
       setErrorMessage("");
+
+      const normalizedUser = normalizeAnswer(userAnswer);
+      const normalizedCorrect = normalizeAnswer(currentQuiz.answer);
+      const accepted = currentQuiz.accepted_answers?.map(normalizeAnswer) || [];
+
       const isCorrect =
-        userAnswer.trim().toLowerCase() === currentQuiz.answer.trim().toLowerCase();
+        normalizedUser === normalizedCorrect || accepted.includes(normalizedUser);
+
       const newScore = isCorrect ? score + 1 : score;
 
       setScore(newScore);
@@ -188,7 +203,6 @@ const MotionQuiz: React.FC = () => {
     return `${m}:${s}`;
   };
 
-  // 🔹 Feedback Message
   const getMessage = () => {
     switch (score) {
       case 0:
@@ -210,8 +224,7 @@ const MotionQuiz: React.FC = () => {
 
   return (
     <IonPage>
-      <IonHeader>
-      </IonHeader>
+      <IonHeader></IonHeader>
 
       <IonContent fullscreen scrollEvents>
         {!selectedCategory ? (
@@ -255,7 +268,9 @@ const MotionQuiz: React.FC = () => {
             </div>
 
             <h2>{selectedCategory}</h2>
-            <h1 style={{ fontSize: "26px", margin: "5px 0" }}>Level {currentQuiz.level}</h1>
+            <h1 style={{ fontSize: "26px", margin: "5px 0" }}>
+              Level {currentQuiz.level}
+            </h1>
             <p style={{ textAlign: "center", fontSize: "18px", margin: "10px 0" }}>
               {currentQuiz.question}
             </p>
@@ -279,7 +294,11 @@ const MotionQuiz: React.FC = () => {
               </IonText>
             )}
 
-            <IonButton expand="block" onClick={() => handleNext(false)} style={{ marginTop: "20px" }}>
+            <IonButton
+              expand="block"
+              onClick={() => handleNext(false)}
+              style={{ marginTop: "20px" }}
+            >
               Next
             </IonButton>
 
@@ -319,7 +338,13 @@ const MotionQuiz: React.FC = () => {
             </h3>
             <ul style={{ textAlign: "left" }}>
               {userSolutions.map((res, i) => (
-                <li key={i} style={{ color: res.isCorrect ? "green" : "red", marginBottom: "15px" }}>
+                <li
+                  key={i}
+                  style={{
+                    color: res.isCorrect ? "green" : "red",
+                    marginBottom: "15px",
+                  }}
+                >
                   <b>Q:</b> {res.question}
                   <br />
                   <b>Answer:</b> {res.correct}

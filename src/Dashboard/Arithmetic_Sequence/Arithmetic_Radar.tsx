@@ -202,7 +202,13 @@ const Arithmetic_Radar: React.FC = () => {
           datalabels: {
             color: "#000",
             font: { weight: "bold", size: 10 },
-            formatter: (val: number) => `${Math.round(val)}%`,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            formatter: (val: number, context: any) => {
+              // Show 2 decimal places for "⏱ Time" only
+              const labelIndex = context.dataIndex;
+              if (labelIndex === 0) return `${val.toFixed(2)}%`; // Time
+              return `${Math.round(val)}%`; // Others
+            },
           },
         },
         scales: {
@@ -237,7 +243,7 @@ const Arithmetic_Radar: React.FC = () => {
             flexDirection: "column",
             alignItems: "center",
             justifyContent: "center",
-            minHeight: "100vh",
+            minHeight: "90vh",
           }}
         >
           <div

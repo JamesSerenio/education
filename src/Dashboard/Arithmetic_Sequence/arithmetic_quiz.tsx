@@ -10,6 +10,7 @@ import {
   IonInput,
   IonText,
   IonModal,
+  useIonViewDidEnter,
 } from "@ionic/react";
 import { supabase } from "../../utils/supabaseClient";
 
@@ -174,12 +175,10 @@ const ArithmeticQuiz: React.FC = () => {
     [currentQuiz, selectedCategory, quizzes, userAnswer, score]
   );
 
-  // 🔹 Autofocus
-  useEffect(() => {
-    if (currentQuiz && inputRef.current) {
-      setTimeout(() => inputRef.current?.setFocus(), 200);
-    }
-  }, [currentQuiz]);
+  // 🔹 Autofocus when quiz starts
+  useIonViewDidEnter(() => {
+    if (inputRef.current) setTimeout(() => inputRef.current?.setFocus(), 400);
+  });
 
   const formatTime = (seconds: number) => {
     const m = Math.floor(seconds / 60)
@@ -203,18 +202,11 @@ const ArithmeticQuiz: React.FC = () => {
         </IonToolbar>
       </IonHeader>
 
-      <IonContent fullscreen>
+ <IonContent fullscreen scrollEvents>
         {!selectedCategory ? (
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              paddingTop: "60px",
-            }}
-          >
+          <div className="flex flex-col items-center justify-center h-full p-6 text-center">
             <h2>Select Category</h2>
-            <div style={{ display: "flex", gap: "15px" }}>
+            <div style={{ display: "flex", gap: "15px", flexWrap: "wrap", justifyContent: "center" }}>
               <IonButton onClick={() => handleCategorySelect("Problem Solving")}>
                 Problem Solving
               </IonButton>
@@ -229,47 +221,52 @@ const ArithmeticQuiz: React.FC = () => {
               display: "flex",
               flexDirection: "column",
               alignItems: "center",
-              padding: "30px 20px",
+              padding: "25px 10px 100px",
             }}
           >
             <div
               style={{
-                fontSize: "24px",
+                fontSize: "22px",
                 fontWeight: "bold",
                 color: timeLeft <= 5 ? "red" : "#333",
                 marginBottom: "10px",
                 fontFamily: "monospace",
               }}
             >
-              Time Left: {formatTime(timeLeft)}
+              ⏳ Time Left: {formatTime(timeLeft)}
             </div>
 
             <h2>{selectedCategory}</h2>
-            <h1>Level {currentQuiz.level}</h1>
-            <p>{currentQuiz.question}</p>
+            <h1 style={{ fontSize: "26px", margin: "5px 0" }}>Level {currentQuiz.level}</h1>
+            <p style={{ textAlign: "center", fontSize: "18px", margin: "10px 0" }}>
+              {currentQuiz.question}
+            </p>
 
-            <IonItem style={{ maxWidth: "400px", width: "100%" }}>
+            <IonItem style={{ width: "90%", maxWidth: "400px", marginTop: "10px" }}>
               <IonInput
                 ref={inputRef}
                 value={userAnswer}
                 placeholder="Enter your answer"
+                inputmode="text"
+                enterkeyhint="done"
                 onIonInput={(e) => setUserAnswer(e.detail.value!)}
-                clearInput
                 style={{ textAlign: "center" }}
+                clearInput
               />
             </IonItem>
 
             {errorMessage && (
               <IonText color="danger">
-                <p>{errorMessage}</p>
+                <p style={{ marginTop: "8px" }}>{errorMessage}</p>
               </IonText>
             )}
 
-            <IonButton onClick={() => handleNext(false)} style={{ marginTop: "15px" }}>
+            <IonButton expand="block" onClick={() => handleNext(false)} style={{ marginTop: "20px" }}>
               Next
             </IonButton>
 
             <IonButton
+              expand="block"
               fill="outline"
               color="medium"
               onClick={() => {
@@ -281,7 +278,7 @@ const ArithmeticQuiz: React.FC = () => {
                 setUserSolutions([]);
                 clearInterval(timerRef.current!);
               }}
-              style={{ marginTop: "15px" }}
+              style={{ marginTop: "10px" }}
             >
               Back to Categories
             </IonButton>
@@ -297,7 +294,7 @@ const ArithmeticQuiz: React.FC = () => {
               <IonTitle>Results</IonTitle>
             </IonToolbar>
           </IonHeader>
-          <IonContent style={{ padding: "20px", overflowY: "auto", height: "80vh" }}>
+          <IonContent style={{ padding: "20px", overflowY: "auto" }}>
             <h2>{getMessage()}</h2>
             <h3>
               Score: {score}/{userSolutions.length}

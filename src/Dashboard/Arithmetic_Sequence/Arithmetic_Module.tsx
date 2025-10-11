@@ -7,8 +7,9 @@ import {
   IonSegmentButton,
   IonLabel,
 } from "@ionic/react";
+import { motion, AnimatePresence } from "framer-motion";
 
-// Import images from src/assets
+// Import images
 import anImg from "../../assets/an_arithmetic.png";
 import discoverImg from "../../assets/who_discover_arithmetic.png";
 import a1Img from "../../assets/a1_arithmetic.png";
@@ -16,10 +17,8 @@ import dImg from "../../assets/d_arithmetic.png";
 import nImg from "../../assets/n_arithmetic.png";
 
 const Arithmetic_Module: React.FC = () => {
-  // Default tab: An
   const [selected, setSelected] = useState<string>("module");
 
-  // Mapping ng images
   const images: Record<string, { src: string; label: string }> = {
     module: { src: anImg, label: "An Formula" },
     a1: { src: a1Img, label: "Find a₁" },
@@ -31,7 +30,11 @@ const Arithmetic_Module: React.FC = () => {
     <IonPage>
       <IonHeader></IonHeader>
       <IonContent fullscreen>
-        <div
+        {/* Container with staggered fade-in */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ staggerChildren: 0.3, delayChildren: 0.2 }}
           style={{
             display: "flex",
             justifyContent: "center",
@@ -41,8 +44,11 @@ const Arithmetic_Module: React.FC = () => {
             flexWrap: "wrap",
           }}
         >
-          {/* Who Discover Arithmetic (first) */}
-          <div
+          {/* Card 1: Who Discovered Arithmetic */}
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, ease: "easeOut" }}
             style={{
               border: "2px solid #ccc",
               borderRadius: "10px",
@@ -55,15 +61,21 @@ const Arithmetic_Module: React.FC = () => {
             }}
           >
             <h3 style={{ marginBottom: "10px" }}>Who Discovered Arithmetic</h3>
-            <img
+            <motion.img
               src={discoverImg}
               alt="Who Discover Arithmetic"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.8 }}
               style={{ width: "100%", borderRadius: "8px" }}
             />
-          </div>
+          </motion.div>
 
-          {/* Arithmetic Module with switch */}
-          <div
+          {/* Card 2: Arithmetic Module */}
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, ease: "easeOut", delay: 0.3 }}
             style={{
               border: "2px solid #ccc",
               borderRadius: "10px",
@@ -75,9 +87,10 @@ const Arithmetic_Module: React.FC = () => {
               flex: "1 1 300px",
             }}
           >
-            <h3 style={{ marginBottom: "10px" }}>Module for Arithmetic Sequence</h3>
+            <h3 style={{ marginBottom: "10px" }}>
+              Module for Arithmetic Sequence
+            </h3>
 
-            {/* Switch Tabs with scrollable option */}
             <IonSegment
               value={selected}
               onIonChange={(e) => setSelected(e.detail.value as string)}
@@ -101,16 +114,27 @@ const Arithmetic_Module: React.FC = () => {
               </IonSegmentButton>
             </IonSegment>
 
-            {/* Display selected image */}
-            <div style={{ marginTop: "15px" }}>
-              <img
-                src={images[selected].src}
-                alt={images[selected].label}
-                style={{ width: "100%", borderRadius: "8px" }}
-              />
+            {/* Image transition on tab change */}
+            <div style={{ marginTop: "15px", position: "relative" }}>
+              <AnimatePresence mode="wait">
+                <motion.img
+                  key={selected}
+                  src={images[selected].src}
+                  alt={images[selected].label}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.6, ease: "easeInOut" }}
+                  style={{
+                    width: "100%",
+                    borderRadius: "8px",
+                    position: "relative",
+                  }}
+                />
+              </AnimatePresence>
             </div>
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
       </IonContent>
     </IonPage>
   );

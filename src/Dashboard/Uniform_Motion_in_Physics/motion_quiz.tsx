@@ -212,7 +212,6 @@ const MotionQuiz: React.FC = () => {
     <IonPage>
       <IonHeader>
         <IonToolbar>
-          <IonTitle>Uniform Motion in Physics Quiz</IonTitle>
         </IonToolbar>
       </IonHeader>
 

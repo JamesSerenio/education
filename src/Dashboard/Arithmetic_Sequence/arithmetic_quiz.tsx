@@ -212,7 +212,6 @@ const ArithmeticQuiz: React.FC = () => {
     <IonPage>
       <IonHeader>
         <IonToolbar>
-          <IonTitle>Arithmetic Sequence Quiz</IonTitle>
         </IonToolbar>
       </IonHeader>
 

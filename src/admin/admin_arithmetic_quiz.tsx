@@ -148,12 +148,11 @@ const AdminArithmeticQuiz: React.FC = () => {
           <IonTitle>Admin Arithmetic Quizzes</IonTitle>
         </IonToolbar>
       </IonHeader>
-      <IonContent className="ion-padding">
+      <IonContent style={{ padding: "1rem" }}>
         <style>{`
           .quiz-table-container {
             margin-bottom: 2rem;
             width: 100%;
-            overflow-x: auto; /* ✅ scroll horizontally on mobile */
           }
           .category-header {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -164,31 +163,29 @@ const AdminArithmeticQuiz: React.FC = () => {
             font-weight: bold;
             text-align: center;
           }
+           .table-wrapper {
+            overflow-x: auto;
+          }
           .quiz-table {
             width: 100%;
             border-collapse: collapse;
             background: white;
-            min-width: 650px; /* ✅ ensures table doesn't break on small screens */
           }
           .quiz-table th,
           .quiz-table td {
             padding: 0.75rem;
             border-bottom: 1px solid #ddd;
             vertical-align: top;
+            text-align: left;
+            white-space: nowrap;
           }
           .quiz-table th {
             background-color: #f8f9fa;
             font-weight: bold;
-            white-space: nowrap;
           }
           .actions-cell {
             text-align: center;
-            white-space: nowrap;
-          }
-          .actions-cell ion-button {
-            --padding-start: 0;
-            --padding-end: 0;
-            margin: 0 2px;
+            width: 90px;
           }
           pre {
             white-space: pre-wrap;
@@ -197,18 +194,13 @@ const AdminArithmeticQuiz: React.FC = () => {
             font-family: inherit;
           }
 
-          /* ✅ Mobile Responsive Styles */
           @media (max-width: 768px) {
-            .quiz-table {
-              font-size: 14px;
-              min-width: 500px;
-            }
-            .category-header {
-              font-size: 1rem;
-              padding: 0.8rem;
-            }
-            th, td {
+            .quiz-table th, .quiz-table td {
+              font-size: 12px;
               padding: 0.5rem;
+            }
+            .actions-cell {
+              width: 70px;
             }
           }
         `}</style>
@@ -223,6 +215,7 @@ const AdminArithmeticQuiz: React.FC = () => {
               <div className="category-header">
                 {category} ({groupedQuizzes[category].length})
               </div>
+            <div className="table-wrapper">
               <table className="quiz-table">
                 <thead>
                   <tr>
@@ -265,6 +258,7 @@ const AdminArithmeticQuiz: React.FC = () => {
                 </tbody>
               </table>
             </div>
+            </div>
           ))
         )}
 
@@ -287,11 +281,10 @@ const AdminArithmeticQuiz: React.FC = () => {
               <IonTitle>Edit Quiz</IonTitle>
             </IonToolbar>
           </IonHeader>
-          <IonContent className="ion-padding">
+          <IonContent style={{ padding: "1rem" }}>
             <IonItem>
               <IonLabel position="stacked">Category</IonLabel>
               <IonSelect
-                interface="alert" 
                 value={editCategory}
                 onIonChange={(e) => setEditCategory(e.detail.value!)}
               >
@@ -315,7 +308,6 @@ const AdminArithmeticQuiz: React.FC = () => {
                 autoGrow
                 value={editQuestion}
                 onIonChange={(e) => setEditQuestion(e.detail.value!)}
-                placeholder="Enter question..."
               />
             </IonItem>
 
@@ -325,7 +317,6 @@ const AdminArithmeticQuiz: React.FC = () => {
                 autoGrow
                 value={editAnswer}
                 onIonChange={(e) => setEditAnswer(e.detail.value!)}
-                placeholder="Enter main correct answer..."
               />
             </IonItem>
 
@@ -345,7 +336,6 @@ const AdminArithmeticQuiz: React.FC = () => {
                 autoGrow
                 value={editSolution}
                 onIonChange={(e) => setEditSolution(e.detail.value!)}
-                placeholder="Enter solution steps..."
               />
             </IonItem>
 

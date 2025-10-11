@@ -43,7 +43,7 @@ const MotionQuiz: React.FC = () => {
   const inputRef = useRef<HTMLIonInputElement | null>(null);
   const [questionStart, setQuestionStart] = useState<number>(Date.now());
 
-  // 🔹 Helper: pick 1 random per level (1–5)
+  // ✅ Helper: pick 1 random per level (1–5)
   const pickOnePerLevel = (pool: Quiz[]): Quiz[] => {
     const picks: Quiz[] = [];
     for (let lvl = 1; lvl <= 5; lvl++) {
@@ -53,12 +53,10 @@ const MotionQuiz: React.FC = () => {
         picks.push(items[randomIndex]);
       }
     }
-    // Sort ascending by level
-    picks.sort((a, b) => a.level - b.level);
-    return picks;
+    return picks.sort((a, b) => a.level - b.level);
   };
 
-  // ✅ Fetch quizzes once
+  // ✅ Fetch quizzes
   useEffect(() => {
     const fetchQuizzes = async () => {
       const { data, error } = await supabase
@@ -72,10 +70,9 @@ const MotionQuiz: React.FC = () => {
     fetchQuizzes();
   }, []);
 
-  // ✅ Start quiz by category with shuffle per level
+  // ✅ Start quiz
   const handleCategorySelect = (category: string) => {
     setSelectedCategory(category);
-
     const filtered = allQuizzes.filter((q) => q.category === category);
     const randomPerLevel = pickOnePerLevel(filtered);
 
@@ -90,12 +87,10 @@ const MotionQuiz: React.FC = () => {
     }
   };
 
-  // ✅ Save result to Supabase
+  // ✅ Save result
   const saveResult = async (quizId: string, finalScore: number) => {
     try {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
+      const { data: { session } } = await supabase.auth.getSession();
 
       if (!session) {
         console.warn("⚠️ No active session. Cannot save score.");
@@ -124,7 +119,6 @@ const MotionQuiz: React.FC = () => {
   // ✅ Timer logic
   useEffect(() => {
     if (!currentQuiz) return;
-
     if (timerRef.current) clearInterval(timerRef.current);
 
     timerRef.current = setInterval(() => {
@@ -134,7 +128,7 @@ const MotionQuiz: React.FC = () => {
 
       if (remaining <= 0) {
         clearInterval(timerRef.current!);
-        handleNext(true); // auto next if time’s up
+        handleNext(true); // auto next
       }
     }, 1000);
 
@@ -184,7 +178,7 @@ const MotionQuiz: React.FC = () => {
     [currentQuiz, selectedCategory, quizzes, userAnswer, score]
   );
 
-  // ✅ Autofocus input
+  // ✅ Auto focus input
   useEffect(() => {
     if (currentQuiz && inputRef.current) {
       setTimeout(() => inputRef.current?.setFocus(), 200);
@@ -198,9 +192,7 @@ const MotionQuiz: React.FC = () => {
   };
 
   const formatTime = (seconds: number) => {
-    const m = Math.floor(seconds / 60)
-      .toString()
-      .padStart(2, "0");
+    const m = Math.floor(seconds / 60).toString().padStart(2, "0");
     const s = (seconds % 60).toString().padStart(2, "0");
     return `${m}:${s}`;
   };
@@ -215,7 +207,6 @@ const MotionQuiz: React.FC = () => {
 
       <IonContent fullscreen>
         {!selectedCategory ? (
-          // 🔹 Category screen
           <div
             style={{
               display: "flex",
@@ -235,7 +226,6 @@ const MotionQuiz: React.FC = () => {
             </div>
           </div>
         ) : currentQuiz ? (
-          // 🔹 Quiz screen
           <div
             style={{
               display: "flex",
@@ -253,7 +243,7 @@ const MotionQuiz: React.FC = () => {
                 fontFamily: "monospace",
               }}
             >
-              Time Left: {formatTime(timeLeft)}
+             ⏳ Time Left: {formatTime(timeLeft)}
             </div>
 
             <h2>{selectedCategory}</h2>
@@ -310,20 +300,20 @@ const MotionQuiz: React.FC = () => {
             </IonToolbar>
           </IonHeader>
 
-          <IonContent
-            style={{
-              padding: "20px",
-              overflowY: "auto",
-              height: "80vh",
-            }}
-          >
+          <IonContent style={{ padding: "20px", overflowY: "auto" }}>
             <h2>{getMessage()}</h2>
             <h3>
               Score: {score}/{userSolutions.length}
             </h3>
             <ul style={{ textAlign: "left" }}>
               {userSolutions.map((res, i) => (
-                <li key={i} style={{ color: res.isCorrect ? "green" : "red", marginBottom: "15px" }}>
+                <li
+                  key={i}
+                  style={{
+                    color: res.isCorrect ? "green" : "red",
+                    marginBottom: "15px",
+                  }}
+                >
                   <b>Q:</b> {res.question}
                   <br />
                   <b>Answer:</b> {res.correct}

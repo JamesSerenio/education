@@ -24,6 +24,7 @@ interface Quiz {
   question: string;
   solution: string;
   answer: string;
+  accepted_answers?: string[]; // ✅ supports alternate correct answers
 }
 
 const ArithmeticQuiz: React.FC = () => {
@@ -145,8 +146,17 @@ const ArithmeticQuiz: React.FC = () => {
       }
 
       setErrorMessage("");
+
+      // ✅ FIXED: check both main answer and accepted_answers[]
+      const normalizedAnswer = userAnswer.trim().toLowerCase();
+      const correctAnswer = currentQuiz.answer.trim().toLowerCase();
+      const alternates = (currentQuiz.accepted_answers || []).map((a) =>
+        a.trim().toLowerCase()
+      );
+
       const isCorrect =
-        userAnswer.trim().toLowerCase() === currentQuiz.answer.trim().toLowerCase();
+        normalizedAnswer === correctAnswer || alternates.includes(normalizedAnswer);
+
       const newScore = isCorrect ? score + 1 : score;
 
       setScore(newScore);
@@ -188,7 +198,7 @@ const ArithmeticQuiz: React.FC = () => {
     return `${m}:${s}`;
   };
 
-  // ✅ NEW getMessage (as requested)
+  // ✅ getMessage for score feedback
   const getMessage = () => {
     switch (score) {
       case 0:
@@ -210,8 +220,7 @@ const ArithmeticQuiz: React.FC = () => {
 
   return (
     <IonPage>
-      <IonHeader>
-      </IonHeader>
+      <IonHeader></IonHeader>
 
       <IonContent fullscreen scrollEvents>
         {!selectedCategory ? (

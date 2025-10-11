@@ -7,18 +7,17 @@ import {
   IonSegmentButton,
   IonLabel,
 } from "@ionic/react";
+import { motion, AnimatePresence } from "framer-motion";
 
-// Import images from src/assets
+// Import images
 import velocityImg from "../../assets/velocity_motion.png";
 import discoverImg from "../../assets/who_discover_motion.png";
 import timeImg from "../../assets/time_motion.png";
 import distanceImg from "../../assets/distance_motion.png";
 
 const Motion_Module: React.FC = () => {
-  // Default tab: Velocity
   const [selected, setSelected] = useState<string>("velocity");
 
-  // Mapping ng images
   const images: Record<string, { src: string; label: string }> = {
     velocity: { src: velocityImg, label: "Velocity" },
     time: { src: timeImg, label: "Time" },
@@ -29,7 +28,11 @@ const Motion_Module: React.FC = () => {
     <IonPage>
       <IonHeader></IonHeader>
       <IonContent fullscreen>
-        <div
+        {/* Container with staggered fade-in */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ staggerChildren: 0.3, delayChildren: 0.2 }}
           style={{
             display: "flex",
             justifyContent: "center",
@@ -39,8 +42,11 @@ const Motion_Module: React.FC = () => {
             flexWrap: "wrap",
           }}
         >
-          {/* Who Discover Motion (first) */}
-          <div
+          {/* Card 1: Who Discovered Motion */}
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, ease: "easeOut" }}
             style={{
               border: "2px solid #ccc",
               borderRadius: "10px",
@@ -53,15 +59,21 @@ const Motion_Module: React.FC = () => {
             }}
           >
             <h3 style={{ marginBottom: "10px" }}>Who Discovered Motion</h3>
-            <img
+            <motion.img
               src={discoverImg}
               alt="Who Discover Motion"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.8 }}
               style={{ width: "100%", borderRadius: "8px" }}
             />
-          </div>
+          </motion.div>
 
-          {/* Motion Module with switch */}
-          <div
+          {/* Card 2: Motion Module */}
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, ease: "easeOut", delay: 0.3 }}
             style={{
               border: "2px solid #ccc",
               borderRadius: "10px",
@@ -75,7 +87,6 @@ const Motion_Module: React.FC = () => {
           >
             <h3 style={{ marginBottom: "10px" }}>Uniform Motion Module</h3>
 
-            {/* Switch Tabs with scrollable option */}
             <IonSegment
               value={selected}
               onIonChange={(e) => setSelected(e.detail.value as string)}
@@ -92,16 +103,27 @@ const Motion_Module: React.FC = () => {
               </IonSegmentButton>
             </IonSegment>
 
-            {/* Display selected image */}
-            <div style={{ marginTop: "15px" }}>
-              <img
-                src={images[selected].src}
-                alt={images[selected].label}
-                style={{ width: "100%", borderRadius: "8px" }}
-              />
+            {/* Image transition on tab change */}
+            <div style={{ marginTop: "15px", position: "relative" }}>
+              <AnimatePresence mode="wait">
+                <motion.img
+                  key={selected}
+                  src={images[selected].src}
+                  alt={images[selected].label}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.6, ease: "easeInOut" }}
+                  style={{
+                    width: "100%",
+                    borderRadius: "8px",
+                    position: "relative",
+                  }}
+                />
+              </AnimatePresence>
             </div>
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
       </IonContent>
     </IonPage>
   );

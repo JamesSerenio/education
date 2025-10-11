@@ -113,4 +113,5 @@ ion-item:hover {
 .mobile-modal .modal-wrapper {
   max-height: 100vh;
   overflow-y: auto;
+  padding-bottom: env(safe-area-inset-bottom);
 }

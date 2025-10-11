@@ -290,7 +290,9 @@ const ArithmeticQuiz: React.FC = () => {
     <IonPage>
       <IonHeader>
         <IonToolbar>
-          <IonTitle>Arithmetic Sequence Quiz</IonTitle>
+          <IonTitle style={{ fontSize: "clamp(16px, 4vw, 22px)" }}>
+            Arithmetic Sequence Quiz
+          </IonTitle>
         </IonToolbar>
       </IonHeader>
 

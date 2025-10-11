@@ -241,14 +241,9 @@ const MotionQuiz: React.FC = () => {
               display: "flex",
               flexDirection: "column",
               alignItems: "center",
-              justifyContent: "flex-start",
-              textAlign: "center",
-              minHeight: "100vh",
-              padding: "5vh 5vw",
-              boxSizing: "border-box",
+              padding: "30px 20px",
             }}
           >
-
             <div
               style={{
                 fontSize: "24px",
@@ -262,22 +257,10 @@ const MotionQuiz: React.FC = () => {
             </div>
 
             <h2>{selectedCategory}</h2>
-            <h1 style={{ fontSize: "clamp(20px, 5vw, 28px)", marginBottom: "10px" }}>
-              Level {currentQuiz.level}
-            </h1>
+            <h1>Level {currentQuiz.level}</h1>
+            <p>{currentQuiz.question}</p>
 
-            <p style={{ fontSize: "clamp(16px, 4vw, 22px)", marginBottom: "20px" }}>
-              {currentQuiz.question}
-            </p>
-
-            <IonItem
-              style={{
-                width: "90%",
-                maxWidth: "400px",
-                margin: "0 auto 10px",
-              }}
-            >
-
+            <IonItem style={{ maxWidth: "400px", width: "100%" }}>
               <IonInput
                 ref={inputRef}
                 value={userAnswer}
@@ -294,7 +277,7 @@ const MotionQuiz: React.FC = () => {
               </IonText>
             )}
 
-          <IonButton expand="block" size="default" onClick={() => handleNext(false)} style={{ marginTop: "15px" }}>
+            <IonButton onClick={() => handleNext(false)} style={{ marginTop: "15px" }}>
               Next
             </IonButton>
 
@@ -320,13 +303,11 @@ const MotionQuiz: React.FC = () => {
         )}
 
         {/* ✅ Result Modal */}
-        <IonModal isOpen={showResultModal} backdropDismiss={false} className="mobile-modal">
+        <IonModal isOpen={showResultModal} backdropDismiss={false}>
           <IonHeader>
-        <IonToolbar>
-          <IonTitle style={{ fontSize: "clamp(16px, 4vw, 22px)" }}>
-            Uniform Motion in Physics Quiz
-          </IonTitle>
-        </IonToolbar>
+            <IonToolbar>
+              <IonTitle>Results</IonTitle>
+            </IonToolbar>
           </IonHeader>
 
           <IonContent

@@ -184,7 +184,7 @@ const Arithmetic_Radar: React.FC = () => {
       },
       options: {
         responsive: true,
-        maintainAspectRatio: false, // 🔥 allows flexible height
+        maintainAspectRatio: false,
         plugins: {
           legend: {
             display: true,
@@ -199,10 +199,8 @@ const Arithmetic_Radar: React.FC = () => {
           datalabels: {
             color: "#000",
             font: { weight: "bold", size: 11 },
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            formatter: (val: number, context: any) => {
+            formatter: (val: number, context: { dataIndex: number }) => {
               const labelIndex = context.dataIndex;
-              // ✅ Always show 2 decimals for Time
               if (labelIndex === 0) return `${val.toFixed(2)}%`;
               return `${Math.round(val)}%`;
             },
@@ -247,7 +245,7 @@ const Arithmetic_Radar: React.FC = () => {
             style={{
               width: "100%",
               maxWidth: "500px",
-              height: "450px", // ✅ taller chart (works on mobile)
+              height: "450px",
               background: "white",
               borderRadius: "16px",
               boxShadow: "0px 8px 20px rgba(0,0,0,0.08)",

@@ -10,13 +10,11 @@ import {
   IonInput,
   IonText,
   IonModal,
-  IonGrid,
-  IonRow,
-  IonCol,
+  useIonViewDidEnter,
 } from "@ionic/react";
 import { supabase } from "../../utils/supabaseClient";
 
-const TIME_PER_QUESTION = 60; // seconds
+const TIME_PER_QUESTION = 60;
 
 interface Quiz {
   id: string;
@@ -41,12 +39,12 @@ const MotionQuiz: React.FC = () => {
   >([]);
   const [showResultModal, setShowResultModal] = useState(false);
   const [timeLeft, setTimeLeft] = useState<number>(TIME_PER_QUESTION);
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [startTime, setStartTime] = useState<number | null>(null);
-  const inputRef = useRef<HTMLIonInputElement | null>(null);
   const [questionStart, setQuestionStart] = useState<number>(Date.now());
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const inputRef = useRef<HTMLIonInputElement | null>(null);
 
-  // ✅ Pick one question per level (1–5)
+  // 🔹 Pick one per level (1–5)
   const pickOnePerLevel = (pool: Quiz[]): Quiz[] => {
     const picks: Quiz[] = [];
     for (let lvl = 1; lvl <= 5; lvl++) {
@@ -59,7 +57,7 @@ const MotionQuiz: React.FC = () => {
     return picks.sort((a, b) => a.level - b.level);
   };
 
-  // ✅ Fetch quizzes from Supabase
+  // 🔹 Fetch quizzes
   useEffect(() => {
     const fetchQuizzes = async () => {
       const { data, error } = await supabase
@@ -72,7 +70,7 @@ const MotionQuiz: React.FC = () => {
     fetchQuizzes();
   }, []);
 
-  // ✅ Start quiz by category
+  // 🔹 Start quiz by category
   const handleCategorySelect = (category: string) => {
     setSelectedCategory(category);
     const filtered = allQuizzes.filter((q) => q.category === category);
@@ -83,55 +81,60 @@ const MotionQuiz: React.FC = () => {
       setCurrentQuiz(randomPerLevel[0]);
       setScore(0);
       setUserSolutions([]);
+      setUserAnswer("");
       setStartTime(Date.now());
       setTimeLeft(TIME_PER_QUESTION);
       setQuestionStart(Date.now());
     }
   };
 
-  // ✅ Save quiz result
+  // 🔹 Save result
   const saveResult = async (quizId: string, finalScore: number) => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (!session) {
+        console.warn("⚠️ No session found");
+        return;
+      }
 
       const userId = session.user.id;
       const timeTaken = startTime ? Math.floor((Date.now() - startTime) / 1000) : 0;
 
       const { error } = await supabase.from("scores").insert([
-        {
-          user_id: userId,
-          quiz_id: quizId,
-          score: finalScore,
-          time_taken: timeTaken,
-        },
+        { user_id: userId, quiz_id: quizId, score: finalScore, time_taken: timeTaken },
       ]);
-
-      if (error) console.error("Error saving score:", error.message);
+      if (error) console.error("❌ Error saving score:", error.message);
+      else console.log("✅ Score saved!");
     } catch (err) {
       console.error("Unexpected error:", err);
     }
   };
 
-  // ✅ Timer logic
+  // 🔹 Timer
   useEffect(() => {
     if (!currentQuiz) return;
+
     if (timerRef.current) clearInterval(timerRef.current);
 
     timerRef.current = setInterval(() => {
       const elapsed = Math.floor((Date.now() - questionStart) / 1000);
       const remaining = TIME_PER_QUESTION - elapsed;
       setTimeLeft(remaining > 0 ? remaining : 0);
+
       if (remaining <= 0) {
         clearInterval(timerRef.current!);
         handleNext(true);
       }
     }, 1000);
 
-    return () => clearInterval(timerRef.current!);
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
   }, [currentQuiz, questionStart]);
 
-  // ✅ Next question handler
+  // 🔹 Next question
   const handleNext = useCallback(
     (auto = false) => {
       if (!currentQuiz || !selectedCategory) return;
@@ -141,6 +144,7 @@ const MotionQuiz: React.FC = () => {
         return;
       }
 
+      setErrorMessage("");
       const isCorrect =
         userAnswer.trim().toLowerCase() === currentQuiz.answer.trim().toLowerCase();
       const newScore = isCorrect ? score + 1 : score;
@@ -171,14 +175,38 @@ const MotionQuiz: React.FC = () => {
     [currentQuiz, selectedCategory, quizzes, userAnswer, score]
   );
 
-  useEffect(() => {
-    if (currentQuiz && inputRef.current) {
-      setTimeout(() => inputRef.current?.setFocus(), 200);
-    }
-  }, [currentQuiz]);
+  // 🔹 Autofocus
+  useIonViewDidEnter(() => {
+    if (inputRef.current) setTimeout(() => inputRef.current?.setFocus(), 400);
+  });
 
-  const formatTime = (s: number) =>
-    `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
+  const formatTime = (seconds: number) => {
+    const m = Math.floor(seconds / 60)
+      .toString()
+      .padStart(2, "0");
+    const s = (seconds % 60).toString().padStart(2, "0");
+    return `${m}:${s}`;
+  };
+
+  // 🔹 Feedback Message
+  const getMessage = () => {
+    switch (score) {
+      case 0:
+        return "😢 Better luck next time!";
+      case 1:
+        return "🙂 You got 1 correct, keep practicing!";
+      case 2:
+        return "👍 Nice effort, you got 2 correct!";
+      case 3:
+        return "👏 Good job! 3 correct answers!";
+      case 4:
+        return "🔥 Almost perfect! You got 4!";
+      case 5:
+        return "🏆 Perfect score! Excellent work!";
+      default:
+        return "🎉 Quiz completed!";
+    }
+  };
 
   return (
     <IonPage>
@@ -188,97 +216,113 @@ const MotionQuiz: React.FC = () => {
         </IonToolbar>
       </IonHeader>
 
-      <IonContent fullscreen className="ion-padding" scrollY>
+      <IonContent fullscreen scrollEvents>
         {!selectedCategory ? (
-          <IonGrid fixed>
-            <IonRow className="ion-justify-content-center ion-text-center">
-              <IonCol size="12">
-                <h2>Select Category</h2>
-              </IonCol>
-              <IonCol size="12" className="ion-margin-top">
-                <IonButton expand="block" onClick={() => handleCategorySelect("Problem Solving")}>
-                  Problem Solving
-                </IonButton>
-                <IonButton expand="block" onClick={() => handleCategorySelect("Solving")}>
-                  Number Solving
-                </IonButton>
-              </IonCol>
-            </IonRow>
-          </IonGrid>
+          <div className="flex flex-col items-center justify-center h-full p-6 text-center">
+            <h2>Select Category</h2>
+            <div
+              style={{
+                display: "flex",
+                gap: "15px",
+                flexWrap: "wrap",
+                justifyContent: "center",
+              }}
+            >
+              <IonButton onClick={() => handleCategorySelect("Problem Solving")}>
+                Problem Solving
+              </IonButton>
+              <IonButton onClick={() => handleCategorySelect("Solving")}>
+                Number Solving
+              </IonButton>
+            </div>
+          </div>
         ) : currentQuiz ? (
-          <IonGrid fixed>
-            <IonRow className="ion-text-center ion-justify-content-center">
-              <IonCol size="12">
-                <h2 style={{ color: timeLeft <= 5 ? "red" : "#333" }}>
-                  ⏳ Time Left: {formatTime(timeLeft)}
-                </h2>
-                <h3>{selectedCategory}</h3>
-                <h4>Level {currentQuiz.level}</h4>
-                <p>{currentQuiz.question}</p>
-              </IonCol>
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              padding: "25px 10px 100px",
+            }}
+          >
+            <div
+              style={{
+                fontSize: "22px",
+                fontWeight: "bold",
+                color: timeLeft <= 5 ? "red" : "#333",
+                marginBottom: "10px",
+                fontFamily: "monospace",
+              }}
+            >
+              ⏳ Time Left: {formatTime(timeLeft)}
+            </div>
 
-              <IonCol size="12" sizeMd="6">
-                <IonItem>
-                  <IonInput
-                    ref={inputRef}
-                    value={userAnswer}
-                    placeholder="Enter your answer"
-                    onIonInput={(e) => setUserAnswer(e.detail.value!)}
-                    clearInput
-                    style={{ textAlign: "center" }}
-                  />
-                </IonItem>
-                {errorMessage && (
-                  <IonText color="danger">
-                    <p>{errorMessage}</p>
-                  </IonText>
-                )}
-              </IonCol>
+            <h2>{selectedCategory}</h2>
+            <h1 style={{ fontSize: "26px", margin: "5px 0" }}>Level {currentQuiz.level}</h1>
+            <p style={{ textAlign: "center", fontSize: "18px", margin: "10px 0" }}>
+              {currentQuiz.question}
+            </p>
 
-              <IonCol size="12" className="ion-margin-top">
-                <IonButton expand="block" onClick={() => handleNext(false)}>
-                  Next
-                </IonButton>
-                <IonButton
-                  expand="block"
-                  fill="outline"
-                  color="medium"
-                  onClick={() => {
-                    setSelectedCategory(null);
-                    setCurrentQuiz(null);
-                    setUserAnswer("");
-                    setErrorMessage("");
-                    setScore(0);
-                    setUserSolutions([]);
-                    clearInterval(timerRef.current!);
-                  }}
-                  className="ion-margin-top"
-                >
-                  Back to Categories
-                </IonButton>
-              </IonCol>
-            </IonRow>
-          </IonGrid>
+            <IonItem style={{ width: "90%", maxWidth: "400px", marginTop: "10px" }}>
+              <IonInput
+                ref={inputRef}
+                value={userAnswer}
+                placeholder="Enter your answer"
+                inputmode="text"
+                enterkeyhint="done"
+                onIonInput={(e) => setUserAnswer(e.detail.value!)}
+                style={{ textAlign: "center" }}
+                clearInput
+              />
+            </IonItem>
+
+            {errorMessage && (
+              <IonText color="danger">
+                <p style={{ marginTop: "8px" }}>{errorMessage}</p>
+              </IonText>
+            )}
+
+            <IonButton expand="block" onClick={() => handleNext(false)} style={{ marginTop: "20px" }}>
+              Next
+            </IonButton>
+
+            <IonButton
+              expand="block"
+              fill="outline"
+              color="medium"
+              onClick={() => {
+                setSelectedCategory(null);
+                setCurrentQuiz(null);
+                setUserAnswer("");
+                setErrorMessage("");
+                setScore(0);
+                setUserSolutions([]);
+                clearInterval(timerRef.current!);
+              }}
+              style={{ marginTop: "10px" }}
+            >
+              Back to Categories
+            </IonButton>
+          </div>
         ) : (
           <p style={{ textAlign: "center", marginTop: "50px" }}>Loading...</p>
         )}
 
-        {/* ✅ Result Modal */}
+        {/* 🔹 Result Modal */}
         <IonModal isOpen={showResultModal} backdropDismiss={false}>
           <IonHeader>
             <IonToolbar>
               <IonTitle>Results</IonTitle>
             </IonToolbar>
           </IonHeader>
-
-          <IonContent className="ion-padding">
-            <h2>🎉 You got {score} correct!</h2>
+          <IonContent style={{ padding: "20px", overflowY: "auto" }}>
+            <h2>{getMessage()}</h2>
+            <h3>
+              Score: {score}/{userSolutions.length}
+            </h3>
             <ul style={{ textAlign: "left" }}>
               {userSolutions.map((res, i) => (
-                <li
-                  key={i}
-                  style={{ color: res.isCorrect ? "green" : "red", marginBottom: "10px" }}
-                >
+                <li key={i} style={{ color: res.isCorrect ? "green" : "red", marginBottom: "15px" }}>
                   <b>Q:</b> {res.question}
                   <br />
                   <b>Answer:</b> {res.correct}
@@ -287,7 +331,6 @@ const MotionQuiz: React.FC = () => {
                 </li>
               ))}
             </ul>
-
             <IonButton
               expand="block"
               onClick={() => {

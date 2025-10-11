@@ -72,7 +72,6 @@ const AdminRadar: React.FC = () => {
     problemSolving: 0,
   });
 
-  // ✅ Mapping function (no any)
   const mapToScoreWithQuizzes = (rawData: Record<string, unknown>): ScoreWithQuizzes => {
     const quiz = rawData.quizzes as Record<string, unknown> | null;
 
@@ -92,7 +91,6 @@ const AdminRadar: React.FC = () => {
     };
   };
 
-  // ✅ Fetch data per subject (filtered properly)
   const fetchSubjectData = async (subject: string): Promise<UserScore> => {
     try {
       const { data, error } = await supabase
@@ -112,12 +110,10 @@ const AdminRadar: React.FC = () => {
         return { time: 0, solving: 0, problemSolving: 0 };
       }
 
-      // ✅ Filter strictly by subject
       const subjectScores = scores.filter(
         (s) => s.quizzes?.subject === subject
       );
 
-      // ✅ TIME → Decimal (average of all time_taken)
       const avgTime =
         subjectScores.reduce((sum, s) => sum + (s.time_taken || 0), 0) /
         subjectScores.length;
@@ -126,7 +122,6 @@ const AdminRadar: React.FC = () => {
         Math.min(100, parseFloat((((MAX_TIME - avgTime) / MAX_TIME) * 100).toFixed(2)))
       );
 
-      // ✅ SOLVING → Whole number
       const solvingScores = subjectScores.filter(
         (s) => s.quizzes?.category === "Solving" && s.score !== null
       );
@@ -140,7 +135,6 @@ const AdminRadar: React.FC = () => {
             )
           : 0;
 
-      // ✅ PROBLEM SOLVING → Whole number
       const problemScores = subjectScores.filter(
         (s) => s.quizzes?.category === "Problem Solving" && s.score !== null
       );
@@ -165,7 +159,6 @@ const AdminRadar: React.FC = () => {
     }
   };
 
-  // ✅ Fetch both subjects separately
   const fetchAllData = async () => {
     const arithmetic = await fetchSubjectData("Arithmetic Sequence");
     const physics = await fetchSubjectData("Uniform Motion in Physics");
@@ -173,7 +166,6 @@ const AdminRadar: React.FC = () => {
     setPhysicsScore(physics);
   };
 
-  // ✅ Create radar chart (consistent styling)
   const createRadarChart = (
     ctx: CanvasRenderingContext2D,
     data: UserScore,
@@ -212,24 +204,24 @@ const AdminRadar: React.FC = () => {
           },
           title: {
             display: true,
-            text: `📊(All Students) ${title}`,
+            text: `📊 (All Students) ${title}`,
             color: "#111",
-            font: { size: 20, weight: "bold" },
+            font: { size: 18, weight: "bold" },
           },
           datalabels: {
             color: "#000",
             font: { weight: "bold", size: 12 },
             formatter: (val, ctx) =>
               ctx.dataIndex === 0
-                ? `${val.toFixed(2)}%` // Time has decimals
-                : `${Math.round(val)}%`, // Others are whole
+                ? `${val.toFixed(2)}%`
+                : `${Math.round(val)}%`,
           },
         },
         scales: {
           r: {
             angleLines: { color: "rgba(156, 163, 175, 0.3)" },
             grid: { color: "rgba(209, 213, 219, 0.3)" },
-            pointLabels: { color: "#111", font: { size: 14, weight: "bold" } },
+            pointLabels: { color: "#111", font: { size: 13, weight: "bold" } },
             suggestedMin: 0,
             suggestedMax: 100,
             ticks: { display: false },
@@ -240,7 +232,6 @@ const AdminRadar: React.FC = () => {
     });
   };
 
-  // ✅ Render both charts
   useEffect(() => {
     if (!radarRefArithmetic.current || !radarRefPhysics.current) return;
 
@@ -276,63 +267,75 @@ const AdminRadar: React.FC = () => {
     <IonPage>
       <IonHeader />
       <IonContent fullscreen>
-        <div style={{ padding: "20px" }}>
+        <div
+          style={{
+            padding: "20px",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: "20px",
+          }}
+        >
+          {/* ✅ Responsive chart container */}
           <div
             style={{
               display: "flex",
-              gap: "20px",
               flexWrap: "wrap",
               justifyContent: "center",
+              gap: "20px",
+              width: "100%",
             }}
           >
-            {/* Arithmetic Sequence Chart */}
+            {/* Chart boxes adjust size automatically */}
             <div
               style={{
-                width: "500px",
-                height: "600px",
+                width: "100%",
+                maxWidth: "500px",
+                height: "60vh",
+                minHeight: "300px",
                 background: "white",
-                borderRadius: "20px",
-                boxShadow: "0px 8px 20px rgba(0,0,0,0.1)",
-                padding: "20px",
+                borderRadius: "16px",
+                boxShadow: "0px 6px 18px rgba(0,0,0,0.08)",
+                padding: "16px",
               }}
             >
               <canvas ref={radarRefArithmetic} />
             </div>
 
-            {/* Uniform Motion in Physics Chart */}
             <div
               style={{
-                width: "500px",
-                height: "600px",
+                width: "100%",
+                maxWidth: "500px",
+                height: "60vh",
+                minHeight: "300px",
                 background: "white",
-                borderRadius: "20px",
-                boxShadow: "0px 8px 20px rgba(0,0,0,0.1)",
-                padding: "20px",
+                borderRadius: "16px",
+                boxShadow: "0px 6px 18px rgba(0,0,0,0.08)",
+                padding: "16px",
               }}
             >
               <canvas ref={radarRefPhysics} />
             </div>
           </div>
 
-          <div style={{ textAlign: "center", marginTop: "30px" }}>
-            <button
-              onClick={fetchAllData}
-              style={{
-                padding: "12px 24px",
-                background: "linear-gradient(90deg, #6366F1, #EC4899)",
-                color: "white",
-                fontSize: "16px",
-                fontWeight: "bold",
-                borderRadius: "12px",
-                border: "none",
-                cursor: "pointer",
-                width: "100%",
-                maxWidth: "250px",
-              }}
-            >
-              🔄 Refresh Both Subjects
-            </button>
-          </div>
+          <button
+            onClick={fetchAllData}
+            style={{
+              padding: "12px 24px",
+              background: "linear-gradient(90deg, #6366F1, #EC4899)",
+              color: "white",
+              fontSize: "16px",
+              fontWeight: "bold",
+              borderRadius: "12px",
+              border: "none",
+              cursor: "pointer",
+              width: "100%",
+              maxWidth: "250px",
+              marginTop: "10px",
+            }}
+          >
+            🔄 Refresh Both Subjects
+          </button>
         </div>
       </IonContent>
     </IonPage>

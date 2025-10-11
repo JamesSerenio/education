@@ -188,10 +188,24 @@ const ArithmeticQuiz: React.FC = () => {
     return `${m}:${s}`;
   };
 
+  // ✅ NEW getMessage (as requested)
   const getMessage = () => {
-    if (score === 0) return "😢 Better luck next time!";
-    if (score === 5) return "🏆 Perfect score! Excellent work!";
-    return `🎉 You got ${score} correct!`;
+    switch (score) {
+      case 0:
+        return "😢 Better luck next time!";
+      case 1:
+        return "🙂 You got 1 correct, keep practicing!";
+      case 2:
+        return "👍 Nice effort, you got 2 correct!";
+      case 3:
+        return "👏 Good job! 3 correct answers!";
+      case 4:
+        return "🔥 Almost perfect! You got 4!";
+      case 5:
+        return "🏆 Perfect score! Excellent work!";
+      default:
+        return "🎉 Quiz completed!";
+    }
   };
 
   return (
@@ -202,11 +216,18 @@ const ArithmeticQuiz: React.FC = () => {
         </IonToolbar>
       </IonHeader>
 
- <IonContent fullscreen scrollEvents>
+      <IonContent fullscreen scrollEvents>
         {!selectedCategory ? (
           <div className="flex flex-col items-center justify-center h-full p-6 text-center">
             <h2>Select Category</h2>
-            <div style={{ display: "flex", gap: "15px", flexWrap: "wrap", justifyContent: "center" }}>
+            <div
+              style={{
+                display: "flex",
+                gap: "15px",
+                flexWrap: "wrap",
+                justifyContent: "center",
+              }}
+            >
               <IonButton onClick={() => handleCategorySelect("Problem Solving")}>
                 Problem Solving
               </IonButton>

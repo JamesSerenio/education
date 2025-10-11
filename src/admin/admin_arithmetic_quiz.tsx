@@ -291,6 +291,7 @@ const AdminArithmeticQuiz: React.FC = () => {
             <IonItem>
               <IonLabel position="stacked">Category</IonLabel>
               <IonSelect
+                interface="alert" 
                 value={editCategory}
                 onIonChange={(e) => setEditCategory(e.detail.value!)}
               >

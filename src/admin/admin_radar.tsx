@@ -91,6 +91,7 @@ const AdminRadar: React.FC = () => {
     };
   };
 
+  // 🔹 Fetch subject data with dynamic decimal display
   const fetchSubjectData = async (subject: string): Promise<UserScore> => {
     try {
       const { data, error } = await supabase
@@ -114,44 +115,43 @@ const AdminRadar: React.FC = () => {
         (s) => s.quizzes?.subject === subject
       );
 
+      // ⏱ Average Time (with decimals)
       const avgTime =
         subjectScores.reduce((sum, s) => sum + (s.time_taken || 0), 0) /
         subjectScores.length;
       const timePercent = Math.max(
         0,
-        Math.min(100, parseFloat((((MAX_TIME - avgTime) / MAX_TIME) * 100).toFixed(2)))
+        Math.min(100, ((MAX_TIME - avgTime) / MAX_TIME) * 100)
       );
 
+      // 🧮 Solving (with decimals)
       const solvingScores = subjectScores.filter(
         (s) => s.quizzes?.category === "Solving" && s.score !== null
       );
       const solvingPercent =
         solvingScores.length > 0
-          ? Math.floor(
-              (solvingScores.reduce((sum, s) => sum + (s.score || 0), 0) /
-                solvingScores.length /
-                MAX_SCORE) *
-                100
-            )
+          ? ((solvingScores.reduce((sum, s) => sum + (s.score || 0), 0) /
+              solvingScores.length /
+              MAX_SCORE) *
+            100)
           : 0;
 
+      // 🧩 Problem Solving (with decimals)
       const problemScores = subjectScores.filter(
         (s) => s.quizzes?.category === "Problem Solving" && s.score !== null
       );
       const problemSolvingPercent =
         problemScores.length > 0
-          ? Math.floor(
-              (problemScores.reduce((sum, s) => sum + (s.score || 0), 0) /
-                problemScores.length /
-                MAX_SCORE) *
-                100
-            )
+          ? ((problemScores.reduce((sum, s) => sum + (s.score || 0), 0) /
+              problemScores.length /
+              MAX_SCORE) *
+            100)
           : 0;
 
       return {
-        time: timePercent,
-        solving: solvingPercent,
-        problemSolving: problemSolvingPercent,
+        time: parseFloat(timePercent.toFixed(2)),
+        solving: parseFloat(solvingPercent.toFixed(2)),
+        problemSolving: parseFloat(problemSolvingPercent.toFixed(2)),
       };
     } catch (err) {
       console.error(`Error fetching ${subject} data:`, err);
@@ -164,6 +164,11 @@ const AdminRadar: React.FC = () => {
     const physics = await fetchSubjectData("Uniform Motion in Physics");
     setArithmeticScore(arithmetic);
     setPhysicsScore(physics);
+  };
+
+  // ✅ Helper for formatting decimals dynamically
+  const formatValue = (value: number): string => {
+    return Number.isInteger(value) ? `${value}%` : `${value.toFixed(2)}%`;
   };
 
   const createRadarChart = (
@@ -208,13 +213,21 @@ const AdminRadar: React.FC = () => {
             color: "#111",
             font: { size: 18, weight: "bold" },
           },
+          tooltip: {
+            enabled: true,
+            callbacks: {
+              label: (context) => {
+                const value = context.raw as number;
+                return `${context.label}: ${formatValue(value)}`; // ✅ No .00 if not needed
+              },
+            },
+            titleFont: { size: 14, weight: "bold" },
+            bodyFont: { size: 13 },
+          },
           datalabels: {
             color: "#000",
             font: { weight: "bold", size: 12 },
-            formatter: (val, ctx) =>
-              ctx.dataIndex === 0
-                ? `${val.toFixed(2)}%`
-                : `${Math.round(val)}%`,
+            formatter: (val) => formatValue(val), // ✅ Dynamic decimals
           },
         },
         scales: {
@@ -276,7 +289,6 @@ const AdminRadar: React.FC = () => {
             gap: "20px",
           }}
         >
-          {/* ✅ Responsive chart container */}
           <div
             style={{
               display: "flex",
@@ -286,7 +298,6 @@ const AdminRadar: React.FC = () => {
               width: "100%",
             }}
           >
-            {/* Chart boxes adjust size automatically */}
             <div
               style={{
                 width: "100%",

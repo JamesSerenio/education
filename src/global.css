@@ -101,14 +101,3 @@ ion-item:hover {
   transform: translateX(4px);
   transition: transform 0.2s ease;
 }
-
-/* ===== arithmetic_quiz Styles ===== */
-
-.quiz-content {
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
-  height: 100%;
-  overflow-y: auto;
-  padding-bottom: 120px; /* prevents keyboard overlap on mobile */
-}

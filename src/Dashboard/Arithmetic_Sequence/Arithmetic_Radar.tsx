@@ -52,7 +52,7 @@ const Arithmetic_Radar: React.FC = () => {
     problemSolving: 0,
   });
 
-  // Map Supabase data to typed object
+  // Map Supabase data
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const mapToScoreWithQuizzes = (rawData: any): ScoreWithQuizzes => ({
     id: rawData.id || "",
@@ -69,7 +69,6 @@ const Arithmetic_Radar: React.FC = () => {
       : null,
   });
 
-  // ✅ Fetch data from Supabase
   const fetchRadarData = async () => {
     try {
       const {
@@ -107,7 +106,6 @@ const Arithmetic_Radar: React.FC = () => {
         return;
       }
 
-      // ✅ Filter only Arithmetic Sequence
       const arithmeticScores = typedScores.filter(
         (s) => s.quizzes?.subject === "Arithmetic Sequence"
       );
@@ -117,7 +115,6 @@ const Arithmetic_Radar: React.FC = () => {
       let problemSolvingPercent = 0;
 
       if (arithmeticScores.length > 0) {
-        // ✅ TIME (average time taken, decimal)
         const avgTime =
           arithmeticScores.reduce((sum, s) => sum + (s.time_taken || 0), 0) /
           arithmeticScores.length;
@@ -125,7 +122,6 @@ const Arithmetic_Radar: React.FC = () => {
         const timeRaw = ((MAX_TIME - avgTime) / MAX_TIME) * 100;
         timePercent = Math.max(0, Math.min(100, parseFloat(timeRaw.toFixed(2))));
 
-        // ✅ SOLVING (whole number)
         const solvingScores = arithmeticScores.filter(
           (s) => s.quizzes?.category === "Solving" && s.score !== null
         );
@@ -136,7 +132,6 @@ const Arithmetic_Radar: React.FC = () => {
           solvingPercent = Math.floor((avgSolving / MAX_SCORE) * 100);
         }
 
-        // ✅ PROBLEM SOLVING (whole number)
         const problemSolvingScores = arithmeticScores.filter(
           (s) => s.quizzes?.category === "Problem Solving" && s.score !== null
         );
@@ -159,7 +154,6 @@ const Arithmetic_Radar: React.FC = () => {
     }
   };
 
-  // ✅ Chart rendering
   useEffect(() => {
     if (!radarRef.current) return;
     const ctx = radarRef.current.getContext("2d");
@@ -192,30 +186,30 @@ const Arithmetic_Radar: React.FC = () => {
       },
       options: {
         responsive: true,
-        maintainAspectRatio: false,
+        maintainAspectRatio: true,
+        aspectRatio: 1,
         plugins: {
           legend: {
             display: true,
-            labels: { color: "#111", font: { size: 14, weight: "bold" } },
+            labels: { color: "#111", font: { size: 13, weight: "bold" } },
           },
           title: {
             display: true,
             text: "📊 Arithmetic Sequence",
             color: "#111",
-            font: { size: 20, weight: "bold" },
+            font: { size: 18, weight: "bold" },
           },
           datalabels: {
             color: "#000",
-            font: { weight: "bold", size: 12 },
-            formatter: (val, ctx) =>
-              ctx.dataIndex === 0 ? `${val.toFixed(2)}%` : `${Math.round(val)}%`,
+            font: { weight: "bold", size: 10 },
+            formatter: (val: number) => `${Math.round(val)}%`,
           },
         },
         scales: {
           r: {
             angleLines: { color: "rgba(156, 163, 175, 0.3)" },
             grid: { color: "rgba(209, 213, 219, 0.3)" },
-            pointLabels: { color: "#111", font: { size: 14, weight: "bold" } },
+            pointLabels: { color: "#111", font: { size: 12, weight: "bold" } },
             suggestedMin: 0,
             suggestedMax: 100,
             ticks: { display: false },
@@ -236,43 +230,52 @@ const Arithmetic_Radar: React.FC = () => {
     <IonPage>
       <IonHeader></IonHeader>
       <IonContent fullscreen>
-        <div style={{ padding: "20px" }}>
+        <div
+          style={{
+            padding: "16px",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            minHeight: "100vh",
+          }}
+        >
           <div
             style={{
               width: "100%",
-              height: "650px",
-              marginTop: "40px",
+              maxWidth: "500px",
+              height: "auto",
               background: "white",
-              borderRadius: "20px",
-              boxShadow: "0px 8px 20px rgba(0,0,0,0.1)",
-              padding: "20px",
+              borderRadius: "16px",
+              boxShadow: "0px 8px 20px rgba(0,0,0,0.08)",
+              padding: "16px",
               display: "flex",
               flexDirection: "column",
-              justifyContent: "space-between",
+              alignItems: "center",
+              justifyContent: "center",
             }}
           >
-            <div style={{ flex: 1 }}>
-              <canvas ref={radarRef} />
+            <div style={{ width: "100%", aspectRatio: "1" }}>
+              <canvas ref={radarRef} style={{ width: "100%", height: "100%" }} />
             </div>
-            <div style={{ textAlign: "center", marginTop: "15px" }}>
-              <button
-                onClick={fetchRadarData}
-                style={{
-                  padding: "12px 24px",
-                  background: "linear-gradient(90deg, #36A2EB, #EC4899)",
-                  color: "white",
-                  fontSize: "16px",
-                  fontWeight: "bold",
-                  borderRadius: "12px",
-                  border: "none",
-                  cursor: "pointer",
-                  width: "100%",
-                  maxWidth: "250px",
-                }}
-              >
-                🔄 Refresh My Data
-              </button>
-            </div>
+            <button
+              onClick={fetchRadarData}
+              style={{
+                padding: "10px 20px",
+                background: "linear-gradient(90deg, #36A2EB, #EC4899)",
+                color: "white",
+                fontSize: "15px",
+                fontWeight: "bold",
+                borderRadius: "10px",
+                border: "none",
+                cursor: "pointer",
+                marginTop: "16px",
+                width: "100%",
+                maxWidth: "200px",
+              }}
+            >
+              🔄 Refresh
+            </button>
           </div>
         </div>
       </IonContent>

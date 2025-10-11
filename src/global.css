@@ -104,14 +104,11 @@ ion-item:hover {
 
 /* ===== arithmetic_quiz Styles ===== */
 
-.mobile-modal {
-  --height: 100%;
-  --width: 100%;
-  --border-radius: 0;
-}
-
-.mobile-modal .modal-wrapper {
-  max-height: 100vh;
+.quiz-content {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  height: 100%;
   overflow-y: auto;
-  padding-bottom: env(safe-area-inset-bottom);
+  padding-bottom: 120px; /* prevents keyboard overlap on mobile */
 }

@@ -294,7 +294,7 @@ const ArithmeticQuiz: React.FC = () => {
         </IonToolbar>
       </IonHeader>
 
-      <IonContent fullscreen>
+      <IonContent fullscreen className="quiz-content">
         {!selectedCategory ? (
           // Category Screen
           <div

@@ -42,7 +42,7 @@ html, body, #root {
 .login-form {
   display: flex;
   flex-direction: column;
-  gap: 1rem; /* space-y-4 */
+  gap: 0.6rem; /* space-y-4 */
 }
 
 /* Input fields */
@@ -62,7 +62,7 @@ html, body, #root {
 }
 
 .login-input ion-input {
-  flex: 1;
+  font-size: 0.95rem;
 }
 
 
@@ -134,10 +134,10 @@ html, body, #root {
 .login-input {
   display: flex;
   align-items: center;
-  margin: 15px 0;
+  margin: 6px 0;
   background: #fff;
   border-radius: 15px;
-  padding: 8px 12px;
+  padding: 6px 10px;
   border: 2px solid #ffe066;
   transition: 0.3s;
 }
@@ -339,4 +339,3 @@ ion-item:hover {
   transform: translateX(4px);
   transition: transform 0.2s ease;
 }
-

@@ -19,17 +19,6 @@ html, body, #root {
   height: 100%;
 }
 
-/* Card */
-.login-card {
-  width: 100%;
-  max-width: 24rem;
-  padding: 2rem;
-  border-radius: 1rem; /* rounded-2xl */
-  background-color: rgba(255, 255, 255, 0.8);
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1),
-              0 4px 6px -4px rgba(0, 0, 0, 0.1); /* shadow-xl */
-  text-align: center;
-}
 
 /* Title */
 .login-title {
@@ -113,7 +102,6 @@ html, body, #root {
 }
 
 .login-card {
-  background: #fffbe6;
   border-radius: 25px;
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
   padding: 30px;

@@ -66,7 +66,9 @@ const Login: React.FC = () => {
 
   const mathSymbols = [
     "+", "-", "×", "÷", "=", "%", "√", "π", "Σ",
-    "+", "×", "÷", "-", "=", "√", "π", "%", "+",
+    "0", "1", "2", "3", "4", "5", "6", "7", "8", "9",
+    "distance", "velocity", "displacement", "speed",
+    "a₁", "d", "n", "aₙ",
   ];
 
   return (

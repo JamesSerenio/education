@@ -189,120 +189,72 @@ html, body, #root {
   text-decoration: underline;
 }
 
-/* 🧮 Floating arithmetic symbols */
+/* 🌸 Floating Math Symbols - Colorful, Animated, and Clean 🌸 */
+
 .floating-symbol {
   position: absolute;
   font-size: 2.5rem;
   font-weight: bold;
-  opacity: 0.25;
+  opacity: 0.35;
   user-select: none;
-  z-index: 1;
-}
-
-/* Randomized colors for symbols */
-.symbol-0, .symbol-5, .symbol-10, .symbol-15 { color: #ff6b6b; }
-.symbol-1, .symbol-6, .symbol-11, .symbol-16 { color: #06d6a0; }
-.symbol-2, .symbol-7, .symbol-12, .symbol-17 { color: #ffd166; }
-.symbol-3, .symbol-8, .symbol-13 { color: #118ab2; }
-.symbol-4, .symbol-9, .symbol-14 { color: #833ab4; }
-
-/* Random placement around screen */
-.symbol-0 { top: 10%; left: 15%; font-size: 2.8rem; }
-.symbol-1 { top: 25%; left: 70%; font-size: 3.2rem; }
-.symbol-2 { top: 60%; left: 20%; font-size: 2.4rem; }
-.symbol-3 { top: 40%; left: 5%; font-size: 2rem; }
-.symbol-4 { bottom: 10%; right: 20%; font-size: 2.5rem; }
-.symbol-5 { top: 15%; right: 15%; font-size: 3rem; }
-.symbol-6 { top: 75%; left: 65%; font-size: 2.3rem; }
-.symbol-7 { bottom: 25%; right: 10%; font-size: 2.6rem; }
-.symbol-8 { top: 55%; right: 45%; font-size: 2rem; }
-.symbol-9 { top: 80%; left: 35%; font-size: 3rem; }
-.symbol-10 { top: 5%; left: 80%; font-size: 2.7rem; }
-.symbol-11 { top: 45%; right: 25%; font-size: 2.3rem; }
-.symbol-12 { bottom: 15%; left: 10%; font-size: 2.5rem; }
-.symbol-13 { top: 50%; left: 50%; font-size: 1.8rem; }
-.symbol-14 { bottom: 5%; right: 5%; font-size: 2.2rem; }
-.symbol-15 { top: 30%; right: 40%; font-size: 2.7rem; }
-.symbol-16 { top: 70%; right: 60%; font-size: 3rem; }
-.symbol-17 { bottom: 35%; left: 40%; font-size: 2.4rem; }
-
-/* 🌈 Background (same style as Login) */
-ion-content {
-  --background: linear-gradient(135deg, #fff4e3, #fffbd5, #e0ffe8);
-  position: relative;
-  overflow: hidden;
-}
-
-/* Remove default focus color (blue) from input fields */
-ion-input {
-  --highlight-color-focused: transparent;
-}
-
-.login-input {
-  display: flex;
-  align-items: center;
-  background: #fff;
-  border: 2px solid #ffb347;
-  border-radius: 10px;
-  padding: 0.6rem 0.8rem;
-  box-shadow: 0 3px 6px rgba(255, 165, 0, 0.2);
-  transition: all 0.3s ease;
-}
-
-.login-input ion-icon {
-  color: #ff7b00;
-  font-size: 1.2rem;
-  margin-right: 0.5rem;
-}
-
-.login-input:hover,
-.login-input:focus-within {
-  border-color: #ff4b2b;
-  box-shadow: 0 0 10px rgba(255, 87, 51, 0.3);
-}
-
-/* ✨ Gradient Register Button */
-.login-button {
-  --background: linear-gradient(90deg, #ff9966, #ff5e62);
-  --background-hover: linear-gradient(90deg, #ff5e62, #ff9966);
-  --background-activated: linear-gradient(90deg, #ff5e62, #ff9966);
-  --color: white;
-  font-weight: bold;
-  letter-spacing: 0.5px;
-  border-radius: 12px;
-  box-shadow: 0 4px 8px rgba(255, 94, 98, 0.3);
-  transition: transform 0.3s ease;
-}
-
-.login-button:hover {
-  transform: scale(1.05);
-}
-
-/* 🧡 Remove blue underline/caret in inputs */
-ion-input::part(native) {
-  caret-color: #ff5e62 !important;
-}
-
-/* ❤️ “Login here” link color fix */
-.login-register a {
-  color: #ff4b2b !important;
-  font-weight: 600;
-  text-decoration: none;
-  transition: 0.3s;
-}
-
-.login-register a:hover {
-  color: #ff9966 !important;
-}
-
-/* 🧮 Floating math symbols (optional for background animation) */
-.floating-symbol {
-  position: absolute;
-  font-size: 1.2rem;
-  opacity: 0.12;
-  color: #ff9a76;
   pointer-events: none;
+  z-index: 2;
+  animation: floatAnimation 8s ease-in-out infinite;
 }
+
+/* 🎨 Beautiful color palette */
+.symbol-0,  .symbol-5,  .symbol-10, .symbol-15, .symbol-20 { color: #ff6b6b; }   /* Soft Red */
+.symbol-1,  .symbol-6,  .symbol-11, .symbol-16, .symbol-21 { color: #06d6a0; }   /* Mint Green */
+.symbol-2,  .symbol-7,  .symbol-12, .symbol-17, .symbol-22 { color: #ffd166; }   /* Warm Yellow */
+.symbol-3,  .symbol-8,  .symbol-13, .symbol-18, .symbol-23 { color: #118ab2; }   /* Cool Blue */
+.symbol-4,  .symbol-9,  .symbol-14, .symbol-19, .symbol-24 { color: #833ab4; }   /* Deep Purple */
+
+/* 📍 Randomized positions and varied sizes */
+.symbol-0  { top: 10%; left: 15%; font-size: 2.8rem; animation-delay: 0s; }
+.symbol-1  { top: 25%; left: 70%; font-size: 3.2rem; animation-delay: 0.5s; }
+.symbol-2  { top: 60%; left: 20%; font-size: 2.4rem; animation-delay: 1s; }
+.symbol-3  { top: 40%; left: 5%; font-size: 2rem; animation-delay: 1.5s; }
+.symbol-4  { bottom: 10%; right: 20%; font-size: 2.5rem; animation-delay: 2s; }
+.symbol-5  { top: 15%; right: 15%; font-size: 3rem; animation-delay: 2.5s; }
+.symbol-6  { top: 75%; left: 65%; font-size: 2.3rem; animation-delay: 3s; }
+.symbol-7  { bottom: 25%; right: 10%; font-size: 2.6rem; animation-delay: 3.5s; }
+.symbol-8  { top: 55%; right: 45%; font-size: 2rem; animation-delay: 4s; }
+.symbol-9  { top: 80%; left: 35%; font-size: 3rem; animation-delay: 4.5s; }
+.symbol-10 { top: 5%; left: 80%; font-size: 2.7rem; animation-delay: 5s; }
+.symbol-11 { top: 45%; right: 25%; font-size: 2.3rem; animation-delay: 5.5s; }
+.symbol-12 { bottom: 15%; left: 10%; font-size: 2.5rem; animation-delay: 6s; }
+.symbol-13 { top: 50%; left: 50%; font-size: 1.8rem; animation-delay: 6.5s; }
+.symbol-14 { bottom: 5%; right: 5%; font-size: 2.2rem; animation-delay: 7s; }
+.symbol-15 { top: 30%; right: 40%; font-size: 2.7rem; animation-delay: 7.5s; }
+.symbol-16 { top: 70%; right: 60%; font-size: 3rem; animation-delay: 8s; }
+.symbol-17 { bottom: 35%; left: 40%; font-size: 2.4rem; animation-delay: 8.5s; }
+.symbol-18 { top: 20%; left: 30%; font-size: 2.9rem; animation-delay: 9s; }
+.symbol-19 { bottom: 40%; right: 20%; font-size: 2.2rem; animation-delay: 9.5s; }
+.symbol-20 { top: 65%; left: 80%; font-size: 2.6rem; animation-delay: 10s; }
+.symbol-21 { bottom: 25%; left: 55%; font-size: 2.5rem; animation-delay: 10.5s; }
+.symbol-22 { top: 15%; right: 45%; font-size: 2.8rem; animation-delay: 11s; }
+.symbol-23 { bottom: 5%; left: 25%; font-size: 2.7rem; animation-delay: 11.5s; }
+.symbol-24 { top: 45%; right: 70%; font-size: 3rem; animation-delay: 12s; }
+
+
+
+/* 🌬️ Gentle floating animation */
+@keyframes floatAnimation {
+  0% {
+    transform: translateY(0px) rotate(0deg);
+    opacity: 0.3;
+  }
+  50% {
+    transform: translateY(-25px) rotate(15deg);
+    opacity: 0.6;
+  }
+  100% {
+    transform: translateY(0px) rotate(0deg);
+    opacity: 0.3;
+  }
+}
+
+
 
 
 /* Optional subtle hover animation for menu items */

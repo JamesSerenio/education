@@ -108,9 +108,38 @@ const Register: React.FC = () => {
     }
   };
 
+  // ✨ Floating math & physics symbols
+  const symbols = [
+    "+", "-", "×", "÷", "=", "%", "√", "π", "Σ",
+    "0", "1", "2", "3", "4", "5", "6", "7", "8", "9",
+    "distance", "velocity", "displacement", "speed",
+    "a₁", "d", "n", "aₙ",
+  ];
+
   return (
     <IonPage>
-      <IonContent fullscreen>
+      <IonContent className="login-bg" fullscreen>
+        {/* 🧮 Floating symbols animation */}
+        {symbols.map((symbol, index) => (
+          <motion.div
+            key={index}
+            className={`floating-symbol symbol-${index}`}
+            animate={{
+              y: [0, Math.random() * 50 - 25, 0],
+              x: [0, Math.random() * 30 - 15, 0],
+              rotate: [0, Math.random() * 30 - 15, 0],
+            }}
+            transition={{
+              duration: 3 + Math.random() * 4,
+              repeat: Infinity,
+              ease: "easeInOut",
+            }}
+          >
+            {symbol}
+          </motion.div>
+        ))}
+
+        {/* Register Form Card */}
         <motion.div
           className="login-wrapper"
           initial={{ opacity: 0 }}
@@ -129,7 +158,7 @@ const Register: React.FC = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3, duration: 0.5 }}
             >
-              Register
+              🪶 Register
             </motion.h2>
 
             <motion.form
@@ -292,8 +321,8 @@ const Register: React.FC = () => {
               transition={{ delay: 1.3 }}
             >
               Have already an account?{" "}
-              <Link to="/education/login" className="text-blue-600 font-medium">
-                Login here
+              <Link to="/education/login" className="login-link">
+                Login here 🚀
               </Link>
             </motion.p>
           </motion.div>

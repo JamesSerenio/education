@@ -203,11 +203,11 @@ html, body, #root {
 }
 
 /* 🎨 Beautiful color palette */
-.symbol-0,  .symbol-5,  .symbol-10, .symbol-15, .symbol-20 { color: #ff6b6b; }   /* Soft Red */
-.symbol-1,  .symbol-6,  .symbol-11, .symbol-16, .symbol-21 { color: #06d6a0; }   /* Mint Green */
-.symbol-2,  .symbol-7,  .symbol-12, .symbol-17, .symbol-22 { color: #ffd166; }   /* Warm Yellow */
-.symbol-3,  .symbol-8,  .symbol-13, .symbol-18, .symbol-23 { color: #118ab2; }   /* Cool Blue */
-.symbol-4,  .symbol-9,  .symbol-14, .symbol-19, .symbol-24 { color: #833ab4; }   /* Deep Purple */
+.symbol-0,  .symbol-5,  .symbol-10, .symbol-15, .symbol-20, .symbol-25 { color: #ff6b6b; }   /* Soft Red */
+.symbol-1,  .symbol-6,  .symbol-11, .symbol-16, .symbol-21, .symbol-26 { color: #06d6a0; }   /* Mint Green */
+.symbol-2,  .symbol-7,  .symbol-12, .symbol-17, .symbol-22, .symbol-27 { color: #ffd166; }   /* Warm Yellow */
+.symbol-3,  .symbol-8,  .symbol-13, .symbol-18, .symbol-23 { color: #118ab2; }               /* Cool Blue */
+.symbol-4,  .symbol-9,  .symbol-14, .symbol-19, .symbol-24 { color: #833ab4; }               /* Deep Purple */
 
 /* 📍 Randomized positions and varied sizes */
 .symbol-0  { top: 10%; left: 15%; font-size: 2.8rem; animation-delay: 0s; }
@@ -235,7 +235,9 @@ html, body, #root {
 .symbol-22 { top: 15%; right: 45%; font-size: 2.8rem; animation-delay: 11s; }
 .symbol-23 { bottom: 5%; left: 25%; font-size: 2.7rem; animation-delay: 11.5s; }
 .symbol-24 { top: 45%; right: 70%; font-size: 3rem; animation-delay: 12s; }
-
+.symbol-25 { top: 35%; left: 25%; font-size: 2.6rem; animation-delay: 12.5s; }
+.symbol-26 { bottom: 45%; right: 35%; font-size: 2.8rem; animation-delay: 13s; }
+.symbol-27 { top: 75%; left: 15%; font-size: 2.9rem; animation-delay: 13.5s; }
 
 
 /* 🌬️ Gentle floating animation */
@@ -255,6 +257,31 @@ html, body, #root {
 }
 
 
+/* ✨ Gradient Register / Login Button */
+.login-button {
+  --background: linear-gradient(90deg, #ff9966, #ff5e62);
+  --background-hover: linear-gradient(90deg, #ff5e62, #ff9966);
+  --background-activated: linear-gradient(90deg, #ff5e62, #ff9966);
+  --color: white;
+
+  font-weight: bold;
+  letter-spacing: 0.5px;
+  border-radius: 12px;
+
+  box-shadow: 0 4px 8px rgba(255, 94, 98, 0.3);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+/* Hover and Active Effects */
+.login-button:hover {
+  transform: scale(1.05);
+  box-shadow: 0 6px 12px rgba(255, 94, 98, 0.4);
+}
+
+.login-button:active {
+  transform: scale(0.98);
+  box-shadow: 0 3px 6px rgba(255, 94, 98, 0.25);
+}
 
 
 /* Optional subtle hover animation for menu items */

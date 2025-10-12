@@ -15,52 +15,70 @@ const Login: React.FC = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
   const history = useHistory();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg(null);
+    setLoading(true);
 
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
+      // 🔐 Step 1: Sign in user
+      const response = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
+      // Destructure properly to avoid "data undefined" error
+      const { user, session } = response.data || {};
+      const { error } = response;
+
       if (error) {
         setErrorMsg("Invalid email or password");
+        setLoading(false);
         return;
       }
 
-      if (!data.user) {
-        setErrorMsg("No user found");
+      if (!user || !session) {
+        setErrorMsg("Login failed. Please try again.");
+        setLoading(false);
         return;
       }
 
+      // 🧠 Step 2: Fetch user profile
       const { data: profile, error: profileError } = await supabase
         .from("profiles")
         .select("id, firstname, lastname, role")
-        .eq("id", data.user.id)
-        .single();
+        .eq("id", user.id)
+        .maybeSingle();
 
-      if (profileError || !profile) {
+      if (profileError) {
+        console.error("Profile fetch error:", profileError);
         setErrorMsg("Profile not found. Contact admin.");
+        setLoading(false);
         return;
       }
 
-      localStorage.setItem("profile_id", profile.id);
-      localStorage.setItem("firstname", profile.firstname || "");
-      localStorage.setItem("lastname", profile.lastname || "");
-      localStorage.setItem("role", profile.role || "user");
+      // 💾 Step 3: Store profile info locally
+      if (profile) {
+        localStorage.setItem("profile_id", profile.id || "");
+        localStorage.setItem("firstname", profile.firstname || "");
+        localStorage.setItem("lastname", profile.lastname || "");
+        localStorage.setItem("role", profile.role || "user");
+      }
 
-      if (profile.role === "admin") {
+      // 🚀 Step 4: Redirect based on role
+      setLoading(false);
+      if (profile?.role === "admin") {
         history.push("/education/admin/admin_dashboard");
       } else {
         history.push("/education/home");
       }
-    } catch (error) {
-      console.error("Unexpected login error:", error);
+    } catch (err) {
+      console.error("Unexpected login error:", err);
       setErrorMsg("An unexpected error occurred. Please try again.");
+      setLoading(false);
     }
   };
 
@@ -149,8 +167,13 @@ const Login: React.FC = () => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.7, duration: 0.5 }}
               >
-                <IonButton expand="block" type="submit" className="login-button">
-                  Let’s Go! 🚀
+                <IonButton
+                  expand="block"
+                  type="submit"
+                  className="login-button"
+                  disabled={loading}
+                >
+                  {loading ? "Logging in..." : "Let’s Go! 🚀"}
                 </IonButton>
               </motion.div>
             </form>

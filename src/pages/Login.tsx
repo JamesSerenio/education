@@ -64,10 +64,34 @@ const Login: React.FC = () => {
     }
   };
 
+  const mathSymbols = [
+    "+", "-", "×", "÷", "=", "%", "√", "π", "Σ",
+    "+", "×", "÷", "-", "=", "√", "π", "%", "+",
+  ];
+
   return (
     <IonPage>
-      <IonContent className="login-content" fullscreen>
-        <div className="login-wrapper">
+      <IonContent className="login-bg" fullscreen>
+        {mathSymbols.map((symbol, index) => (
+          <motion.div
+            key={index}
+            className={`floating-symbol symbol-${index}`}
+            animate={{
+              y: [0, Math.random() * 40 - 20, 0],
+              x: [0, Math.random() * 20 - 10, 0],
+              rotate: [0, Math.random() * 30 - 15, 0],
+            }}
+            transition={{
+              duration: 3 + Math.random() * 4,
+              repeat: Infinity,
+              ease: "easeInOut",
+            }}
+          >
+            {symbol}
+          </motion.div>
+        ))}
+
+        <div className="login-container">
           <motion.div
             className="login-card"
             initial={{ opacity: 0, scale: 0.9, y: 30 }}
@@ -80,7 +104,7 @@ const Login: React.FC = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3, duration: 0.5 }}
             >
-              LOGIN
+              🎨 Login
             </motion.h2>
 
             <form className="login-form" onSubmit={handleSubmit}>
@@ -90,10 +114,10 @@ const Login: React.FC = () => {
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.4, duration: 0.5 }}
               >
-                <IonIcon icon={mailOutline} />
+                <IonIcon icon={mailOutline} className="input-icon" />
                 <IonInput
                   type="email"
-                  placeholder="Email"
+                  placeholder="Enter your email"
                   value={email}
                   onIonChange={(e) => setEmail(e.detail.value!)}
                   required
@@ -106,10 +130,10 @@ const Login: React.FC = () => {
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.5, duration: 0.5 }}
               >
-                <IonIcon icon={lockClosedOutline} />
+                <IonIcon icon={lockClosedOutline} className="input-icon" />
                 <IonInput
                   type="password"
-                  placeholder="Password"
+                  placeholder="Enter your password"
                   value={password}
                   onIonChange={(e) => setPassword(e.detail.value!)}
                   required
@@ -124,7 +148,7 @@ const Login: React.FC = () => {
                 transition={{ delay: 0.7, duration: 0.5 }}
               >
                 <IonButton expand="block" type="submit" className="login-button">
-                  Login
+                  Let’s Go! 🚀
                 </IonButton>
               </motion.div>
             </form>
@@ -137,7 +161,7 @@ const Login: React.FC = () => {
             >
               Don’t have an account?{" "}
               <Link to="/education/register" className="login-link">
-                Register
+                Register here 🎈
               </Link>
             </motion.p>
           </motion.div>

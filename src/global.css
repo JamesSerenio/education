@@ -282,6 +282,56 @@ html, body, #root {
   transform: scale(0.98);
   box-shadow: 0 3px 6px rgba(255, 94, 98, 0.25);
 }
+/* 🌈 Base Input Styling */
+ion-input {
+  position: relative;
+  --padding-start: 12px;
+  --padding-end: 12px;
+  --padding-top: 10px;
+  --padding-bottom: 10px;
+  --highlight-color-focused: transparent !important;
+  --highlight-color-invalid: transparent !important;
+  --highlight-color-valid: transparent !important;
+  outline: none !important;
+  box-shadow: none !important;
+  border: none;
+  color: #fff;
+  font-size: 1rem;
+  background: transparent;
+  display: block;
+}
+
+/* 🪄 Remove Ionic's default underline + caret color */
+ion-input::part(native) {
+  border-bottom: none !important;
+  caret-color: #ff5e62 !important;
+  outline: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+}
+
+/* ✨ Custom gradient underline effect */
+ion-input::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 2px;
+  width: 0%;
+  background: linear-gradient(90deg, #ff9966, #ff5e62);
+  transition: width 0.4s ease-in-out;
+}
+
+/* 💫 Animate underline when focused or hovered */
+ion-input:focus-within::after,
+ion-input:hover::after {
+  width: 100%;
+}
+
+/* 🌷 Placeholder style */
+ion-input::part(placeholder) {
+  color: rgba(255, 255, 255, 0.6);
+}
 
 
 /* Optional subtle hover animation for menu items */

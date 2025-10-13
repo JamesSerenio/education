@@ -37,7 +37,7 @@ const AdminHome: React.FC = () => {
   const [animatedStats, setAnimatedStats] = useState<UserStats>({ admin: 0, user: 0, total: 0 });
   const [recentLogins, setRecentLogins] = useState<LoginLog[]>([]);
   const [currentPage, setCurrentPage] = useState(0);
-  const itemsPerPage = 5;
+  const itemsPerPage = 3;
 
   // Fetch stats
   useEffect(() => {
@@ -118,10 +118,10 @@ const AdminHome: React.FC = () => {
     }),
   };
 
-  const rowVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.5 } },
-    exit: { opacity: 0, y: -20, transition: { duration: 0.5 } },
+  const pageVariants = {
+    hidden: { opacity: 0 },
+    visible: { opacity: 1, transition: { duration: 0.3 } },
+    exit: { opacity: 0, transition: { duration: 0.2 } },
   };
 
   return (
@@ -181,31 +181,36 @@ const AdminHome: React.FC = () => {
           </IonRow>
         </IonGrid>
 
-        {/* Recent Logins Section */}
         <h3 className="section-title">Recent Logins</h3>
 
         <IonGrid>
+          {/* Header */}
           <IonRow className="table-header">
-            <IonCol>Email</IonCol>
-            <IonCol>Role</IonCol>
-            <IonCol>Date & Time</IonCol>
+            <IonCol size="6" sizeMd="6">Email</IonCol>
+            <IonCol size="3" sizeMd="3">Role</IonCol>
+            <IonCol size="3" sizeMd="3">Date & Time</IonCol>
           </IonRow>
 
-          <AnimatePresence>
-            {currentLogs.map((login) => (
-              <motion.div
-                key={login.id}
-                initial="hidden"
-                animate="visible"
-                exit="exit"
-                variants={rowVariants}
-                className="table-row"
-              >
-                <IonCol>{login.email}</IonCol>
-                <IonCol>{login.role}</IonCol>
-                <IonCol>{new Date(login.login_at).toLocaleString()}</IonCol>
-              </motion.div>
-            ))}
+          {/* Animate whole page */}
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={currentPage} // important: triggers exit/enter when page changes
+              initial="hidden"
+              animate="visible"
+              exit="exit"
+              variants={pageVariants}
+              style={{ width: "100%" }}
+            >
+              {currentLogs.map((login) => (
+                <IonRow key={login.id} className="recent-login-card">
+                  <IonCol size="6">{login.email}</IonCol>
+                  <IonCol size="3" className="text-center">{login.role}</IonCol>
+                  <IonCol size="3" className="text-end">
+                    {new Date(login.login_at).toLocaleString()}
+                  </IonCol>
+                </IonRow>
+              ))}
+            </motion.div>
           </AnimatePresence>
 
           {/* Pagination */}

@@ -207,12 +207,12 @@ input:-webkit-autofill:focus {
   font-size: 0.85rem;
 }
 
-/* AdminHome Styles */
 .admin-home h2.welcome-title {
   margin-bottom: 20px;
   font-size: 1.8rem;
 }
 
+/* Stats cards */
 .stats-grid ion-card {
   border-radius: 15px;
   box-shadow: 0 8px 20px rgba(0,0,0,0.2);
@@ -235,42 +235,95 @@ input:-webkit-autofill:focus {
   font-weight: bold;
 }
 
+/* Section title */
 .section-title {
   margin-top: 30px;
   margin-bottom: 15px;
   font-size: 1.3rem;
   font-weight: bold;
+  color: #333;
 }
 
-.table-header {
-  font-weight: bold;
-  border-bottom: 2px solid #ccc;
-  padding-bottom: 10px;
-}
-
-.table-row {
+/* Recent logins cards */
+.recent-login-card {
+  background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+  border-radius: 12px;
+  box-shadow: 0 6px 16px rgba(0,0,0,0.12);
+  padding: 14px 18px;
+  margin-bottom: 12px;
   display: flex;
-  padding: 10px;
-  border-bottom: 1px solid #eee;
-  border-radius: 8px;
-  background-color: #fff;
-  margin-bottom: 5px;
+  justify-content: space-between;
   align-items: center;
+  transition: all 0.3s ease;
 }
 
-.table-row:hover {
-  background-color: #f0f8ff;
-  transition: background-color 0.3s;
+.recent-login-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 22px rgba(0,0,0,0.15);
 }
 
+.recent-login-email {
+  font-weight: 500;
+  color: #212529;
+  flex: 2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.recent-login-role {
+  font-weight: 500;
+  color: #495057;
+  flex: 1;
+  text-align: center;
+  text-transform: capitalize;
+}
+
+.recent-login-time {
+  font-size: 0.85rem;
+  color: #6c757d;
+  flex: 2;
+  text-align: right;
+  font-family: "Courier New", monospace;
+}
+
+/* Pagination */
 .pagination-row {
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 10px;
-  margin-top: 15px;
+  gap: 12px;
+  margin-top: 20px;
 }
 
 .pagination-count {
-  font-weight: bold;
+  font-weight: 600;
+  color: #212529;
+}
+
+/* Table header */
+.table-header {
+  font-weight: 600;
+  border-bottom: 2px solid #dee2e6;
+  padding-bottom: 8px;
+  margin-bottom: 10px;
+  color: #495057;
+}
+
+.table-header ion-col {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .recent-login-card {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .recent-login-time {
+    text-align: left;
+    margin-top: 6px;
+  }
 }

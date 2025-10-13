@@ -1,3 +1,17 @@
+/* Completely remove white/light autofill background */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus {
+  -webkit-text-fill-color: #ffffff !important;
+  caret-color: #00d4ff !important;
+  transition: background-color 9999s ease-in-out 0s !important;
+  box-shadow: 0 0 0px 1000px transparent inset !important;
+  -webkit-box-shadow: 0 0 0px 1000px transparent inset !important;
+  background: transparent !important;
+  background-color: transparent !important;
+}
+
+
 .auth-bg {
   --ion-background-color: #0a0f1c;
   color: #fff;

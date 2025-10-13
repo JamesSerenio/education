@@ -102,13 +102,6 @@ input:-webkit-autofill:focus {
   color: #ccc;
 }
 
-.auth-error {
-  display: block;
-  text-align: center;
-  margin-top: 0.5rem;
-  font-size: 0.9rem;
-}
-
 .auth-footer {
   text-align: center;
   margin-top: 1rem;
@@ -126,3 +119,20 @@ input:-webkit-autofill:focus {
   text-decoration: underline;
 }
 
+.auth-error {
+  color: #ff4d4d; /* 🔴 red */
+  padding: 8px 12px;
+  border-radius: 8px;
+  margin-top: 10px;
+  text-align: center;
+  font-weight: 500;
+  font-size: 0.9rem;
+  letter-spacing: 0.5px;
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+/* optional fade-in animation */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}

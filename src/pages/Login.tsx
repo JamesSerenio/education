@@ -24,57 +24,40 @@ const Login: React.FC = () => {
     setLoading(true);
 
     try {
-      // 🔐 Step 1: Sign in user
-      const response = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
-      // Destructure properly to avoid "data undefined" error
-      const { user, session } = response.data || {};
-      const { error } = response;
-
-      if (error) {
+      if (error || !data.user) {
         setErrorMsg("Invalid email or password");
         setLoading(false);
         return;
       }
 
-      if (!user || !session) {
-        setErrorMsg("Login failed. Please try again.");
-        setLoading(false);
-        return;
-      }
-
-      // 🧠 Step 2: Fetch user profile
       const { data: profile, error: profileError } = await supabase
         .from("profiles")
         .select("id, firstname, lastname, role")
-        .eq("id", user.id)
+        .eq("id", data.user.id)
         .maybeSingle();
 
-      if (profileError) {
-        console.error("Profile fetch error:", profileError);
-        setErrorMsg("Profile not found. Contact admin.");
+      if (profileError || !profile) {
+        setErrorMsg("Profile not found. Please contact admin.");
         setLoading(false);
         return;
       }
 
-      // 💾 Step 3: Store profile info locally
-      if (profile) {
-        localStorage.setItem("profile_id", profile.id || "");
-        localStorage.setItem("firstname", profile.firstname || "");
-        localStorage.setItem("lastname", profile.lastname || "");
-        localStorage.setItem("role", profile.role || "user");
-      }
+      localStorage.setItem("profile_id", profile.id || "");
+      localStorage.setItem("firstname", profile.firstname || "");
+      localStorage.setItem("lastname", profile.lastname || "");
+      localStorage.setItem("role", profile.role || "user");
 
-      // 🚀 Step 4: Redirect based on role
       setLoading(false);
-      if (profile?.role === "admin") {
-        history.push("/education/admin/admin_dashboard");
-      } else {
-        history.push("/education/home");
-      }
+      history.push(
+        profile.role === "admin"
+          ? "/education/admin/admin_dashboard"
+          : "/education/home"
+      );
     } catch (err) {
       console.error("Unexpected login error:", err);
       setErrorMsg("An unexpected error occurred. Please try again.");
@@ -82,6 +65,7 @@ const Login: React.FC = () => {
     }
   };
 
+  // ✨ Floating math + motion symbols
   const mathSymbols = [
     "+", "-", "×", "÷", "=", "%", "√", "π", "Σ",
     "0", "1", "2", "3", "4", "5", "6", "7", "8", "9",
@@ -91,76 +75,99 @@ const Login: React.FC = () => {
 
   return (
     <IonPage>
-      <IonContent className="login-bg" fullscreen>
-        {mathSymbols.map((symbol, index) => (
-          <motion.div
-            key={index}
-            className={`floating-symbol symbol-${index}`}
-            animate={{
-              y: [0, Math.random() * 40 - 20, 0],
-              x: [0, Math.random() * 20 - 10, 0],
-              rotate: [0, Math.random() * 30 - 15, 0],
-            }}
-            transition={{
-              duration: 3 + Math.random() * 4,
-              repeat: Infinity,
-              ease: "easeInOut",
-            }}
-          >
-            {symbol}
-          </motion.div>
-        ))}
+      <IonContent className="auth-bg" fullscreen>
+        {/* ✨ Floating animated math & physics symbols */}
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            overflow: "hidden",
+            zIndex: 1,
+            pointerEvents: "none", // ⚡ prevents scroll/click blocking
+          }}
+        >
+          {mathSymbols.map((symbol, index) => (
+            <motion.div
+              key={index}
+              className="floating-symbol"
+              animate={{
+                y: [0, Math.random() * 40 - 20, 0],
+                x: [0, Math.random() * 20 - 10, 0],
+                rotate: [0, Math.random() * 30 - 15, 0],
+                opacity: [0, 1, 1, 0],
+              }}
+              transition={{
+                duration: 3 + Math.random() * 3,
+                repeat: Infinity,
+                delay: Math.random() * 5,
+                ease: "easeInOut",
+              }}
+              style={{
+                top: `${Math.random() * 100}%`,
+                left: `${Math.random() * 100}%`,
+                fontSize: `${Math.random() * 1.5 + 0.8}rem`,
+                color: "rgba(255, 255, 255, 0.25)",
+                position: "absolute",
+                userSelect: "none",
+              }}
+            >
+              {symbol}
+            </motion.div>
+          ))}
+        </div>
 
-        <div className="login-container">
+        {/* 🔐 Main Login Card */}
+        <div className="auth-container">
           <motion.div
-            className="login-card"
+            className="auth-card"
             initial={{ opacity: 0, scale: 0.9, y: 30 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             transition={{ duration: 0.6, ease: "easeOut" }}
+            style={{ zIndex: 2 }}
           >
             <motion.h2
-              className="login-title"
+              className="auth-title"
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3, duration: 0.5 }}
             >
-              🎨 Login
+              🔢 Login
             </motion.h2>
 
-            <form className="login-form" onSubmit={handleSubmit}>
+            <form className="auth-form" onSubmit={handleSubmit}>
               <motion.div
-                className="login-input"
+                className="auth-input"
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.4, duration: 0.5 }}
               >
-                <IonIcon icon={mailOutline} className="input-icon" />
+                <IonIcon icon={mailOutline} />
                 <IonInput
                   type="email"
                   placeholder="Enter your email"
                   value={email}
-                  onIonChange={(e) => setEmail(e.detail.value!)}
+                  onIonChange={(e) => setEmail(e.detail.value || "")}
                   required
                 />
               </motion.div>
 
               <motion.div
-                className="login-input"
+                className="auth-input"
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.5, duration: 0.5 }}
               >
-                <IonIcon icon={lockClosedOutline} className="input-icon" />
+                <IonIcon icon={lockClosedOutline} />
                 <IonInput
                   type="password"
                   placeholder="Enter your password"
                   value={password}
-                  onIonChange={(e) => setPassword(e.detail.value!)}
+                  onIonChange={(e) => setPassword(e.detail.value || "")}
                   required
                 />
               </motion.div>
 
-              {errorMsg && <p className="login-error">{errorMsg}</p>}
+              {errorMsg && <p className="auth-error">{errorMsg}</p>}
 
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
@@ -170,7 +177,7 @@ const Login: React.FC = () => {
                 <IonButton
                   expand="block"
                   type="submit"
-                  className="login-button"
+                  className="auth-button"
                   disabled={loading}
                 >
                   {loading ? "Logging in..." : "Let’s Go! 🚀"}
@@ -179,14 +186,14 @@ const Login: React.FC = () => {
             </form>
 
             <motion.p
-              className="login-register"
+              className="auth-footer"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.8 }}
             >
               Don’t have an account?{" "}
-              <Link to="/education/register" className="login-link">
-                Register here 🎈
+              <Link to="/education/register" className="auth-link">
+                Register here ➕
               </Link>
             </motion.p>
           </motion.div>

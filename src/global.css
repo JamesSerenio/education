@@ -1,329 +1,112 @@
-/* Background for login page */
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
-html, body, #root {
-  height: 100%;
-  margin: 0;
-  padding: 0;
-}
-
-/* ===== Login Page Styles ===== */
-  
-/* Flex wrapper para ma-center */
-.login-wrapper {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100%;
-}
-
-
-/* Title */
-.login-title {
-  font-size: 1.5rem; /* text-2xl */
-  font-weight: 700; /* font-bold */
-  margin-bottom: 1.5rem;
-}
-
-/* Form spacing */
-.login-form {
-  display: flex;
-  flex-direction: column;
-  gap: 0.6rem; /* space-y-4 */
-}
-
-/* Input fields */
-.login-input {
-  display: flex;
-  align-items: center;
-  border: 1px solid #d1d5db;
-  border-radius: 0.5rem;
-  padding: 0.5rem 0.75rem;
-  background-color: #fff;
-  gap: 0.5rem; /* para may space si icon at input */
-}
-
-.login-input ion-icon {
-  font-size: 1.2rem;
-  color: #6b7280; /* gray-500 */
-}
-
-.login-input ion-input {
-  font-size: 0.95rem;
-}
-
-
-/* Login button */
-.login-button {
-  margin-top: 1rem;
-  border-radius: 50%; /* rounded-full */
-}
-
-/* Register link */
-.login-register {
-  margin-top: 1rem;
-  font-size: 0.875rem;
-  color: #374151; /* gray-700 */
-  text-align: center;
-}
-
-/* Smooth fade-in animation for the main content */
-.fade-in {
-  animation: fadeIn 0.6s ease-in-out;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(15px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.login-bg {
-  --background: linear-gradient(135deg, #a0d8f1, #fceabb, #f8b195);
-  background: var(--background);
+.auth-bg {
+  --ion-background-color: #0a0f1c;
+  color: #fff;
+  background: radial-gradient(circle at 30% 30%, #1a2238, #0a0f1c 80%);
   position: relative;
   overflow: hidden;
-  font-family: "Poppins", sans-serif;
 }
-
-.login-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100%;
-  padding: 20px;
-}
-
-.login-card {
-  border-radius: 25px;
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
-  padding: 30px;
-  width: 100%;
-  max-width: 360px;
-  text-align: center;
-  position: relative;
-  z-index: 10;
-}
-
-.login-title {
-  font-size: 2rem;
-  color: #ff6b6b;
-  font-weight: 700;
-  text-shadow: 1px 1px 3px #ffd6d6;
-}
-
-.login-input {
-  display: flex;
-  align-items: center;
-  margin: 6px 0;
-  background: #fff;
-  border-radius: 15px;
-  padding: 6px 10px;
-  border: 2px solid #ffe066;
-  transition: 0.3s;
-}
-
-.login-input:hover {
-  border-color: #ffb347;
-  box-shadow: 0 0 8px #ffb34750;
-}
-
-.input-icon {
-  color: #ff8c42;
-  font-size: 20px;
-  margin-right: 10px;
-}
-
-.login-error {
-  color: red;
-  margin-top: 5px;
-  font-size: 0.9rem;
-}
-
-.login-button {
-  margin-top: 10px;
-  border-radius: 20px;
-  background: linear-gradient(90deg, #fcb045, #fd1d1d, #833ab4);
-  color: white;
-  font-weight: 600;
-  box-shadow: 0 4px 15px rgba(252, 176, 69, 0.5);
-}
-
-.login-button:hover {
-  transform: scale(1.05);
-  transition: 0.3s;
-}
-
-.login-register {
-  margin-top: 15px;
-  font-size: 0.95rem;
-  color: #555;
-}
-
-.login-link {
-  color: #ff6b6b;
-  font-weight: bold;
-  text-decoration: none;
-}
-
-.login-link:hover {
-  text-decoration: underline;
-}
-
-/* 🌸 Floating Math Symbols - Colorful, Animated, and Clean 🌸 */
 
 .floating-symbol {
   position: absolute;
-  font-size: 2.5rem;
-  font-weight: bold;
-  opacity: 0.35;
-  user-select: none;
-  pointer-events: none;
-  z-index: 2;
-  animation: floatAnimation 8s ease-in-out infinite;
+  font-weight: 600;
+  opacity: 0.3;
+  text-shadow: 0 0 8px rgba(255, 255, 255, 0.2);
+  mix-blend-mode: screen;
+  transition: opacity 0.5s ease-in-out;
 }
 
-/* 🎨 Beautiful color palette */
-.symbol-0,  .symbol-5,  .symbol-10, .symbol-15, .symbol-20, .symbol-25 { color: #ff6b6b; }   /* Soft Red */
-.symbol-1,  .symbol-6,  .symbol-11, .symbol-16, .symbol-21, .symbol-26 { color: #06d6a0; }   /* Mint Green */
-.symbol-2,  .symbol-7,  .symbol-12, .symbol-17, .symbol-22, .symbol-27 { color: #ffd166; }   /* Warm Yellow */
-.symbol-3,  .symbol-8,  .symbol-13, .symbol-18, .symbol-23 { color: #118ab2; }               /* Cool Blue */
-.symbol-4,  .symbol-9,  .symbol-14, .symbol-19, .symbol-24 { color: #833ab4; }               /* Deep Purple */
-
-/* 📍 Randomized positions and varied sizes */
-.symbol-0  { top: 10%; left: 15%; font-size: 2.8rem; animation-delay: 0s; }
-.symbol-1  { top: 25%; left: 70%; font-size: 3.2rem; animation-delay: 0.5s; }
-.symbol-2  { top: 60%; left: 20%; font-size: 2.4rem; animation-delay: 1s; }
-.symbol-3  { top: 40%; left: 5%; font-size: 2rem; animation-delay: 1.5s; }
-.symbol-4  { bottom: 10%; right: 20%; font-size: 2.5rem; animation-delay: 2s; }
-.symbol-5  { top: 15%; right: 15%; font-size: 3rem; animation-delay: 2.5s; }
-.symbol-6  { top: 75%; left: 65%; font-size: 2.3rem; animation-delay: 3s; }
-.symbol-7  { bottom: 25%; right: 10%; font-size: 2.6rem; animation-delay: 3.5s; }
-.symbol-8  { top: 55%; right: 45%; font-size: 2rem; animation-delay: 4s; }
-.symbol-9  { top: 80%; left: 35%; font-size: 3rem; animation-delay: 4.5s; }
-.symbol-10 { top: 5%; left: 80%; font-size: 2.7rem; animation-delay: 5s; }
-.symbol-11 { top: 45%; right: 25%; font-size: 2.3rem; animation-delay: 5.5s; }
-.symbol-12 { bottom: 15%; left: 10%; font-size: 2.5rem; animation-delay: 6s; }
-.symbol-13 { top: 50%; left: 50%; font-size: 1.8rem; animation-delay: 6.5s; }
-.symbol-14 { bottom: 5%; right: 5%; font-size: 2.2rem; animation-delay: 7s; }
-.symbol-15 { top: 30%; right: 40%; font-size: 2.7rem; animation-delay: 7.5s; }
-.symbol-16 { top: 70%; right: 60%; font-size: 3rem; animation-delay: 8s; }
-.symbol-17 { bottom: 35%; left: 40%; font-size: 2.4rem; animation-delay: 8.5s; }
-.symbol-18 { top: 20%; left: 30%; font-size: 2.9rem; animation-delay: 9s; }
-.symbol-19 { bottom: 40%; right: 20%; font-size: 2.2rem; animation-delay: 9.5s; }
-.symbol-20 { top: 65%; left: 80%; font-size: 2.6rem; animation-delay: 10s; }
-.symbol-21 { bottom: 25%; left: 55%; font-size: 2.5rem; animation-delay: 10.5s; }
-.symbol-22 { top: 15%; right: 45%; font-size: 2.8rem; animation-delay: 11s; }
-.symbol-23 { bottom: 5%; left: 25%; font-size: 2.7rem; animation-delay: 11.5s; }
-.symbol-24 { top: 45%; right: 70%; font-size: 3rem; animation-delay: 12s; }
-.symbol-25 { top: 35%; left: 25%; font-size: 2.6rem; animation-delay: 12.5s; }
-.symbol-26 { bottom: 45%; right: 35%; font-size: 2.8rem; animation-delay: 13s; }
-.symbol-27 { top: 75%; left: 15%; font-size: 2.9rem; animation-delay: 13.5s; }
-
-
-/* 🌬️ Gentle floating animation */
-@keyframes floatAnimation {
-  0% {
-    transform: translateY(0px) rotate(0deg);
-    opacity: 0.3;
-  }
-  50% {
-    transform: translateY(-25px) rotate(15deg);
-    opacity: 0.6;
-  }
-  100% {
-    transform: translateY(0px) rotate(0deg);
-    opacity: 0.3;
-  }
+.auth-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 2rem;
 }
 
+.auth-card {
+  background: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 1.5rem;
+  padding: 2rem;
+  width: 350px;
+  max-width: 420px;
+  box-shadow: 0 0 30px rgba(0, 212, 255, 0.1);
+  position: relative;
+}
 
-/* ✨ Gradient Register / Login Button */
-.login-button {
-  --background: linear-gradient(90deg, #ff9966, #ff5e62);
-  --background-hover: linear-gradient(90deg, #ff5e62, #ff9966);
-  --background-activated: linear-gradient(90deg, #ff5e62, #ff9966);
-  --color: white;
+.auth-title {
+  font-size: 1.8rem;
+  text-align: center;
+  margin-bottom: 1.5rem;
+  color: #00d4ff;
+  letter-spacing: 1px;
+}
 
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.auth-input {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 0.75rem;
+  padding: 0.5rem 1rem;
+  color: white;
+}
+
+.auth-input ion-icon {
+  color: #00d4ff;
+  font-size: 1.2rem;
+}
+
+.auth-input ion-input {
+  --padding-start: 0;
+  color: white;
+}
+
+.auth-button {
+  --background: linear-gradient(135deg, #00d4ff, #0072ff);
+  --border-radius: 1rem;
   font-weight: bold;
   letter-spacing: 0.5px;
-  border-radius: 12px;
-
-  box-shadow: 0 4px 8px rgba(255, 94, 98, 0.3);
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  transition: 0.3s;
 }
 
-/* Hover and Active Effects */
-.login-button:hover {
-  transform: scale(1.05);
-  box-shadow: 0 6px 12px rgba(255, 94, 98, 0.4);
+.auth-button:hover {
+  filter: brightness(1.15);
 }
 
-.login-button:active {
-  transform: scale(0.98);
-  box-shadow: 0 3px 6px rgba(255, 94, 98, 0.25);
+.auth-terms {
+  margin-left: 0.5rem;
+  font-size: 0.85rem;
+  color: #ccc;
 }
-/* 🌈 Base Input Styling */
-ion-input {
-  position: relative;
-  --padding-start: 12px;
-  --padding-end: 12px;
-  --padding-top: 10px;
-  --padding-bottom: 10px;
-  --highlight-color-focused: transparent !important;
-  --highlight-color-invalid: transparent !important;
-  --highlight-color-valid: transparent !important;
-  outline: none !important;
-  box-shadow: none !important;
-  border: none;
-  color: #fff;
-  font-size: 1rem;
-  background: transparent;
+
+.auth-error {
   display: block;
+  text-align: center;
+  margin-top: 0.5rem;
+  font-size: 0.9rem;
 }
 
-/* 🪄 Remove Ionic's default underline + caret color */
-ion-input::part(native) {
-  border-bottom: none !important;
-  caret-color: #ff5e62 !important;
-  outline: none !important;
-  box-shadow: none !important;
-  background: transparent !important;
+.auth-footer {
+  text-align: center;
+  margin-top: 1rem;
+  font-size: 0.9rem;
+  color: #bbb;
 }
 
-/* ✨ Custom gradient underline effect */
-ion-input::after {
-  content: "";
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  height: 2px;
-  width: 0%;
-  background: linear-gradient(90deg, #ff9966, #ff5e62);
-  transition: width 0.4s ease-in-out;
+.auth-link {
+  color: #00d4ff;
+  text-decoration: none;
+  font-weight: 500;
 }
 
-/* 💫 Animate underline when focused or hovered */
-ion-input:focus-within::after,
-ion-input:hover::after {
-  width: 100%;
-}
-
-/* 🌷 Placeholder style */
-ion-input::part(placeholder) {
-  color: rgba(255, 255, 255, 0.6);
-}
-
-
-/* Optional subtle hover animation for menu items */
-ion-item:hover {
-  transform: translateX(4px);
-  transition: transform 0.2s ease;
+.auth-link:hover {
+  text-decoration: underline;
 }

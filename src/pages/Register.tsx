@@ -27,13 +27,10 @@ const Register: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [showAlert, setShowAlert] = useState(false);
 
-  // 🔠 Normalize + auto-capitalize
   const sanitizeInput = (text: string) => {
     if (!text) return "";
     const normalized = text.normalize("NFC").trim();
-    return (
-      normalized.charAt(0).toUpperCase() + normalized.slice(1).toLowerCase()
-    );
+    return normalized.charAt(0).toUpperCase() + normalized.slice(1).toLowerCase();
   };
 
   const handleRegister = async (e: React.FormEvent) => {
@@ -42,13 +39,7 @@ const Register: React.FC = () => {
     const cleanLastname = sanitizeInput(lastname);
     const cleanFirstname = sanitizeInput(firstname);
 
-    if (
-      !cleanLastname ||
-      !cleanFirstname ||
-      !email ||
-      !password ||
-      !confirmPassword
-    ) {
+    if (!cleanLastname || !cleanFirstname || !email || !password || !confirmPassword) {
       setError("Please fill in all fields.");
       return;
     }
@@ -73,7 +64,6 @@ const Register: React.FC = () => {
       });
 
       if (signUpError) throw signUpError;
-
       const user = data.user;
 
       if (!user) {
@@ -108,7 +98,6 @@ const Register: React.FC = () => {
     }
   };
 
-  // ✨ Floating math & physics symbols
   const symbols = [
     "+", "-", "×", "÷", "=", "%", "√", "π", "Σ",
     "0", "1", "2", "3", "4", "5", "6", "7", "8", "9",
@@ -118,80 +107,104 @@ const Register: React.FC = () => {
 
   return (
     <IonPage>
-      <IonContent className="login-bg" fullscreen>
-        {/* 🧮 Floating symbols animation */}
-        {symbols.map((symbol, index) => (
-          <motion.div
-            key={index}
-            className={`floating-symbol symbol-${index}`}
-            animate={{
-              y: [0, Math.random() * 50 - 25, 0],
-              x: [0, Math.random() * 30 - 15, 0],
-              rotate: [0, Math.random() * 30 - 15, 0],
-            }}
-            transition={{
-              duration: 3 + Math.random() * 4,
-              repeat: Infinity,
-              ease: "easeInOut",
-            }}
-          >
-            {symbol}
-          </motion.div>
-        ))}
-
-        {/* Register Form Card */}
+      <IonContent className="auth-bg" fullscreen style={{ overflow: "hidden", position: "relative" }}>
+        {/* ✨ Floating Math + Motion symbols that appear/disappear without causing scroll */}
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            overflow: "hidden",
+            zIndex: 1,
+            pointerEvents: "none",
+          }}
+        >
+          {symbols.map((symbol, index) => (
+            <motion.div
+              key={index}
+              className="floating-symbol"
+              initial={{
+                opacity: 0,
+                scale: 0.8,
+                x: Math.random() * window.innerWidth - window.innerWidth / 2,
+                y: Math.random() * window.innerHeight - window.innerHeight / 2,
+              }}
+              animate={{
+                opacity: [0, 1, 1, 0],
+                x: [Math.random() * 50 - 25, Math.random() * 50 - 25],
+                y: [Math.random() * 50 - 25, Math.random() * 50 - 25],
+                rotate: [0, Math.random() * 45 - 20, 0],
+                scale: [0.8, 1, 0.8],
+              }}
+              transition={{
+                duration: 4 + Math.random() * 3,
+                repeat: Infinity,
+                delay: Math.random() * 5,
+                ease: "easeInOut",
+              }}
+              style={{
+                position: "absolute",
+                top: `${Math.random() * 100}%`,
+                left: `${Math.random() * 100}%`,
+                transform: "translate(-50%, -50%)",
+                fontSize: `${Math.random() * 1.5 + 0.8}rem`,
+                color: "rgba(255, 255, 255, 0.25)",
+                pointerEvents: "none",
+                userSelect: "none",
+              }}
+            >
+              {symbol}
+            </motion.div>
+          ))}
+        </div>
+        {/* Register Card */}
         <motion.div
-          className="login-wrapper"
+          className="auth-container"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.8 }}
         >
           <motion.div
-            className="login-card"
+            className="auth-card"
             initial={{ scale: 0.9, y: 30, opacity: 0 }}
             animate={{ scale: 1, y: 0, opacity: 1 }}
             transition={{ duration: 0.6, ease: "easeOut" }}
           >
             <motion.h2
-              className="login-title"
+              className="auth-title"
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3, duration: 0.5 }}
             >
-              🪶 Register
+              🧮 Register
             </motion.h2>
 
             <motion.form
-              className="login-form"
+              className="auth-form"
               onSubmit={handleRegister}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.4, duration: 0.6 }}
             >
-              {/* Name Fields */}
               <motion.div
                 style={{ display: "flex", gap: "1rem", marginBottom: "1rem" }}
                 initial={{ opacity: 0, x: -30 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.5, duration: 0.5 }}
               >
-                <div className="login-input" style={{ flex: 1 }}>
+                <div className="auth-input" style={{ flex: 1 }}>
                   <IonIcon icon={personOutline} />
                   <IonInput
                     type="text"
-                    inputMode="text"
                     placeholder="Lastname"
                     value={lastname}
                     onIonChange={(e) => setLastname(e.detail.value ?? "")}
                     required
                   />
                 </div>
-
-                <div className="login-input" style={{ flex: 1 }}>
+                <div className="auth-input" style={{ flex: 1 }}>
                   <IonIcon icon={personOutline} />
                   <IonInput
                     type="text"
-                    inputMode="text"
                     placeholder="Firstname"
                     value={firstname}
                     onIonChange={(e) => setFirstname(e.detail.value ?? "")}
@@ -200,9 +213,8 @@ const Register: React.FC = () => {
                 </div>
               </motion.div>
 
-              {/* Email */}
               <motion.div
-                className="login-input"
+                className="auth-input"
                 initial={{ opacity: 0, x: 30 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.6, duration: 0.5 }}
@@ -217,9 +229,8 @@ const Register: React.FC = () => {
                 />
               </motion.div>
 
-              {/* Password */}
               <motion.div
-                className="login-input"
+                className="auth-input"
                 initial={{ opacity: 0, x: -30 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.7, duration: 0.5 }}
@@ -234,9 +245,8 @@ const Register: React.FC = () => {
                 />
               </motion.div>
 
-              {/* Confirm Password */}
               <motion.div
-                className="login-input"
+                className="auth-input"
                 initial={{ opacity: 0, x: 30 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.8, duration: 0.5 }}
@@ -251,13 +261,8 @@ const Register: React.FC = () => {
                 />
               </motion.div>
 
-              {/* Terms Checkbox */}
               <motion.div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  marginTop: "0.5rem",
-                }}
+                style={{ display: "flex", alignItems: "center", marginTop: "0.5rem" }}
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.9 }}
@@ -267,35 +272,19 @@ const Register: React.FC = () => {
                   onIonChange={(e) => setAgreeTerms(e.detail.checked)}
                   id="terms-checkbox"
                 />
-                <label
-                  htmlFor="terms-checkbox"
-                  style={{
-                    marginLeft: "0.5rem",
-                    fontSize: "0.875rem",
-                    cursor: "pointer",
-                  }}
-                >
+                <label htmlFor="terms-checkbox" className="auth-terms">
                   I agree to the terms and conditions
                 </label>
               </motion.div>
 
-              {/* Error Display */}
               {error && (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 1 }}
-                >
-                  <IonText
-                    color="danger"
-                    style={{ marginTop: "1rem", display: "block" }}
-                  >
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1 }}>
+                  <IonText color="danger" className="auth-error">
                     {error}
                   </IonText>
                 </motion.div>
               )}
 
-              {/* Submit Button */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -304,8 +293,7 @@ const Register: React.FC = () => {
                 <IonButton
                   expand="block"
                   type="submit"
-                  className="login-button"
-                  style={{ marginTop: "1rem" }}
+                  className="auth-button"
                   disabled={!agreeTerms || loading}
                 >
                   {loading ? "Registering..." : "Register"}
@@ -314,25 +302,23 @@ const Register: React.FC = () => {
             </motion.form>
 
             <motion.p
-              className="login-register"
-              style={{ marginTop: "1rem" }}
+              className="auth-footer"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 1.3 }}
             >
-              Have already an account?{" "}
-              <Link to="/education/login" className="login-link">
+              Already have an account?{" "}
+              <Link to="/education/login" className="auth-link">
                 Login here 🚀
               </Link>
             </motion.p>
           </motion.div>
         </motion.div>
 
-        {/* ✅ Modal Alert */}
         <IonAlert
           isOpen={showAlert}
           header="Confirm Your Email"
-          message="Registration successful! Please check your email and confirm your account before logging in."
+          message="Registration successful! Please check your email to confirm your account."
           buttons={[
             {
               text: "OK",

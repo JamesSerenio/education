@@ -1,7 +1,6 @@
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap');
 body, ion-app, ion-content, ion-input, ion-button, ion-label, ion-item, ion-text {
   font-family: 'Poppins', sans-serif !important;
-  letter-spacing: 0.3px;
 }
 
 

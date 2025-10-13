@@ -206,42 +206,326 @@ input:-webkit-autofill:focus {
   margin-top: 0.5rem;
   font-size: 0.85rem;
 }
+/* === ADMIN HOME === */
 
+/* --- Welcome Title --- */
 .admin-home h2.welcome-title {
   margin-bottom: 20px;
   font-size: 1.8rem;
+  font-weight: 700;
+  color: #333;
+  animation: fadeInDown 0.8s ease-out;
 }
 
-/* Stats cards */
+/* --- Stats Cards --- */
 .stats-grid ion-card {
   border-radius: 15px;
   box-shadow: 0 8px 20px rgba(0,0,0,0.2);
   color: #fff;
   text-align: center;
+  transform: scale(0.95);
+  opacity: 0;
+  animation: cardPop 0.8s ease forwards;
+  transition: all 0.4s ease;
 }
 
+.stats-grid ion-card:hover {
+  transform: translateY(-8px) scale(1.02);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25);
+}
+
+/* Gradient cards */
 .stats-grid .card-admin {
   background: linear-gradient(135deg, #28a745, #85e085);
+  animation-delay: 0.2s;
 }
 .stats-grid .card-users {
   background: linear-gradient(135deg, #007bff, #66c2ff);
+  animation-delay: 0.4s;
 }
 .stats-grid .card-total {
   background: linear-gradient(135deg, #ffc107, #ffe066);
+  animation-delay: 0.6s;
 }
 
+/* Card title numbers */
 .stats-grid h1 {
   font-size: 2.5rem;
   font-weight: bold;
+  animation: fadeInUp 1s ease-in-out;
 }
 
-/* Section title */
+/* --- Section Title --- */
 .section-title {
   margin-top: 30px;
   margin-bottom: 15px;
   font-size: 1.3rem;
   font-weight: bold;
   color: #333;
+  letter-spacing: 0.5px;
+  position: relative;
+  display: inline-block;
+  animation: fadeSlideIn 1s ease-out;
+}
+
+.section-title::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: -5px;
+  width: 60%;
+  height: 3px;
+  background: linear-gradient(90deg, #6f42c1, #e83e8c);
+  border-radius: 2px;
+  animation: growLine 1s ease-out;
+}
+
+/* --- Chart Section --- */
+.chart-section {
+  text-align: center;
+  margin: 40px 0;
+  animation: fadeInUp 1s ease-out;
+}
+
+.chart-title {
+  font-size: 1.6rem;
+  font-weight: 700;
+  margin-bottom: 20px;
+  color: #343a40;
+  animation: fadeSlideIn 0.9s ease-out;
+}
+
+/* Chart container animation */
+.chart-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  overflow-x: auto;
+  padding: 20px 0;
+  opacity: 0;
+  transform: translateY(20px);
+  animation: fadeUpSmooth 1s ease forwards;
+}
+
+.chart-container canvas {
+  width: 100%;
+  max-width: 900px;
+  height: 400px;
+  transition: transform 0.3s ease;
+}
+
+.chart-container canvas:hover {
+  transform: scale(1.02);
+}
+
+/* --- Responsive Adjustments for Mobile --- */
+@media (max-width: 768px) {
+  .chart-container canvas {
+    max-width: 95%;
+    height: 300px;
+  }
+
+  .chart-title {
+    font-size: 1.3rem;
+  }
+
+  .stats-grid ion-card {
+    margin-bottom: 12px;
+    animation: fadeInUp 0.8s ease forwards;
+  }
+
+  .admin-home h2.welcome-title {
+    font-size: 1.5rem;
+  }
+}
+
+/* === KEYFRAMES === */
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(15px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes cardPop {
+  from {
+    transform: scale(0.9);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes fadeSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-15px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes growLine {
+  from {
+    width: 0;
+  }
+  to {
+    width: 60%;
+  }
+}
+
+@keyframes fadeUpSmooth {
+  from {
+    opacity: 0;
+    transform: translateY(25px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+
+/* === RECENT LOGINS TABLE === */
+.recent-login-table {
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  overflow: hidden;
+  animation: fadeInUp 0.8s ease-out;
+}
+
+/* Pagination */
+.pagination-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 10px;
+  gap: 8px;
+}
+
+.pagination-count {
+  font-weight: 500;
+  color: #212529;
+}
+
+/* Table header */
+.table-header {
+  font-weight: bold;
+  background-color: #f5f5f5;
+  border-bottom: 2px solid #ccc;
+  display: flex;
+  align-items: center;
+  animation: slideDown 0.6s ease-out;
+}
+
+/* Table row animation + style */
+.table-row {
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid #e0e0e0;
+  opacity: 0;
+  transform: translateY(10px);
+  animation: fadeSlideIn 0.6s ease-out forwards;
+}
+
+.table-header ion-col,
+.table-row ion-col {
+  border-right: 1px solid #ddd;
+  padding: 10px;
+  font-size: 15px;
+}
+
+.table-header ion-col:last-child,
+.table-row ion-col:last-child {
+  border-right: none;
+}
+
+/* Hover glow effect */
+.table-row:hover {
+  background-color: #fafafa;
+  transform: scale(1.01);
+  transition: transform 0.2s ease, background-color 0.2s ease;
+}
+
+/* Stagger animation delay for each row */
+.table-row:nth-child(2) {
+  animation-delay: 0.1s;
+}
+.table-row:nth-child(3) {
+  animation-delay: 0.2s;
+}
+.table-row:nth-child(4) {
+  animation-delay: 0.3s;
+}
+.table-row:nth-child(5) {
+  animation-delay: 0.4s;
+}
+
+/* === Keyframes === */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-15px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* === Responsive for mobile === */
+@media (max-width: 768px) {
+  .table-header ion-col,
+  .table-row ion-col {
+    font-size: 13px;
+    padding: 8px;
+  }
+
+  .table-row:hover {
+    transform: none;
+  }
 }
 
 /* Recent logins cards */
@@ -285,20 +569,6 @@ input:-webkit-autofill:focus {
   flex: 2;
   text-align: right;
   font-family: "Courier New", monospace;
-}
-
-/* Pagination */
-.pagination-row {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 12px;
-  margin-top: 20px;
-}
-
-.pagination-count {
-  font-weight: 600;
-  color: #212529;
 }
 
 /* Table header */

@@ -11,7 +11,13 @@ import {
 import { useState } from "react";
 import { useHistory, Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { personOutline, mailOutline, lockClosedOutline } from "ionicons/icons";
+import {
+  personOutline,
+  mailOutline,
+  lockClosedOutline,
+  eyeOutline,
+  eyeOffOutline,
+} from "ionicons/icons";
 import { supabase } from "../utils/supabaseClient";
 
 const Register: React.FC = () => {
@@ -26,6 +32,10 @@ const Register: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [showAlert, setShowAlert] = useState(false);
+
+  // 👁️ show/hide toggles
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const sanitizeInput = (text: string) => {
     if (!text) return "";
@@ -88,11 +98,8 @@ const Register: React.FC = () => {
       setShowAlert(true);
     } catch (err) {
       console.error("Registration error:", err);
-      if (err instanceof Error) {
-        setError(err.message);
-      } else {
-        setError("An unexpected error occurred.");
-      }
+      if (err instanceof Error) setError(err.message);
+      else setError("An unexpected error occurred.");
     } finally {
       setLoading(false);
     }
@@ -108,7 +115,7 @@ const Register: React.FC = () => {
   return (
     <IonPage>
       <IonContent className="auth-bg" fullscreen style={{ overflow: "hidden", position: "relative" }}>
-        {/* ✨ Floating Math + Motion symbols that appear/disappear without causing scroll */}
+        {/* ✨ Floating Math Symbols */}
         <div
           style={{
             position: "absolute",
@@ -156,6 +163,7 @@ const Register: React.FC = () => {
             </motion.div>
           ))}
         </div>
+
         {/* Register Card */}
         <motion.div
           className="auth-container"
@@ -178,13 +186,8 @@ const Register: React.FC = () => {
               🧮 Register
             </motion.h2>
 
-            <motion.form
-              className="auth-form"
-              onSubmit={handleRegister}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.4, duration: 0.6 }}
-            >
+            <form className="auth-form" onSubmit={handleRegister}>
+              {/* Name Fields */}
               <motion.div
                 style={{ display: "flex", gap: "1rem", marginBottom: "1rem" }}
                 initial={{ opacity: 0, x: -30 }}
@@ -213,6 +216,7 @@ const Register: React.FC = () => {
                 </div>
               </motion.div>
 
+              {/* Email */}
               <motion.div
                 className="auth-input"
                 initial={{ opacity: 0, x: 30 }}
@@ -229,38 +233,53 @@ const Register: React.FC = () => {
                 />
               </motion.div>
 
+              {/* Password with Eye Toggle */}
               <motion.div
                 className="auth-input"
                 initial={{ opacity: 0, x: -30 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.7, duration: 0.5 }}
+                style={{ position: "relative" }}
               >
                 <IonIcon icon={lockClosedOutline} />
                 <IonInput
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   placeholder="Password"
                   value={password}
                   onIonChange={(e) => setPassword(e.detail.value ?? "")}
                   required
                 />
+                <IonIcon
+                  icon={showPassword ? eyeOffOutline : eyeOutline}
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="password-toggle"
+                />
               </motion.div>
 
+              {/* Confirm Password with Eye Toggle */}
               <motion.div
                 className="auth-input"
                 initial={{ opacity: 0, x: 30 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.8, duration: 0.5 }}
+                style={{ position: "relative" }}
               >
                 <IonIcon icon={lockClosedOutline} />
                 <IonInput
-                  type="password"
+                  type={showConfirmPassword ? "text" : "password"}
                   placeholder="Confirm Password"
                   value={confirmPassword}
                   onIonChange={(e) => setConfirmPassword(e.detail.value ?? "")}
                   required
                 />
+                <IonIcon
+                  icon={showConfirmPassword ? eyeOffOutline : eyeOutline}
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="password-toggle"
+                />
               </motion.div>
 
+              {/* Terms */}
               <motion.div
                 style={{ display: "flex", alignItems: "center", marginTop: "0.5rem" }}
                 initial={{ opacity: 0 }}
@@ -285,6 +304,7 @@ const Register: React.FC = () => {
                 </motion.div>
               )}
 
+              {/* Register Button */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -299,7 +319,7 @@ const Register: React.FC = () => {
                   {loading ? "Registering..." : "Register"}
                 </IonButton>
               </motion.div>
-            </motion.form>
+            </form>
 
             <motion.p
               className="auth-footer"

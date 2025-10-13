@@ -30,10 +30,41 @@ const Login: React.FC = () => {
     setLoading(true);
 
     try {
+      // Sign in with Supabase Auth
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
+
+      // Default role for logging
+      let roleToLog = "unregistered account";
+
+      // Fetch profile based on email
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("id, firstname, lastname, role")
+        .eq("email", email)
+        .maybeSingle();
+
+      if (profile && !profileError) {
+        roleToLog = profile.role || "user";
+
+        // Save to localStorage if login successful
+        if (data?.user) {
+          localStorage.setItem("profile_id", profile.id || "");
+          localStorage.setItem("firstname", profile.firstname || "");
+          localStorage.setItem("lastname", profile.lastname || "");
+          localStorage.setItem("role", profile.role || "user");
+        }
+      }
+
+      // Insert login attempt into login_logs
+      await supabase.from("login_logs").insert([
+        {
+          email,
+          role: roleToLog,
+        },
+      ]);
 
       if (error || !data.user) {
         setErrorMsg("Invalid email or password");
@@ -41,26 +72,11 @@ const Login: React.FC = () => {
         return;
       }
 
-      const { data: profile, error: profileError } = await supabase
-        .from("profiles")
-        .select("id, firstname, lastname, role")
-        .eq("id", data.user.id)
-        .maybeSingle();
-
-      if (profileError || !profile) {
-        setErrorMsg("Profile not found. Please contact admin.");
-        setLoading(false);
-        return;
-      }
-
-      localStorage.setItem("profile_id", profile.id || "");
-      localStorage.setItem("firstname", profile.firstname || "");
-      localStorage.setItem("lastname", profile.lastname || "");
-      localStorage.setItem("role", profile.role || "user");
-
       setLoading(false);
+
+      // Redirect based on role
       history.push(
-        profile.role === "admin"
+        roleToLog === "admin"
           ? "/education/admin/admin_dashboard"
           : "/education/home"
       );
@@ -71,7 +87,7 @@ const Login: React.FC = () => {
     }
   };
 
-  // ✨ Floating math + motion symbols
+  // Floating math symbols for background
   const mathSymbols = [
     "+", "-", "×", "÷", "=", "%", "√", "π", "Σ",
     "0", "1", "2", "3", "4", "5", "6", "7", "8", "9",
@@ -158,7 +174,7 @@ const Login: React.FC = () => {
                 />
               </motion.div>
 
-              {/* Password with always-visible eye icon */}
+              {/* Password with toggle eye */}
               <motion.div
                 className="auth-input password-input"
                 initial={{ opacity: 0, x: 20 }}

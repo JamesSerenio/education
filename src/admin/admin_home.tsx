@@ -9,40 +9,35 @@ interface UserStats {
   total: number;
 }
 
+interface LoginLog {
+  id: string;
+  email: string;
+  role: string;
+  logged_in_at: string;
+}
+
 const AdminHome: React.FC = () => {
-  const [stats, setStats] = useState<UserStats>({
-    admin: 0,
-    user: 0,
-    total: 0,
-  });
+  const [stats, setStats] = useState<UserStats>({ admin: 0, user: 0, total: 0 });
+  const [animatedStats, setAnimatedStats] = useState<UserStats>({ admin: 0, user: 0, total: 0 });
+  const [recentLogins, setRecentLogins] = useState<LoginLog[]>([]);
 
-  const [animatedStats, setAnimatedStats] = useState<UserStats>({
-    admin: 0,
-    user: 0,
-    total: 0,
-  });
-
-  // Fetch stats from Supabase
+  // Fetch stats
   useEffect(() => {
     const fetchStats = async () => {
-      // Count admin users
       const { count: adminCount } = await supabase
         .from("profiles")
         .select("*", { count: "exact" })
         .eq("role", "admin");
 
-      // Count regular users
       const { count: userCount } = await supabase
         .from("profiles")
         .select("*", { count: "exact" })
         .eq("role", "user");
 
-      const totalCount = (adminCount || 0) + (userCount || 0);
-
       setStats({
         admin: adminCount || 0,
         user: userCount || 0,
-        total: totalCount,
+        total: (adminCount || 0) + (userCount || 0),
       });
     };
 
@@ -71,6 +66,23 @@ const AdminHome: React.FC = () => {
     return () => clearInterval(interval);
   }, [stats]);
 
+  // Fetch recent logins
+  useEffect(() => {
+    const fetchLogins = async () => {
+      const { data, error } = await supabase
+        .from("login_logs")
+        .select("*")
+        .order("logged_in_at", { ascending: false })
+        .limit(10);
+
+      if (!error && data) {
+        setRecentLogins(data);
+      }
+    };
+
+    fetchLogins();
+  }, []);
+
   const cardVariants = {
     hidden: { opacity: 0, y: 20 },
     visible: (i: number) => ({
@@ -94,7 +106,6 @@ const AdminHome: React.FC = () => {
         {/* Stats Cards */}
         <IonGrid>
           <IonRow>
-            {/* Admin Users */}
             <IonCol size="12" sizeMd="4">
               <motion.div custom={0} initial="hidden" animate="visible" variants={cardVariants}>
                 <IonCard style={{ borderRadius: "15px", boxShadow: "0 8px 20px rgba(0,0,0,0.2)", background: "linear-gradient(135deg, #28a745, #85e085)" }}>
@@ -108,7 +119,6 @@ const AdminHome: React.FC = () => {
               </motion.div>
             </IonCol>
 
-            {/* Users */}
             <IonCol size="12" sizeMd="4">
               <motion.div custom={1} initial="hidden" animate="visible" variants={cardVariants}>
                 <IonCard style={{ borderRadius: "15px", boxShadow: "0 8px 20px rgba(0,0,0,0.2)", background: "linear-gradient(135deg, #007bff, #66c2ff)" }}>
@@ -122,7 +132,6 @@ const AdminHome: React.FC = () => {
               </motion.div>
             </IonCol>
 
-            {/* Total Users */}
             <IonCol size="12" sizeMd="4">
               <motion.div custom={2} initial="hidden" animate="visible" variants={cardVariants}>
                 <IonCard style={{ borderRadius: "15px", boxShadow: "0 8px 20px rgba(0,0,0,0.2)", background: "linear-gradient(135deg, #ffc107, #ffe066)" }}>
@@ -137,10 +146,26 @@ const AdminHome: React.FC = () => {
             </IonCol>
           </IonRow>
         </IonGrid>
+
+        {/* Recent Logins Table */}
+        <h3 style={{ marginTop: "30px", marginBottom: "15px" }}>Recent Logins</h3>
+        <IonGrid>
+          <IonRow style={{ fontWeight: "bold", borderBottom: "2px solid #ccc", paddingBottom: "10px" }}>
+            <IonCol>Email</IonCol>
+            <IonCol>Role</IonCol>
+            <IonCol>Date & Time</IonCol>
+          </IonRow>
+          {recentLogins.map((login) => (
+            <IonRow key={login.id} style={{ padding: "10px 0", borderBottom: "1px solid #eee" }}>
+              <IonCol>{login.email}</IonCol>
+              <IonCol>{login.role}</IonCol>
+              <IonCol>{new Date(login.logged_in_at).toLocaleString()}</IonCol>
+            </IonRow>
+          ))}
+        </IonGrid>
       </IonContent>
     </IonPage>
   );
 };
 
 export default AdminHome;
-

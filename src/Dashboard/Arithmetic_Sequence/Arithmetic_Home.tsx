@@ -1,17 +1,12 @@
-import {
-  IonContent,
-  IonPage,
-  IonButton,
-} from "@ionic/react";
-import { useState } from "react";
-import Arithmetic_Practice from "./Arithmetic_Practice"; // import mo yung file
+import React, { useState } from "react";
+import { IonContent, IonPage, IonButton } from "@ionic/react";
+import { motion } from "framer-motion";
+import Arithmetic_Practice from "./Arithmetic_Practice";
 
 const Arithmetic_Home: React.FC = () => {
   const [showPractice, setShowPractice] = useState(false);
 
-  const handleStartQuiz = () => {
-    setShowPractice(true); // instead of redirect, show the practice component
-  };
+  const handleStartQuiz = () => setShowPractice(true);
 
   return (
     <IonPage>
@@ -27,26 +22,38 @@ const Arithmetic_Home: React.FC = () => {
               backgroundColor: "#f8f9fa",
             }}
           >
-            <IonButton
-              expand="block"
-              size="large"
-              color="primary"
-              onClick={handleStartQuiz}
-              style={{
-                maxWidth: "250px",
-                textTransform: "none",
-                padding: "20px 10px",
-              }}
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ duration: 0.5, ease: "easeOut" }}
             >
-              <div style={{ textAlign: "center", lineHeight: "1.2" }}>
-                <div style={{ fontSize: "25px", fontWeight: "bold" }}>Start</div>
-                <div style={{ fontSize: "25px", fontWeight: "bold" }}>The Quiz</div>
-              </div>
-            </IonButton>
+              <IonButton
+                expand="block"
+                size="large"
+                color="primary"
+                onClick={handleStartQuiz}
+                style={{
+                  maxWidth: "250px",
+                  textTransform: "none",
+                  padding: "20px 10px",
+                }}
+              >
+                <div style={{ textAlign: "center", lineHeight: "1.2" }}>
+                  <div style={{ fontSize: "25px", fontWeight: "bold" }}>Start</div>
+                  <div style={{ fontSize: "25px", fontWeight: "bold" }}>The Quiz</div>
+                </div>
+              </IonButton>
+            </motion.div>
           </div>
         ) : (
-          // 👉 Show Arithmetic Practice directly here
-          <Arithmetic_Practice />
+          // 👉 Show Arithmetic Practice directly
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.5 }}
+          >
+            <Arithmetic_Practice />
+          </motion.div>
         )}
       </IonContent>
     </IonPage>

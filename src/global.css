@@ -81,6 +81,7 @@ input:-webkit-autofill:focus {
 .auth-input ion-input {
   --padding-start: 0;
   color: white;
+  font-size: 0.8rem;
 }
 
 .auth-button {
@@ -125,21 +126,3 @@ input:-webkit-autofill:focus {
   text-decoration: underline;
 }
 
-/* Layout for Lastname / Firstname */
-.name-row {
-  display: flex;
-  gap: 1rem;
-  width: 100%;
-}
-
-/* Responsive behavior for small screens */
-@media (max-width: 600px) {
-  .name-row {
-    flex-direction: column; /* Stack vertically */
-    gap: 0.75rem;
-  }
-
-  .auth-input {
-    width: 100% !important;
-  }
-}

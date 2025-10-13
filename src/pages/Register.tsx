@@ -191,28 +191,25 @@ const Register: React.FC = () => {
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.5, duration: 0.5 }}
               >
-                <div className="name-row">
-                  <div className="auth-input" style={{ flex: 1 }}>
-                    <IonIcon icon={personOutline} />
-                    <IonInput
-                      type="text"
-                      placeholder="Lastname"
-                      value={lastname}
-                      onIonChange={(e) => setLastname(e.detail.value ?? "")}
-                      required
-                    />
-                  </div>
-
-                  <div className="auth-input" style={{ flex: 1 }}>
-                    <IonIcon icon={personOutline} />
-                    <IonInput
-                      type="text"
-                      placeholder="Firstname"
-                      value={firstname}
-                      onIonChange={(e) => setFirstname(e.detail.value ?? "")}
-                      required
-                    />
-                  </div>
+                <div className="auth-input" style={{ flex: 1 }}>
+                  <IonIcon icon={personOutline} />
+                  <IonInput
+                    type="text"
+                    placeholder="Lastname"
+                    value={lastname}
+                    onIonChange={(e) => setLastname(e.detail.value ?? "")}
+                    required
+                  />
+                </div>
+                <div className="auth-input" style={{ flex: 1 }}>
+                  <IonIcon icon={personOutline} />
+                  <IonInput
+                    type="text"
+                    placeholder="Firstname"
+                    value={firstname}
+                    onIonChange={(e) => setFirstname(e.detail.value ?? "")}
+                    required
+                  />
                 </div>
               </motion.div>
 

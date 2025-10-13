@@ -68,6 +68,20 @@ const Register: React.FC = () => {
     setLoading(true);
 
     try {
+      // 🔹 Check if email already exists
+      const { data: existingUser } = await supabase
+        .from("profiles")
+        .select("email")
+        .eq("email", email.toLowerCase())
+        .single();
+
+      if (existingUser) {
+        setError("You are already registered! Please login instead.");
+        setLoading(false);
+        return;
+      }
+
+      // 🔹 Register new user
       const { data, error: signUpError } = await supabase.auth.signUp({
         email: email.toLowerCase(),
         password,
@@ -82,6 +96,7 @@ const Register: React.FC = () => {
         return;
       }
 
+      // 🔹 Insert profile
       const { error: profileError } = await supabase.from("profiles").insert([
         {
           id: user.id,
@@ -95,6 +110,7 @@ const Register: React.FC = () => {
 
       if (profileError) throw profileError;
 
+      // ✅ Show success alert
       setShowAlert(true);
     } catch (err) {
       console.error("Registration error:", err);
@@ -116,15 +132,7 @@ const Register: React.FC = () => {
     <IonPage>
       <IonContent className="auth-bg" fullscreen style={{ overflow: "hidden", position: "relative" }}>
         {/* ✨ Floating Math Symbols */}
-        <div
-          style={{
-            position: "absolute",
-            inset: 0,
-            overflow: "hidden",
-            zIndex: 1,
-            pointerEvents: "none",
-          }}
-        >
+        <div style={{ position: "absolute", inset: 0, overflow: "hidden", zIndex: 1, pointerEvents: "none" }}>
           {symbols.map((symbol, index) => (
             <motion.div
               key={index}
@@ -165,132 +173,48 @@ const Register: React.FC = () => {
         </div>
 
         {/* Register Card */}
-        <motion.div
-          className="auth-container"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.8 }}
-        >
-          <motion.div
-            className="auth-card register-card"
-            initial={{ scale: 0.9, y: 30, opacity: 0 }}
-            animate={{ scale: 1, y: 0, opacity: 1 }}
-            transition={{ duration: 0.6, ease: "easeOut" }}
-          >
-            <motion.h2
-              className="auth-title"
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3, duration: 0.5 }}
-            >
+        <motion.div className="auth-container" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.8 }}>
+          <motion.div className="auth-card register-card" initial={{ scale: 0.9, y: 30, opacity: 0 }} animate={{ scale: 1, y: 0, opacity: 1 }} transition={{ duration: 0.6, ease: "easeOut" }}>
+            <motion.h2 className="auth-title" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3, duration: 0.5 }}>
               🧮 Register
             </motion.h2>
 
             <form className="auth-form" onSubmit={handleRegister}>
               {/* Name Fields */}
-              <motion.div
-                style={{ display: "flex", gap: "1rem", marginBottom: "1rem" }}
-                initial={{ opacity: 0, x: -30 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.5, duration: 0.5 }}
-              >
+              <motion.div style={{ display: "flex", gap: "1rem", marginBottom: "1rem" }} initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.5, duration: 0.5 }}>
                 <div className="auth-input" style={{ flex: 1 }}>
                   <IonIcon icon={personOutline} />
-                  <IonInput
-                    type="text"
-                    placeholder="Lastname"
-                    value={lastname}
-                    onIonChange={(e) => setLastname(e.detail.value ?? "")}
-                    required
-                  />
+                  <IonInput type="text" placeholder="Lastname" value={lastname} onIonChange={(e) => setLastname(e.detail.value ?? "")} required />
                 </div>
                 <div className="auth-input" style={{ flex: 1 }}>
                   <IonIcon icon={personOutline} />
-                  <IonInput
-                    type="text"
-                    placeholder="Firstname"
-                    value={firstname}
-                    onIonChange={(e) => setFirstname(e.detail.value ?? "")}
-                    required
-                  />
+                  <IonInput type="text" placeholder="Firstname" value={firstname} onIonChange={(e) => setFirstname(e.detail.value ?? "")} required />
                 </div>
               </motion.div>
 
               {/* Email */}
-              <motion.div
-                className="auth-input"
-                initial={{ opacity: 0, x: 30 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.6, duration: 0.5 }}
-              >
+              <motion.div className="auth-input" initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.6, duration: 0.5 }}>
                 <IonIcon icon={mailOutline} />
-                <IonInput
-                  type="email"
-                  placeholder="Email"
-                  value={email}
-                  onIonChange={(e) => setEmail(e.detail.value ?? "")}
-                  required
-                />
+                <IonInput type="email" placeholder="Email" value={email} onIonChange={(e) => setEmail(e.detail.value ?? "")} required />
               </motion.div>
 
               {/* Password with Eye Toggle */}
-              <motion.div
-                className="auth-input"
-                initial={{ opacity: 0, x: -30 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.7, duration: 0.5 }}
-                style={{ position: "relative" }}
-              >
+              <motion.div className="auth-input" initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.7, duration: 0.5 }} style={{ position: "relative" }}>
                 <IonIcon icon={lockClosedOutline} />
-                <IonInput
-                  type={showPassword ? "text" : "password"}
-                  placeholder="Password"
-                  value={password}
-                  onIonChange={(e) => setPassword(e.detail.value ?? "")}
-                  required
-                />
-                <IonIcon
-                  icon={showPassword ? eyeOffOutline : eyeOutline}
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="password-toggle"
-                />
+                <IonInput type={showPassword ? "text" : "password"} placeholder="Password" value={password} onIonChange={(e) => setPassword(e.detail.value ?? "")} required />
+                <IonIcon icon={showPassword ? eyeOffOutline : eyeOutline} onClick={() => setShowPassword(!showPassword)} className="password-toggle" />
               </motion.div>
 
               {/* Confirm Password with Eye Toggle */}
-              <motion.div
-                className="auth-input"
-                initial={{ opacity: 0, x: 30 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.8, duration: 0.5 }}
-                style={{ position: "relative" }}
-              >
+              <motion.div className="auth-input" initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.8, duration: 0.5 }} style={{ position: "relative" }}>
                 <IonIcon icon={lockClosedOutline} />
-                <IonInput
-                  type={showConfirmPassword ? "text" : "password"}
-                  placeholder="Confirm Password"
-                  value={confirmPassword}
-                  onIonChange={(e) => setConfirmPassword(e.detail.value ?? "")}
-                  required
-                />
-                <IonIcon
-                  icon={showConfirmPassword ? eyeOffOutline : eyeOutline}
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="password-toggle"
-                />
+                <IonInput type={showConfirmPassword ? "text" : "password"} placeholder="Confirm Password" value={confirmPassword} onIonChange={(e) => setConfirmPassword(e.detail.value ?? "")} required />
+                <IonIcon icon={showConfirmPassword ? eyeOffOutline : eyeOutline} onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="password-toggle" />
               </motion.div>
 
               {/* Terms */}
-              <motion.div
-                style={{ display: "flex", alignItems: "center", marginTop: "0.5rem" }}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.9 }}
-              >
-                <IonCheckbox
-                  checked={agreeTerms}
-                  onIonChange={(e) => setAgreeTerms(e.detail.checked)}
-                  id="terms-checkbox"
-                />
+              <motion.div style={{ display: "flex", alignItems: "center", marginTop: "0.5rem" }} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.9 }}>
+                <IonCheckbox checked={agreeTerms} onIonChange={(e) => setAgreeTerms(e.detail.checked)} id="terms-checkbox" />
                 <label htmlFor="terms-checkbox" className="auth-terms">
                   I agree to the terms and conditions
                 </label>
@@ -305,32 +229,15 @@ const Register: React.FC = () => {
               )}
 
               {/* Register Button */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 1.1, duration: 0.5 }}
-              >
-                <IonButton
-                  expand="block"
-                  type="submit"
-                  className="auth-button"
-                  disabled={!agreeTerms || loading}
-                >
+              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 1.1, duration: 0.5 }}>
+                <IonButton expand="block" type="submit" className="auth-button" disabled={!agreeTerms || loading}>
                   {loading ? "Registering..." : "Register"}
                 </IonButton>
               </motion.div>
             </form>
 
-            <motion.p
-              className="auth-footer"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 1.3 }}
-            >
-              Already have an account?{" "}
-              <Link to="/education/login" className="auth-link">
-                Login here 🚀
-              </Link>
+            <motion.p className="auth-footer" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.3 }}>
+              Already have an account? <Link to="/education/login" className="auth-link">Login here 🚀</Link>
             </motion.p>
           </motion.div>
         </motion.div>

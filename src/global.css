@@ -140,3 +140,37 @@ input:-webkit-autofill:focus {
   from { opacity: 0; transform: translateY(-4px); }
   to { opacity: 1; transform: translateY(0); }
 }
+
+/* Eye toggle button - always visible, blue, and clickable */
+.password-input {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.toggle-btn {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  outline: none;
+  cursor: pointer;
+  color: #1e90ff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 5;
+  font-size: 22px;
+  transition: color 0.2s ease, transform 0.2s ease;
+}
+
+.toggle-btn:hover {
+  color: #63b3ed;
+  transform: translateY(-50%) scale(1.1);
+}
+
+.toggle-btn ion-icon {
+  pointer-events: none;
+}

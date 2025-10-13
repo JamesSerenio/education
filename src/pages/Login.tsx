@@ -5,7 +5,12 @@ import {
   IonButton,
   IonIcon,
 } from "@ionic/react";
-import { mailOutline, lockClosedOutline } from "ionicons/icons";
+import {
+  mailOutline,
+  lockClosedOutline,
+  eyeOutline,
+  eyeOffOutline,
+} from "ionicons/icons";
 import { useState } from "react";
 import { Link, useHistory } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -14,6 +19,7 @@ import { supabase } from "../utils/supabaseClient";
 const Login: React.FC = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const history = useHistory();
@@ -76,14 +82,14 @@ const Login: React.FC = () => {
   return (
     <IonPage>
       <IonContent className="auth-bg" fullscreen>
-        {/* ✨ Floating animated math & physics symbols */}
+        {/* Floating math symbols */}
         <div
           style={{
             position: "absolute",
             inset: 0,
             overflow: "hidden",
             zIndex: 1,
-            pointerEvents: "none", // ⚡ prevents scroll/click blocking
+            pointerEvents: "none",
           }}
         >
           {mathSymbols.map((symbol, index) => (
@@ -116,7 +122,7 @@ const Login: React.FC = () => {
           ))}
         </div>
 
-        {/* 🔐 Main Login Card */}
+        {/* Login Card */}
         <div className="auth-container">
           <motion.div
             className="auth-card"
@@ -135,6 +141,7 @@ const Login: React.FC = () => {
             </motion.h2>
 
             <form className="auth-form" onSubmit={handleSubmit}>
+              {/* Email */}
               <motion.div
                 className="auth-input"
                 initial={{ opacity: 0, x: -20 }}
@@ -151,20 +158,30 @@ const Login: React.FC = () => {
                 />
               </motion.div>
 
+              {/* Password with always-visible eye icon */}
               <motion.div
-                className="auth-input"
+                className="auth-input password-input"
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.5, duration: 0.5 }}
               >
                 <IonIcon icon={lockClosedOutline} />
                 <IonInput
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   placeholder="Enter your password"
                   value={password}
                   onIonChange={(e) => setPassword(e.detail.value || "")}
                   required
                 />
+                <button
+                  type="button"
+                  className="toggle-btn"
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  <IonIcon
+                    icon={showPassword ? eyeOffOutline : eyeOutline}
+                  />
+                </button>
               </motion.div>
 
               {errorMsg && <p className="auth-error">{errorMsg}</p>}

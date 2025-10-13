@@ -12,8 +12,11 @@ import {
   IonCardHeader,
   IonCardTitle,
   IonCardContent,
+  IonButton,
+  IonIcon,
 } from "@ionic/react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
+import { chevronDownOutline, chevronUpOutline } from "ionicons/icons";
 import { supabase } from "../utils/supabaseClient";
 
 interface UserStats {
@@ -26,13 +29,15 @@ interface LoginLog {
   id: string;
   email: string;
   role: string;
-  login_at: string; // match your table column
+  login_at: string;
 }
 
 const AdminHome: React.FC = () => {
   const [stats, setStats] = useState<UserStats>({ admin: 0, user: 0, total: 0 });
   const [animatedStats, setAnimatedStats] = useState<UserStats>({ admin: 0, user: 0, total: 0 });
   const [recentLogins, setRecentLogins] = useState<LoginLog[]>([]);
+  const [currentPage, setCurrentPage] = useState(0);
+  const itemsPerPage = 5;
 
   // Fetch stats
   useEffect(() => {
@@ -53,48 +58,56 @@ const AdminHome: React.FC = () => {
         total: (adminCount || 0) + (userCount || 0),
       });
     };
-
     fetchStats();
   }, []);
 
-  // Animate numbers counting up
+  // Animate numbers
   useEffect(() => {
     const duration = 1000;
     const steps = 60;
+    let step = 0;
     const incrementAdmin = stats.admin / steps;
     const incrementUser = stats.user / steps;
     const incrementTotal = stats.total / steps;
 
-    let currentStep = 0;
     const interval = setInterval(() => {
-      currentStep++;
+      step++;
       setAnimatedStats({
-        admin: Math.min(Math.round(incrementAdmin * currentStep), stats.admin),
-        user: Math.min(Math.round(incrementUser * currentStep), stats.user),
-        total: Math.min(Math.round(incrementTotal * currentStep), stats.total),
+        admin: Math.min(Math.round(incrementAdmin * step), stats.admin),
+        user: Math.min(Math.round(incrementUser * step), stats.user),
+        total: Math.min(Math.round(incrementTotal * step), stats.total),
       });
-      if (currentStep >= steps) clearInterval(interval);
+      if (step >= steps) clearInterval(interval);
     }, duration / steps);
 
     return () => clearInterval(interval);
   }, [stats]);
 
-  // Fetch recent logins
+  // Fetch logins
   useEffect(() => {
     const fetchLogins = async () => {
       const { data, error } = await supabase
         .from("login_logs")
         .select("*")
-        .order("login_at", { ascending: false }) // match your table
-        .limit(10);
+        .order("login_at", { ascending: false });
 
-      if (!error && data) {
-        setRecentLogins(data);
-      }
+      if (!error && data) setRecentLogins(data);
     };
-
     fetchLogins();
   }, []);
+
+  const totalItems = recentLogins.length;
+  const startIndex = currentPage * itemsPerPage;
+  const endIndex = Math.min(startIndex + itemsPerPage, totalItems);
+  const currentLogs = recentLogins.slice(startIndex, endIndex);
+
+  const handleNext = () => {
+    if (endIndex < totalItems) setCurrentPage((prev) => prev + 1);
+  };
+
+  const handlePrev = () => {
+    if (currentPage > 0) setCurrentPage((prev) => prev - 1);
+  };
 
   const cardVariants = {
     hidden: { opacity: 0, y: 20 },
@@ -105,6 +118,12 @@ const AdminHome: React.FC = () => {
     }),
   };
 
+  const rowVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.5 } },
+    exit: { opacity: 0, y: -20, transition: { duration: 0.5 } },
+  };
+
   return (
     <IonPage>
       <IonHeader>
@@ -113,20 +132,22 @@ const AdminHome: React.FC = () => {
         </IonToolbar>
       </IonHeader>
 
-      <IonContent className="ion-padding">
-        <h2 style={{ marginBottom: "20px" }}>Welcome, <b>Admin</b></h2>
+      <IonContent className="ion-padding admin-home">
+        <h2 className="welcome-title">
+          Welcome, <b>Admin</b>
+        </h2>
 
-        {/* Stats Cards */}
-        <IonGrid>
+        {/* Stats Section */}
+        <IonGrid className="stats-grid">
           <IonRow>
             <IonCol size="12" sizeMd="4">
               <motion.div custom={0} initial="hidden" animate="visible" variants={cardVariants}>
-                <IonCard style={{ borderRadius: "15px", boxShadow: "0 8px 20px rgba(0,0,0,0.2)", background: "linear-gradient(135deg, #28a745, #85e085)" }}>
+                <IonCard className="card-admin">
                   <IonCardHeader>
-                    <IonCardTitle style={{ color: "#fff", fontWeight: "bold" }}>Admin Users</IonCardTitle>
+                    <IonCardTitle>Admin Users</IonCardTitle>
                   </IonCardHeader>
                   <IonCardContent>
-                    <h1 style={{ color: "#fff", fontSize: "2.5rem", fontWeight: "bold" }}>{animatedStats.admin}</h1>
+                    <h1>{animatedStats.admin}</h1>
                   </IonCardContent>
                 </IonCard>
               </motion.div>
@@ -134,12 +155,12 @@ const AdminHome: React.FC = () => {
 
             <IonCol size="12" sizeMd="4">
               <motion.div custom={1} initial="hidden" animate="visible" variants={cardVariants}>
-                <IonCard style={{ borderRadius: "15px", boxShadow: "0 8px 20px rgba(0,0,0,0.2)", background: "linear-gradient(135deg, #007bff, #66c2ff)" }}>
+                <IonCard className="card-users">
                   <IonCardHeader>
-                    <IonCardTitle style={{ color: "#fff", fontWeight: "bold" }}>Users</IonCardTitle>
+                    <IonCardTitle>Users</IonCardTitle>
                   </IonCardHeader>
                   <IonCardContent>
-                    <h1 style={{ color: "#fff", fontSize: "2.5rem", fontWeight: "bold" }}>{animatedStats.user}</h1>
+                    <h1>{animatedStats.user}</h1>
                   </IonCardContent>
                 </IonCard>
               </motion.div>
@@ -147,12 +168,12 @@ const AdminHome: React.FC = () => {
 
             <IonCol size="12" sizeMd="4">
               <motion.div custom={2} initial="hidden" animate="visible" variants={cardVariants}>
-                <IonCard style={{ borderRadius: "15px", boxShadow: "0 8px 20px rgba(0,0,0,0.2)", background: "linear-gradient(135deg, #ffc107, #ffe066)" }}>
+                <IonCard className="card-total">
                   <IonCardHeader>
-                    <IonCardTitle style={{ color: "#fff", fontWeight: "bold" }}>Total Users</IonCardTitle>
+                    <IonCardTitle>Total Users</IonCardTitle>
                   </IonCardHeader>
                   <IonCardContent>
-                    <h1 style={{ color: "#fff", fontSize: "2.5rem", fontWeight: "bold" }}>{animatedStats.total}</h1>
+                    <h1>{animatedStats.total}</h1>
                   </IonCardContent>
                 </IonCard>
               </motion.div>
@@ -160,21 +181,47 @@ const AdminHome: React.FC = () => {
           </IonRow>
         </IonGrid>
 
-        {/* Recent Logins Table */}
-        <h3 style={{ marginTop: "30px", marginBottom: "15px" }}>Recent Logins</h3>
+        {/* Recent Logins Section */}
+        <h3 className="section-title">Recent Logins</h3>
+
         <IonGrid>
-          <IonRow style={{ fontWeight: "bold", borderBottom: "2px solid #ccc", paddingBottom: "10px" }}>
+          <IonRow className="table-header">
             <IonCol>Email</IonCol>
             <IonCol>Role</IonCol>
             <IonCol>Date & Time</IonCol>
           </IonRow>
-          {recentLogins.map((login) => (
-            <IonRow key={login.id} style={{ padding: "10px 0", borderBottom: "1px solid #eee" }}>
-              <IonCol>{login.email}</IonCol>
-              <IonCol>{login.role}</IonCol>
-              <IonCol>{new Date(login.login_at).toLocaleString()}</IonCol>
-            </IonRow>
-          ))}
+
+          <AnimatePresence>
+            {currentLogs.map((login) => (
+              <motion.div
+                key={login.id}
+                initial="hidden"
+                animate="visible"
+                exit="exit"
+                variants={rowVariants}
+                className="table-row"
+              >
+                <IonCol>{login.email}</IonCol>
+                <IonCol>{login.role}</IonCol>
+                <IonCol>{new Date(login.login_at).toLocaleString()}</IonCol>
+              </motion.div>
+            ))}
+          </AnimatePresence>
+
+          {/* Pagination */}
+          <IonRow className="pagination-row">
+            <IonButton fill="clear" disabled={currentPage === 0} onClick={handlePrev}>
+              <IonIcon icon={chevronUpOutline} />
+            </IonButton>
+
+            <span className="pagination-count">
+              {endIndex}/{totalItems}
+            </span>
+
+            <IonButton fill="clear" disabled={endIndex >= totalItems} onClick={handleNext}>
+              <IonIcon icon={chevronDownOutline} />
+            </IonButton>
+          </IonRow>
         </IonGrid>
       </IonContent>
     </IonPage>

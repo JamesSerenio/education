@@ -206,3 +206,71 @@ input:-webkit-autofill:focus {
   margin-top: 0.5rem;
   font-size: 0.85rem;
 }
+
+/* AdminHome Styles */
+.admin-home h2.welcome-title {
+  margin-bottom: 20px;
+  font-size: 1.8rem;
+}
+
+.stats-grid ion-card {
+  border-radius: 15px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+  color: #fff;
+  text-align: center;
+}
+
+.stats-grid .card-admin {
+  background: linear-gradient(135deg, #28a745, #85e085);
+}
+.stats-grid .card-users {
+  background: linear-gradient(135deg, #007bff, #66c2ff);
+}
+.stats-grid .card-total {
+  background: linear-gradient(135deg, #ffc107, #ffe066);
+}
+
+.stats-grid h1 {
+  font-size: 2.5rem;
+  font-weight: bold;
+}
+
+.section-title {
+  margin-top: 30px;
+  margin-bottom: 15px;
+  font-size: 1.3rem;
+  font-weight: bold;
+}
+
+.table-header {
+  font-weight: bold;
+  border-bottom: 2px solid #ccc;
+  padding-bottom: 10px;
+}
+
+.table-row {
+  display: flex;
+  padding: 10px;
+  border-bottom: 1px solid #eee;
+  border-radius: 8px;
+  background-color: #fff;
+  margin-bottom: 5px;
+  align-items: center;
+}
+
+.table-row:hover {
+  background-color: #f0f8ff;
+  transition: background-color 0.3s;
+}
+
+.pagination-row {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  margin-top: 15px;
+}
+
+.pagination-count {
+  font-weight: bold;
+}

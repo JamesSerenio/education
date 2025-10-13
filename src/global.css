@@ -75,13 +75,13 @@ input:-webkit-autofill:focus {
 
 .auth-input ion-icon {
   color: #00d4ff;
-  font-size: 1.2rem;
+  font-size: 1rem;
 }
 
 .auth-input ion-input {
   --padding-start: 0;
   color: white;
-  font-size: 0.8rem;
+  font-size: 0.7rem;
 }
 
 .auth-button {

@@ -69,7 +69,7 @@ input:-webkit-autofill:focus {
   gap: 0.5rem;
   background: rgba(255, 255, 255, 0.1);
   border-radius: 0.75rem;
-  padding: 0.5rem 1rem;
+  padding:1rem;
   color: white;
 }
 
@@ -81,7 +81,6 @@ input:-webkit-autofill:focus {
 .auth-input ion-input {
   --padding-start: 0;
   color: white;
-  font-size: 0.7rem;
 }
 
 .auth-button {
@@ -120,14 +119,12 @@ input:-webkit-autofill:focus {
 }
 
 .auth-error {
-  color: #ff4d4d; /* 🔴 red */
-  padding: 8px 12px;
-  border-radius: 8px;
-  margin-top: 10px;
+  color: #ff4d4d;
+  margin-top: 1px;
+  margin-bottom: 1px;
   text-align: center;
   font-weight: 500;
   font-size: 0.9rem;
-  letter-spacing: 0.5px;
   animation: fadeIn 0.3s ease-in-out;
 }
 

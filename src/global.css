@@ -174,3 +174,35 @@ input:-webkit-autofill:focus {
 .toggle-btn ion-icon {
   pointer-events: none;
 }
+
+/* Register page only — smaller, more compact card */
+.register-card {
+  padding: 1.5rem;
+  width: 340px;
+  max-width: 360px;
+}
+
+.register-card .auth-title {
+  font-size: 1.4rem;
+  margin-bottom: 1rem;
+}
+
+.register-card .auth-form {
+  gap: 0.7rem; /* smaller gap between inputs */
+}
+
+.register-card .auth-input {
+  padding: 0.75rem;
+  font-size: 0.85rem;
+}
+
+.register-card .auth-button {
+  height: 40px;
+  font-size: 0.9rem;
+  --border-radius: 0.75rem;
+}
+
+.register-card .auth-footer {
+  margin-top: 0.5rem;
+  font-size: 0.85rem;
+}

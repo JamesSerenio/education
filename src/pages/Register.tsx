@@ -172,7 +172,7 @@ const Register: React.FC = () => {
           transition={{ duration: 0.8 }}
         >
           <motion.div
-            className="auth-card"
+            className="auth-card register-card"
             initial={{ scale: 0.9, y: 30, opacity: 0 }}
             animate={{ scale: 1, y: 0, opacity: 1 }}
             transition={{ duration: 0.6, ease: "easeOut" }}

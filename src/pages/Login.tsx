@@ -166,7 +166,6 @@ const Login: React.FC = () => {
               >
                 <IonIcon icon={mailOutline} />
                 <IonInput
-                  type="email"
                   placeholder="Enter your email"
                   value={email}
                   onIonChange={(e) => setEmail(e.detail.value || "")}

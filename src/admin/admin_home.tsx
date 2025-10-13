@@ -1,5 +1,18 @@
 import React, { useEffect, useState } from "react";
-import { IonPage, IonHeader, IonToolbar, IonTitle, IonContent, IonGrid, IonRow, IonCol, IonCard, IonCardHeader, IonCardTitle, IonCardContent } from "@ionic/react";
+import {
+  IonPage,
+  IonHeader,
+  IonToolbar,
+  IonTitle,
+  IonContent,
+  IonGrid,
+  IonRow,
+  IonCol,
+  IonCard,
+  IonCardHeader,
+  IonCardTitle,
+  IonCardContent,
+} from "@ionic/react";
 import { motion } from "framer-motion";
 import { supabase } from "../utils/supabaseClient";
 
@@ -13,7 +26,7 @@ interface LoginLog {
   id: string;
   email: string;
   role: string;
-  logged_in_at: string;
+  login_at: string; // match your table column
 }
 
 const AdminHome: React.FC = () => {
@@ -72,7 +85,7 @@ const AdminHome: React.FC = () => {
       const { data, error } = await supabase
         .from("login_logs")
         .select("*")
-        .order("logged_in_at", { ascending: false })
+        .order("login_at", { ascending: false }) // match your table
         .limit(10);
 
       if (!error && data) {
@@ -159,7 +172,7 @@ const AdminHome: React.FC = () => {
             <IonRow key={login.id} style={{ padding: "10px 0", borderBottom: "1px solid #eee" }}>
               <IonCol>{login.email}</IonCol>
               <IonCol>{login.role}</IonCol>
-              <IonCol>{new Date(login.logged_in_at).toLocaleString()}</IonCol>
+              <IonCol>{new Date(login.login_at).toLocaleString()}</IonCol>
             </IonRow>
           ))}
         </IonGrid>

@@ -280,7 +280,7 @@ input:-webkit-autofill:focus {
   animation: growLine 1s ease-out;
 }
 
-/* --- Chart Section --- */
+/* --- CHART SECTION (Optimized + Animated) --- */
 .chart-section {
   text-align: center;
   margin: 40px 0;
@@ -295,7 +295,7 @@ input:-webkit-autofill:focus {
   animation: fadeSlideIn 0.9s ease-out;
 }
 
-/* Chart container animation */
+/* --- Chart Container --- */
 .chart-container {
   display: flex;
   justify-content: center;
@@ -305,25 +305,30 @@ input:-webkit-autofill:focus {
   padding: 20px 0;
   opacity: 0;
   transform: translateY(20px);
-  animation: fadeUpSmooth 1s ease forwards;
+  animation: fadeUpSmooth 1.2s ease forwards;
 }
 
+/* --- Canvas Style --- */
 .chart-container canvas {
   width: 100%;
   max-width: 900px;
-  height: 400px;
-  transition: transform 0.3s ease;
+  height: auto !important;
+  aspect-ratio: 16 / 9; /* Keeps proportional size */
+  border-radius: 12px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+  transition: transform 0.4s ease, box-shadow 0.4s ease;
 }
 
 .chart-container canvas:hover {
-  transform: scale(1.02);
+  transform: scale(1.03);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
 }
 
 /* --- Responsive Adjustments for Mobile --- */
 @media (max-width: 768px) {
   .chart-container canvas {
-    max-width: 95%;
-    height: 300px;
+    max-width: 100%;
+    aspect-ratio: 4 / 3; /* Slightly taller for mobile */
   }
 
   .chart-title {
@@ -340,7 +345,17 @@ input:-webkit-autofill:focus {
   }
 }
 
-/* === KEYFRAMES === */
+@media (max-width: 480px) {
+  .chart-container canvas {
+    aspect-ratio: 1 / 1;
+  }
+
+  .chart-title {
+    font-size: 1.1rem;
+  }
+}
+
+/* === ANIMATIONS === */
 @keyframes fadeInDown {
   from {
     opacity: 0;

@@ -184,6 +184,7 @@ const AdminHome: React.FC = () => {
   // === Chart options (fixed 1–10 lane style) ===
   const chartOptions: ChartOptions<"line"> = {
     responsive: true,
+    maintainAspectRatio: false,
     plugins: {
       legend: { position: "top" },
       title: {

@@ -283,14 +283,14 @@ input:-webkit-autofill:focus {
 /* --- CHART SECTION (Optimized + Animated) --- */
 .chart-section {
   text-align: center;
-  margin: 40px 0;
+  margin: 30px 0;
   animation: fadeInUp 1s ease-out;
 }
 
 .chart-title {
   font-size: 1.6rem;
   font-weight: 700;
-  margin-bottom: 20px;
+  margin-bottom: 16px;
   color: #343a40;
   animation: fadeSlideIn 0.9s ease-out;
 }
@@ -301,31 +301,34 @@ input:-webkit-autofill:focus {
   justify-content: center;
   align-items: center;
   width: 100%;
-  overflow-x: auto;
-  padding: 20px 0;
-  opacity: 0;
-  transform: translateY(20px);
-  animation: fadeUpSmooth 1.2s ease forwards;
+  padding: 10px;
+  box-sizing: border-box;
+  overflow: hidden;
 }
-
 /* --- Canvas Style --- */
 .chart-container canvas {
-  width: 100%;
-  max-width: 900px;
+  width: 100% !important;
+  max-width: 700px;
   height: auto !important;
-  aspect-ratio: 16 / 9; /* Keeps proportional size */
+  aspect-ratio: 16 / 9;
   border-radius: 12px;
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
   transition: transform 0.4s ease, box-shadow 0.4s ease;
 }
 
 .chart-container canvas:hover {
-  transform: scale(1.03);
+  transform: scale(1.02);
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
 }
-
 /* --- Responsive Adjustments for Mobile --- */
 @media (max-width: 768px) {
+   .chart-section {
+    margin: 20px 0;
+  }
+
+  .chart-container {
+    padding: 0;
+  }
   .chart-container canvas {
     max-width: 100%;
     aspect-ratio: 4 / 3; /* Slightly taller for mobile */
@@ -341,7 +344,7 @@ input:-webkit-autofill:focus {
   }
 
   .admin-home h2.welcome-title {
-    font-size: 1.5rem;
+    font-size: 1.3  rem;
   }
 }
 

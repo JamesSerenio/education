@@ -25,7 +25,6 @@ const Home: React.FC = () => {
     "a₁", "d", "n", "aₙ",
   ];
 
-  // ✅ Floating symbols generator
   useEffect(() => {
     const newSymbols = Array.from({ length: 25 }).map(() => ({
       symbol: mathSymbols[Math.floor(Math.random() * mathSymbols.length)],
@@ -43,7 +42,7 @@ const Home: React.FC = () => {
   return (
     <IonPage>
       <IonContent fullscreen scrollY={false} className="auth-bg">
-        {/* ✅ Floating Math Symbols */}
+        {/* Floating Symbols */}
         {symbols.map((s, i) => (
           <motion.div
             key={i}
@@ -69,7 +68,7 @@ const Home: React.FC = () => {
           </motion.div>
         ))}
 
-        {/* ✅ Logout Button (Top Right Corner) */}
+        {/* Logout Button */}
         <motion.div
           initial={{ opacity: 0, x: 20, y: -20 }}
           animate={{ opacity: 1, x: 0, y: 0 }}
@@ -87,18 +86,14 @@ const Home: React.FC = () => {
             <img
               src={logoutGif}
               alt="Logout"
-              style={{
-                width: "45px",
-                height: "45px",
-                objectFit: "contain",
-              }}
+              style={{ width: "45px", height: "45px", objectFit: "contain" }}
             />
           </IonButton>
         </motion.div>
 
-        {/* ✅ Main Dashboard Container */}
+        {/* Main Content */}
         <div className="dashboard-wrapper">
-          <div className="auth-card">
+          <div className="dashboard-container">
             <motion.h1
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
@@ -108,10 +103,11 @@ const Home: React.FC = () => {
               Welcome to Learning Dashboard
             </motion.h1>
 
-            <p style={{ textAlign: "center", color: "#ccc", marginBottom: "2rem" }}>
+            <p className="dashboard-subtitle">
               Choose a topic to get started!
             </p>
 
+            {/* Cards Grid */}
             <div className="dashboard-grid">
               {/* Arithmetic Sequence */}
               <motion.div
@@ -125,7 +121,9 @@ const Home: React.FC = () => {
                     <IonCardTitle>Arithmetic Sequence</IonCardTitle>
                   </IonCardHeader>
                   <IonCardContent>
-                    <p>Explore the properties and problems of arithmetic sequences.</p>
+                    <p>
+                      Explore the properties and problems of arithmetic sequences.
+                    </p>
                     <IonButton
                       expand="block"
                       color="primary"
@@ -137,7 +135,7 @@ const Home: React.FC = () => {
                 </IonCard>
               </motion.div>
 
-              {/* Uniform Motion */}
+              {/* Uniform Motion in Physics */}
               <motion.div
                 initial={{ opacity: 0, x: 50 }}
                 animate={{ opacity: 1, x: 0 }}

@@ -730,17 +730,6 @@ input:-webkit-autofill:focus {
   pointer-events: none;
 }
 
-.floating-symbol {
-  position: absolute;
-  color: rgba(59, 130, 246, 0.2);
-  font-size: 1.2rem;
-  animation: floatUp 4s linear forwards;
-  left: calc(100% * var(--x, 0.5));
-  top: 100%;
-  transform: translateX(-50%);
-  opacity: 0;
-}
-
 @keyframes floatUp {
   0% {
     transform: translateY(0) scale(1);

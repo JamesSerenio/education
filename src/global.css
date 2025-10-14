@@ -721,3 +721,68 @@ input:-webkit-autofill:focus {
   }
 }
 
+/* Background floating symbols */
+.floating-container {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.floating-symbol {
+  position: absolute;
+  color: rgba(59, 130, 246, 0.2);
+  font-size: 1.2rem;
+  animation: floatUp 4s linear forwards;
+  left: calc(100% * var(--x, 0.5));
+  top: 100%;
+  transform: translateX(-50%);
+  opacity: 0;
+}
+
+@keyframes floatUp {
+  0% {
+    transform: translateY(0) scale(1);
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 0.8;
+  }
+  100% {
+    transform: translateY(-110vh) scale(1.3);
+    opacity: 0;
+  }
+}
+
+/* Menu and toolbar styles */
+.menu-item {
+  display: flex;
+  align-items: center;
+  font-weight: 500;
+  color: #1e293b;
+  transition: background-color 0.3s ease, color 0.3s ease;
+  border-radius: 8px;
+  padding: 0.6rem 0.8rem;
+}
+
+.menu-item.active {
+  background: rgba(59, 130, 246, 0.15);
+  color: #2563eb;
+}
+
+.menu-icon {
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  margin-right: 8px;
+}
+
+/* Content */
+.page-welcome {
+  text-align: center;
+  margin-top: 2rem;
+  color: #1e40af;
+  font-weight: bold;
+}
+

@@ -623,14 +623,14 @@ input:-webkit-autofill:focus {
   justify-content: center;
   align-items: center;
   padding: 0 1rem;
-  overflow: hidden;
 }
 
-/* ✅ Responsive grid: side-by-side on desktop, stacked on mobile */
+/* ✅ Responsive grid */
 .dashboard-grid {
   display: grid;
   grid-template-columns: 1fr;
   gap: 1.5rem;
+  justify-content: center; /* ensures center alignment */
   width: 100%;
   max-width: 800px;
   margin: 0 auto;
@@ -648,6 +648,8 @@ input:-webkit-autofill:focus {
   text-align: center;
   box-shadow: 0 0 25px rgba(0, 212, 255, 0.1);
   transition: 0.3s ease;
+  width: 280px;
+  margin: 0 auto; /* 🔹 keeps card centered when single-column */
 }
 
 .dashboard-ion-card:hover {
@@ -661,12 +663,61 @@ input:-webkit-autofill:focus {
 
 .dashboard-ion-card p {
   color: #ddd;
+  font-size: 0.9rem;
   margin-bottom: 1rem;
 }
+
 /* ✅ Side-by-side layout for larger screens */
 @media (min-width: 768px) {
   .dashboard-grid {
     grid-template-columns: repeat(2, 1fr);
-    max-width: 900px;
+    gap: 2rem;
+    justify-content: center;
+    align-items: center;
   }
 }
+
+.dashboard-container {
+  text-align: center;
+  color: white;
+}
+
+/* ✅ Animated gradient subtitle */
+.dashboard-subtitle {
+  background: linear-gradient(90deg, #00d4ff, #ff007f, #00d4ff);
+  background-size: 300% 300%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: gradientFlow 4s ease infinite, fadeInUp 1.2s ease forwards;
+  font-size: 1.1rem;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  margin-bottom: 2rem;
+  opacity: 0; /* start hidden for fade-in */
+}
+
+/* ✅ Gradient color animation */
+@keyframes gradientFlow {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+/* ✅ Smooth fade-up animation */
+@keyframes fadeInUp {
+  0% {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+

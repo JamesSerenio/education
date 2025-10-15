@@ -54,8 +54,9 @@ const Arithmetic_Radar: React.FC = () => {
   });
 
   const [visible, setVisible] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  // safer map from unknown-ish data coming from Supabase
+  // helper mapper for Supabase data
   const mapToScoreWithQuizzes = (rawData: Record<string, unknown>): ScoreWithQuizzes => {
     const quizzesRaw = rawData["quizzes"] as Record<string, unknown> | undefined;
     return {
@@ -80,7 +81,32 @@ const Arithmetic_Radar: React.FC = () => {
     };
   };
 
+  const animateRadarUpdate = (
+    newData: { time: number; solving: number; problemSolving: number },
+    duration = 800
+  ) => {
+    const steps = 30;
+    const interval = duration / steps;
+
+    setPerformance({ time: 0, solving: 0, problemSolving: 0 }); // reset
+    let currentStep = 0;
+
+    const animate = setInterval(() => {
+      currentStep++;
+      const progress = currentStep / steps;
+
+      setPerformance({
+        time: newData.time * progress,
+        solving: newData.solving * progress,
+        problemSolving: newData.problemSolving * progress,
+      });
+
+      if (currentStep >= steps) clearInterval(animate);
+    }, interval);
+  };
+
   const fetchRadarData = async () => {
+    setLoading(true);
     try {
       const {
         data: { user },
@@ -140,30 +166,35 @@ const Arithmetic_Radar: React.FC = () => {
       );
 
       const avgSolving =
-        solvingScores.reduce((sum, s) => sum + (s.score || 0), 0) / (solvingScores.length || 1);
+        solvingScores.reduce((sum, s) => sum + (s.score || 0), 0) /
+        (solvingScores.length || 1);
       const avgProblemSolving =
         problemSolvingScores.reduce((sum, s) => sum + (s.score || 0), 0) /
         (problemSolvingScores.length || 1);
 
-      setPerformance({
+      const newPerformance = {
         time: timePercent,
         solving: Math.floor((avgSolving / MAX_SCORE) * 100),
         problemSolving: Math.floor((avgProblemSolving / MAX_SCORE) * 100),
-      });
+      };
+
+      // animate the radar chart
+      animateRadarUpdate(newPerformance);
     } catch (err) {
       console.error("Error fetching radar data:", err);
       setPerformance({ time: 0, solving: 0, problemSolving: 0 });
+    } finally {
+      setTimeout(() => setLoading(false), 600);
     }
   };
 
-  // mount: show and load
+  // mount
   useEffect(() => {
     setVisible(true);
     void fetchRadarData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // redraw chart on performance change
+  // redraw chart when data changes
   useEffect(() => {
     if (!radarRef.current) return;
     const ctx = radarRef.current.getContext("2d");
@@ -239,7 +270,6 @@ const Arithmetic_Radar: React.FC = () => {
     };
   }, [performance]);
 
-  // labels (we'll animate each with increasing delay)
   const labels = ["⏱ Time", "🧩 Problem Solving", "🧮 Solving"];
 
   return (
@@ -263,7 +293,6 @@ const Arithmetic_Radar: React.FC = () => {
                 minHeight: "90vh",
               }}
             >
-              {/* Title - small delay */}
               <motion.h2
                 initial={{ opacity: 0, y: -8 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -273,7 +302,6 @@ const Arithmetic_Radar: React.FC = () => {
                 📈 Performance Overview
               </motion.h2>
 
-              {/* Label badges - staggered using index-based delay */}
               <div style={{ display: "flex", gap: 10, marginTop: 12 }}>
                 {labels.map((label, idx) => (
                   <motion.div
@@ -295,7 +323,6 @@ const Arithmetic_Radar: React.FC = () => {
                 ))}
               </div>
 
-              {/* Chart card - appears after the labels */}
               <motion.div
                 initial={{ opacity: 0, scale: 0.96, y: 12 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -317,29 +344,46 @@ const Arithmetic_Radar: React.FC = () => {
                 <canvas ref={radarRef} style={{ width: "100%", height: "100%" }} />
               </motion.div>
 
-              {/* Refresh button - small delay after chart */}
               <motion.button
                 onClick={fetchRadarData}
+                disabled={loading}
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: 1.2 }}
                 whileTap={{ scale: 0.96 }}
-                whileHover={{ scale: 1.03 }}
+                whileHover={{ scale: loading ? 1 : 1.03 }}
                 style={{
                   padding: "10px 20px",
-                  background: "linear-gradient(90deg, #36A2EB, #EC4899)",
+                  background: loading
+                    ? "linear-gradient(90deg, #9CA3AF, #D1D5DB)"
+                    : "linear-gradient(90deg, #36A2EB, #EC4899)",
                   color: "white",
                   fontSize: 15,
                   fontWeight: 700,
                   borderRadius: 10,
                   border: "none",
-                  cursor: "pointer",
+                  cursor: loading ? "default" : "pointer",
                   marginTop: 24,
                   width: "100%",
                   maxWidth: 200,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 8,
                 }}
               >
-                🔄 Refresh
+                {loading ? (
+                  <motion.span
+                    animate={{ rotate: 360 }}
+                    transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+                    style={{ display: "inline-block" }}
+                  >
+                    🔄
+                  </motion.span>
+                ) : (
+                  "🔄"
+                )}
+                {loading ? "Refreshing..." : "Refresh"}
               </motion.button>
             </motion.div>
           )}

@@ -24,7 +24,7 @@ interface Quiz {
   question: string;
   solution: string;
   answer: string;
-  accepted_answers?: string[]; // ✅ supports alternate correct answers
+  accepted_answers?: string[];
 }
 
 const ArithmeticQuiz: React.FC = () => {
@@ -36,7 +36,13 @@ const ArithmeticQuiz: React.FC = () => {
   const [errorMessage, setErrorMessage] = useState<string>("");
   const [score, setScore] = useState<number>(0);
   const [userSolutions, setUserSolutions] = useState<
-    { question: string; correct: string; solution: string; isCorrect: boolean }[]
+    {
+      question: string;
+      correct: string;
+      userAnswer: string;
+      solution: string;
+      isCorrect: boolean;
+    }[]
   >([]);
   const [showResultModal, setShowResultModal] = useState(false);
   const [timeLeft, setTimeLeft] = useState<number>(TIME_PER_QUESTION);
@@ -45,7 +51,6 @@ const ArithmeticQuiz: React.FC = () => {
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const inputRef = useRef<HTMLIonInputElement | null>(null);
 
-  // 🔹 Pick one per level (1–5)
   const pickOnePerLevel = (pool: Quiz[]): Quiz[] => {
     const picks: Quiz[] = [];
     for (let lvl = 1; lvl <= 5; lvl++) {
@@ -58,7 +63,6 @@ const ArithmeticQuiz: React.FC = () => {
     return picks.sort((a, b) => a.level - b.level);
   };
 
-  // 🔹 Fetch quizzes
   useEffect(() => {
     const fetchQuizzes = async () => {
       const { data, error } = await supabase
@@ -71,7 +75,6 @@ const ArithmeticQuiz: React.FC = () => {
     fetchQuizzes();
   }, []);
 
-  // 🔹 Start quiz by category
   const handleCategorySelect = (category: string) => {
     setSelectedCategory(category);
     const filtered = allQuizzes.filter((q) => q.category === category);
@@ -89,7 +92,6 @@ const ArithmeticQuiz: React.FC = () => {
     }
   };
 
-  // 🔹 Save result
   const saveResult = async (quizId: string, finalScore: number) => {
     try {
       const {
@@ -113,7 +115,6 @@ const ArithmeticQuiz: React.FC = () => {
     }
   };
 
-  // 🔹 Timer (accurate and continuous)
   useEffect(() => {
     if (!currentQuiz) return;
 
@@ -135,7 +136,6 @@ const ArithmeticQuiz: React.FC = () => {
     };
   }, [currentQuiz, questionStart]);
 
-  // 🔹 Next question
   const handleNext = useCallback(
     (auto = false) => {
       if (!currentQuiz || !selectedCategory) return;
@@ -147,7 +147,6 @@ const ArithmeticQuiz: React.FC = () => {
 
       setErrorMessage("");
 
-      // ✅ FIXED: check both main answer and accepted_answers[]
       const normalizedAnswer = userAnswer.trim().toLowerCase();
       const correctAnswer = currentQuiz.answer.trim().toLowerCase();
       const alternates = (currentQuiz.accepted_answers || []).map((a) =>
@@ -159,12 +158,12 @@ const ArithmeticQuiz: React.FC = () => {
 
       const newScore = isCorrect ? score + 1 : score;
 
-      setScore(newScore);
       setUserSolutions((prev) => [
         ...prev,
         {
           question: currentQuiz.question,
           correct: currentQuiz.answer,
+          userAnswer: userAnswer || "(no answer)",
           solution: currentQuiz.solution,
           isCorrect,
         },
@@ -185,20 +184,16 @@ const ArithmeticQuiz: React.FC = () => {
     [currentQuiz, selectedCategory, quizzes, userAnswer, score]
   );
 
-  // 🔹 Autofocus when quiz starts
   useIonViewDidEnter(() => {
     if (inputRef.current) setTimeout(() => inputRef.current?.setFocus(), 400);
   });
 
   const formatTime = (seconds: number) => {
-    const m = Math.floor(seconds / 60)
-      .toString()
-      .padStart(2, "0");
+    const m = Math.floor(seconds / 60).toString().padStart(2, "0");
     const s = (seconds % 60).toString().padStart(2, "0");
     return `${m}:${s}`;
   };
 
-  // ✅ getMessage for score feedback
   const getMessage = () => {
     switch (score) {
       case 0:
@@ -226,14 +221,7 @@ const ArithmeticQuiz: React.FC = () => {
         {!selectedCategory ? (
           <div className="flex flex-col items-center justify-center h-full p-6 text-center">
             <h2>Select Category</h2>
-            <div
-              style={{
-                display: "flex",
-                gap: "15px",
-                flexWrap: "wrap",
-                justifyContent: "center",
-              }}
-            >
+            <div style={{ display: "flex", gap: "15px", flexWrap: "wrap", justifyContent: "center" }}>
               <IonButton onClick={() => handleCategorySelect("Problem Solving")}>
                 Problem Solving
               </IonButton>
@@ -243,23 +231,8 @@ const ArithmeticQuiz: React.FC = () => {
             </div>
           </div>
         ) : currentQuiz ? (
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              padding: "25px 10px 100px",
-            }}
-          >
-            <div
-              style={{
-                fontSize: "22px",
-                fontWeight: "bold",
-                color: timeLeft <= 5 ? "red" : "#333",
-                marginBottom: "10px",
-                fontFamily: "monospace",
-              }}
-            >
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "25px 10px 100px" }}>
+            <div style={{ fontSize: "22px", fontWeight: "bold", color: timeLeft <= 5 ? "red" : "#333", marginBottom: "10px", fontFamily: "monospace" }}>
               ⏳ Time Left: {formatTime(timeLeft)}
             </div>
 
@@ -328,12 +301,29 @@ const ArithmeticQuiz: React.FC = () => {
             </h3>
             <ul style={{ textAlign: "left" }}>
               {userSolutions.map((res, i) => (
-                <li key={i} style={{ color: res.isCorrect ? "green" : "red", marginBottom: "15px" }}>
-                  <b>Q:</b> {res.question}
+                <li
+                  key={i}
+                  style={{
+                    border: "1px solid #ccc",
+                    borderRadius: "10px",
+                    padding: "10px",
+                    marginBottom: "15px",
+                    background: res.isCorrect ? "#e6ffe6" : "#ffe6e6",
+                  }}
+                >
+                  <b>Q{i + 1}:</b> {res.question}
                   <br />
-                  <b>Answer:</b> {res.correct}
+                  <b>Your Answer:</b>{" "}
+                  <span style={{ color: res.isCorrect ? "green" : "red" }}>
+                    {res.userAnswer}
+                  </span>
                   <br />
-                  <b>Solution:</b> {res.solution || "No solution provided."}
+                  <b>Correct Answer:</b> {res.correct}
+                  <br />
+                  <b>Solution:</b>
+                  <pre style={{ whiteSpace: "pre-wrap", margin: 0 }}>
+                    {res.solution || "No solution provided."}
+                  </pre>
                 </li>
               ))}
             </ul>

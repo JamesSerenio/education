@@ -7,6 +7,7 @@ import {
   IonIcon,
   IonText,
   IonAlert,
+  IonModal,
 } from "@ionic/react";
 import { useState } from "react";
 import { useHistory, Link } from "react-router-dom";
@@ -17,6 +18,7 @@ import {
   lockClosedOutline,
   eyeOutline,
   eyeOffOutline,
+  informationCircleOutline,
 } from "ionicons/icons";
 import { supabase } from "../utils/supabaseClient";
 
@@ -32,6 +34,7 @@ const Register: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [showAlert, setShowAlert] = useState(false);
+  const [showTermsModal, setShowTermsModal] = useState(false); // ⚡ for terms popup
 
   // 👁️ show/hide toggles
   const [showPassword, setShowPassword] = useState(false);
@@ -198,14 +201,14 @@ const Register: React.FC = () => {
                 <IonInput type="email" placeholder="Email" value={email} onIonChange={(e) => setEmail(e.detail.value ?? "")} required />
               </motion.div>
 
-              {/* Password with Eye Toggle */}
+              {/* Password */}
               <motion.div className="auth-input" initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.7, duration: 0.5 }} style={{ position: "relative" }}>
                 <IonIcon icon={lockClosedOutline} />
                 <IonInput type={showPassword ? "text" : "password"} placeholder="Password" value={password} onIonChange={(e) => setPassword(e.detail.value ?? "")} required />
                 <IonIcon icon={showPassword ? eyeOffOutline : eyeOutline} onClick={() => setShowPassword(!showPassword)} className="password-toggle" />
               </motion.div>
 
-              {/* Confirm Password with Eye Toggle */}
+              {/* Confirm Password */}
               <motion.div className="auth-input" initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.8, duration: 0.5 }} style={{ position: "relative" }}>
                 <IonIcon icon={lockClosedOutline} />
                 <IonInput type={showConfirmPassword ? "text" : "password"} placeholder="Confirm Password" value={confirmPassword} onIonChange={(e) => setConfirmPassword(e.detail.value ?? "")} required />
@@ -216,7 +219,13 @@ const Register: React.FC = () => {
               <motion.div style={{ display: "flex", alignItems: "center", marginTop: "0.5rem" }} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.9 }}>
                 <IonCheckbox checked={agreeTerms} onIonChange={(e) => setAgreeTerms(e.detail.checked)} id="terms-checkbox" />
                 <label htmlFor="terms-checkbox" className="auth-terms">
-                  I agree to the terms and conditions
+                  I agree to the{" "}
+                  <span
+                    onClick={() => setShowTermsModal(true)}
+                    style={{ color: "#4dabf7", cursor: "pointer", textDecoration: "underline" }}
+                  >
+                    terms and conditions
+                  </span>
                 </label>
               </motion.div>
 
@@ -242,6 +251,7 @@ const Register: React.FC = () => {
           </motion.div>
         </motion.div>
 
+        {/* ✅ Email Confirmation Alert */}
         <IonAlert
           isOpen={showAlert}
           header="Confirm Your Email"
@@ -256,6 +266,28 @@ const Register: React.FC = () => {
             },
           ]}
         />
+
+        {/* 🧾 Terms Modal */}
+          <IonModal
+            isOpen={showTermsModal}
+            onDidDismiss={() => setShowTermsModal(false)}
+            className="terms-modal"
+          >
+          <div style={{ padding: "1.2rem", textAlign: "center" }}>
+            <IonIcon icon={informationCircleOutline} style={{ fontSize: "2rem", color: "#4dabf7" }} />
+            <h3 style={{ marginTop: "0.5rem" }}>Terms and Conditions</h3>
+            <p style={{ fontSize: "0.9rem", marginTop: "0.5rem", color: "#444" }}>
+                    By registering, you agree to use this application
+                    responsibly and comply with all platform policies. Your
+                    data will be securely stored and used only for educational
+                    purposes. Please avoid sharing credentials or performing
+                    unauthorized actions.
+            </p>
+            <IonButton expand="block" onClick={() => setShowTermsModal(false)} style={{ marginTop: "1rem" }}>
+              OK
+            </IonButton>
+          </div>
+        </IonModal>
       </IonContent>
     </IonPage>
   );

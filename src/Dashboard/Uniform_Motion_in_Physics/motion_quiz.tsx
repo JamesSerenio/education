@@ -45,7 +45,6 @@ const MotionQuiz: React.FC = () => {
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const inputRef = useRef<HTMLIonInputElement | null>(null);
 
-  // 🔹 Pick one per level
   const pickOnePerLevel = (pool: Quiz[]): Quiz[] => {
     const picks: Quiz[] = [];
     for (let lvl = 1; lvl <= 5; lvl++) {
@@ -58,7 +57,6 @@ const MotionQuiz: React.FC = () => {
     return picks.sort((a, b) => a.level - b.level);
   };
 
-  // 🔹 Fetch quizzes
   useEffect(() => {
     const fetchQuizzes = async () => {
       const { data, error } = await supabase
@@ -72,7 +70,6 @@ const MotionQuiz: React.FC = () => {
     fetchQuizzes();
   }, []);
 
-  // 🔹 Start quiz by category
   const handleCategorySelect = (category: string) => {
     setSelectedCategory(category);
     const filtered = allQuizzes.filter((q) => q.category === category);
@@ -90,7 +87,6 @@ const MotionQuiz: React.FC = () => {
     }
   };
 
-  // 🔹 Save result
   const saveResult = async (quizId: string, finalScore: number) => {
     try {
       const {
@@ -114,14 +110,12 @@ const MotionQuiz: React.FC = () => {
     }
   };
 
-  // 🔹 Normalize answers for comparison
   const normalizeAnswer = (ans: string) =>
     ans
       .toLowerCase()
       .replace(/₱|,|\.00/g, "")
       .trim();
 
-  // 🔹 Timer
   useEffect(() => {
     if (!currentQuiz) return;
 
@@ -143,7 +137,6 @@ const MotionQuiz: React.FC = () => {
     };
   }, [currentQuiz, questionStart]);
 
-  // 🔹 Next question
   const handleNext = useCallback(
     (auto = false) => {
       if (!currentQuiz || !selectedCategory) return;
@@ -190,15 +183,12 @@ const MotionQuiz: React.FC = () => {
     [currentQuiz, selectedCategory, quizzes, userAnswer, score]
   );
 
-  // 🔹 Autofocus
   useIonViewDidEnter(() => {
     if (inputRef.current) setTimeout(() => inputRef.current?.setFocus(), 400);
   });
 
   const formatTime = (seconds: number) => {
-    const m = Math.floor(seconds / 60)
-      .toString()
-      .padStart(2, "0");
+    const m = Math.floor(seconds / 60).toString().padStart(2, "0");
     const s = (seconds % 60).toString().padStart(2, "0");
     return `${m}:${s}`;
   };
@@ -225,19 +215,11 @@ const MotionQuiz: React.FC = () => {
   return (
     <IonPage>
       <IonHeader></IonHeader>
-
       <IonContent fullscreen scrollEvents>
         {!selectedCategory ? (
           <div className="flex flex-col items-center justify-center h-full p-6 text-center">
             <h2>Select Category</h2>
-            <div
-              style={{
-                display: "flex",
-                gap: "15px",
-                flexWrap: "wrap",
-                justifyContent: "center",
-              }}
-            >
+            <div style={{ display: "flex", gap: "15px", flexWrap: "wrap", justifyContent: "center" }}>
               <IonButton onClick={() => handleCategorySelect("Problem Solving")}>
                 Problem Solving
               </IonButton>
@@ -247,33 +229,14 @@ const MotionQuiz: React.FC = () => {
             </div>
           </div>
         ) : currentQuiz ? (
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              padding: "25px 10px 100px",
-            }}
-          >
-            <div
-              style={{
-                fontSize: "22px",
-                fontWeight: "bold",
-                color: timeLeft <= 5 ? "red" : "#333",
-                marginBottom: "10px",
-                fontFamily: "monospace",
-              }}
-            >
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "25px 10px 100px" }}>
+            <div style={{ fontSize: "22px", fontWeight: "bold", color: timeLeft <= 5 ? "red" : "#333", marginBottom: "10px", fontFamily: "monospace" }}>
               ⏳ Time Left: {formatTime(timeLeft)}
             </div>
 
             <h2>{selectedCategory}</h2>
-            <h1 style={{ fontSize: "26px", margin: "5px 0" }}>
-              Level {currentQuiz.level}
-            </h1>
-            <p style={{ textAlign: "center", fontSize: "18px", margin: "10px 0" }}>
-              {currentQuiz.question}
-            </p>
+            <h1 style={{ fontSize: "26px", margin: "5px 0" }}>Level {currentQuiz.level}</h1>
+            <p style={{ textAlign: "center", fontSize: "18px", margin: "10px 0" }}>{currentQuiz.question}</p>
 
             <IonItem style={{ width: "90%", maxWidth: "400px", marginTop: "10px" }}>
               <IonInput
@@ -294,29 +257,19 @@ const MotionQuiz: React.FC = () => {
               </IonText>
             )}
 
-            <IonButton
-              expand="block"
-              onClick={() => handleNext(false)}
-              style={{ marginTop: "20px" }}
-            >
+            <IonButton expand="block" onClick={() => handleNext(false)} style={{ marginTop: "20px" }}>
               Next
             </IonButton>
 
-            <IonButton
-              expand="block"
-              fill="outline"
-              color="medium"
-              onClick={() => {
-                setSelectedCategory(null);
-                setCurrentQuiz(null);
-                setUserAnswer("");
-                setErrorMessage("");
-                setScore(0);
-                setUserSolutions([]);
-                clearInterval(timerRef.current!);
-              }}
-              style={{ marginTop: "10px" }}
-            >
+            <IonButton expand="block" fill="outline" color="medium" onClick={() => {
+              setSelectedCategory(null);
+              setCurrentQuiz(null);
+              setUserAnswer("");
+              setErrorMessage("");
+              setScore(0);
+              setUserSolutions([]);
+              clearInterval(timerRef.current!);
+            }} style={{ marginTop: "10px" }}>
               Back to Categories
             </IonButton>
           </div>
@@ -324,7 +277,6 @@ const MotionQuiz: React.FC = () => {
           <p style={{ textAlign: "center", marginTop: "50px" }}>Loading...</p>
         )}
 
-        {/* 🔹 Result Modal */}
         <IonModal isOpen={showResultModal} backdropDismiss={false}>
           <IonHeader>
             <IonToolbar>
@@ -333,37 +285,23 @@ const MotionQuiz: React.FC = () => {
           </IonHeader>
           <IonContent style={{ padding: "20px", overflowY: "auto" }}>
             <h2>{getMessage()}</h2>
-            <h3>
-              Score: {score}/{userSolutions.length}
-            </h3>
+            <h3>Score: {score}/{userSolutions.length}</h3>
             <ul style={{ textAlign: "left" }}>
               {userSolutions.map((res, i) => (
-                <li
-                  key={i}
-                  style={{
-                    color: res.isCorrect ? "green" : "red",
-                    marginBottom: "15px",
-                  }}
-                >
-                  <b>Q:</b> {res.question}
-                  <br />
-                  <b>Answer:</b> {res.correct}
-                  <br />
-                  <b>Solution:</b> {res.solution || "No solution provided."}
+                <li key={i} style={{ marginBottom: "15px", background: res.isCorrect ? "#e6ffe6" : "#ffe6e6", borderRadius: "10px", padding: "10px", border: "1px solid #ccc" }}>
+                  <b>Q{i + 1}:</b> {res.question} <br/>
+                  <b>Answer:</b> {res.correct} <br/>
+                  <b>Solution:</b> <pre style={{ whiteSpace: "pre-wrap", margin: 0 }}>{res.solution || "No solution provided."}</pre>
                 </li>
               ))}
             </ul>
-            <IonButton
-              expand="block"
-              onClick={() => {
-                setShowResultModal(false);
-                setSelectedCategory(null);
-                setCurrentQuiz(null);
-                setUserAnswer("");
-                setUserSolutions([]);
-              }}
-              style={{ marginTop: "20px" }}
-            >
+            <IonButton expand="block" onClick={() => {
+              setShowResultModal(false);
+              setSelectedCategory(null);
+              setCurrentQuiz(null);
+              setUserAnswer("");
+              setUserSolutions([]);
+            }} style={{ marginTop: "20px" }}>
               Back to Categories
             </IonButton>
           </IonContent>

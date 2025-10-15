@@ -74,7 +74,7 @@ input:-webkit-autofill:focus {
   align-items: center;
   gap: 0.5rem;
   background: rgba(255, 255, 255, 0.1);
-  border-radius: 0.75rem;
+  border-radius: 1.5rem;
   padding:1rem;
   color: white;
 }
@@ -773,5 +773,23 @@ input:-webkit-autofill:focus {
   margin-top: 2rem;
   color: #1e40af;
   font-weight: bold;
+}
+
+.terms-modal {
+  --width: 90%;
+  --max-width: 400px;
+  --height: auto;
+  --border-radius: 16px;
+  --box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  --background: #ffffff;
+  --backdrop-opacity: 0.4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.terms-modal .modal-wrapper {
+  border-radius: 16px;
+  padding: 1rem;
 }
 

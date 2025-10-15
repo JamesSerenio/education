@@ -185,85 +185,85 @@ const AdminHome: React.FC = () => {
     return `${month} ${startDay}–${endDay}, ${year}`;
   };
 
-  const chartData = {
-    labels: activityData.map((d) => d.day),
-    datasets: [
-      {
-        label: "Arithmetic Quiz",
-        data: activityData.map((d) => d.arithmetic),
-        borderColor: "rgba(54, 162, 235, 1)",
-        backgroundColor: "transparent",
-        fill: false,
-        tension: 0.4,
-        borderWidth: 3,
-        pointRadius: 5,
-        pointHoverRadius: 7,
-        pointHitRadius: 5, // 👈 restrict hit area to exact point
-        pointBackgroundColor: "rgba(54,162,235,1)",
-      },
-      {
-        label: "Motion Quiz",
-        data: activityData.map((d) => d.motion),
-        borderColor: "rgba(255, 99, 132, 1)",
-        backgroundColor: "transparent",
-        fill: false,
-        tension: 0.4,
-        borderWidth: 3,
-        pointRadius: 5,
-        pointHoverRadius: 7,
-        pointHitRadius: 5, // 👈 restrict hit area to exact point
-        pointBackgroundColor: "rgba(255,99,132,1)",
-      },
-    ],
-  };
+      const chartData = {
+        labels: activityData.map((d) => d.day),
+        datasets: [
+          {
+            label: "Arithmetic Quiz",
+            data: activityData.map((d) => d.arithmetic),
+            borderColor: "rgba(54, 162, 235, 1)",
+            backgroundColor: "transparent",
+            fill: false,
+            tension: 0.4,
+            borderWidth: 3,
+            pointRadius: window.innerWidth < 600 ? 6 : 5, // bigger on mobile
+            pointHoverRadius: window.innerWidth < 600 ? 8 : 7,
+            pointHitRadius: window.innerWidth < 600 ? 15 : 5, // touch-friendly
+            pointBackgroundColor: "rgba(54,162,235,1)",
+          },
+          {
+            label: "Motion Quiz",
+            data: activityData.map((d) => d.motion),
+            borderColor: "rgba(255, 99, 132, 1)",
+            backgroundColor: "transparent",
+            fill: false,
+            tension: 0.4,
+            borderWidth: 3,
+            pointRadius: window.innerWidth < 600 ? 6 : 5,
+            pointHoverRadius: window.innerWidth < 600 ? 8 : 7,
+            pointHitRadius: window.innerWidth < 600 ? 15 : 5,
+            pointBackgroundColor: "rgba(255,99,132,1)",
+          },
+        ],
+      };
 
-  const chartOptions: ChartOptions<"line"> = {
-    responsive: true,
-    maintainAspectRatio: false,
-    interaction: {
-      mode: "point", // 👈 trigger only when directly on a point
-      intersect: true,
-    },
-    plugins: {
-      legend: { position: "top" },
-      title: {
-        display: true,
-        text: "Weekly Quiz Activity",
-        font: { size: 18, weight: "bold" },
-      },
-      tooltip: {
-        mode: "point",
-        intersect: true,
-        backgroundColor: "rgba(0,0,0,0.8)",
-        titleFont: { size: 13 },
-        bodyFont: { size: 12 },
-        padding: 8,
-        callbacks: {
-          title: (tooltipItems) => {
-            const item = tooltipItems[0];
-            const dayIndex = item.dataIndex;
-            const date = new Date(currentWeekStart);
-            date.setDate(currentWeekStart.getDate() + dayIndex);
-            return `${item.label} (${date.toLocaleDateString()})`;
+      const chartOptions: ChartOptions<"line"> = {
+        responsive: true,
+        maintainAspectRatio: false,
+        devicePixelRatio: window.devicePixelRatio || 1,
+        interaction: {
+          mode: "nearest", // better on mobile (touch-friendly)
+          intersect: true,
+        },
+        plugins: {
+          legend: { position: "top" },
+          title: {
+            display: true,
+            text: "Weekly Quiz Activity",
+            font: { size: 18, weight: "bold" },
+          },
+          tooltip: {
+            mode: "nearest",
+            intersect: true,
+            backgroundColor: "rgba(0,0,0,0.8)",
+            titleFont: { size: 13 },
+            bodyFont: { size: 12 },
+            padding: 8,
+            callbacks: {
+              title: (tooltipItems) => {
+                const item = tooltipItems[0];
+                const dayIndex = item.dataIndex;
+                const date = new Date(currentWeekStart);
+                date.setDate(currentWeekStart.getDate() + dayIndex);
+                return `${item.label} (${date.toLocaleDateString()})`;
+              },
+            },
           },
         },
-      },
-    },
-    scales: {
-      y: {
-        beginAtZero: true,
-        min: 0,
-        max: 10,
-        ticks: { stepSize: 1 },
-        grid: { color: "rgba(200,200,200,0.3)" },
-        title: { display: true, text: "Number of Participants" },
-      },
-      x: {
-        grid: { color: "rgba(200,200,200,0.2)" },
-        title: { display: true, text: "Day of the Week" },
-      },
-    },
-  };
+        scales: {
+          y: {
+            beginAtZero: true,
+            min: 0,
+            ticks: { stepSize: 1 },
+            grid: { color: "rgba(200,200,200,0.3)" },
+            title: { display: true, text: "Number of Participants" },
+          },
+          x: {
+            grid: { color: "rgba(200,200,200,0.2)" },
+            title: { display: true, text: "Day of the Week" },
+          },
+        },
+      };
 
   const totalItems = recentLogins.length;
   const startIndex = currentPage * itemsPerPage;

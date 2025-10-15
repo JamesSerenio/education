@@ -56,17 +56,23 @@ const AdminHome: React.FC = () => {
   const [animatedStats, setAnimatedStats] = useState<UserStats>({ admin: 0, user: 0, total: 0 });
   const [recentLogins, setRecentLogins] = useState<LoginLog[]>([]);
   const [activityData, setActivityData] = useState<ActivityDay[]>([]);
+
+  const [currentWeekStart, setCurrentWeekStart] = useState<Date>(() => {
+    const d = new Date(2025, 9, 1);
+    const day = d.getDay();
+    d.setDate(d.getDate() - day);
+    return d;
+  });
+
   const [currentPage, setCurrentPage] = useState(0);
   const itemsPerPage = 3;
 
-  // === Fetch user stats ===
   useEffect(() => {
     const fetchStats = async () => {
       const { count: adminCount } = await supabase
         .from("profiles")
         .select("*", { count: "exact" })
         .eq("role", "admin");
-
       const { count: userCount } = await supabase
         .from("profiles")
         .select("*", { count: "exact" })
@@ -81,7 +87,6 @@ const AdminHome: React.FC = () => {
     fetchStats();
   }, []);
 
-  // === Animate numbers ===
   useEffect(() => {
     const duration = 1000;
     const steps = 60;
@@ -103,56 +108,83 @@ const AdminHome: React.FC = () => {
     return () => clearInterval(interval);
   }, [stats]);
 
-  // === Fetch login logs ===
   useEffect(() => {
     const fetchLogins = async () => {
       const { data, error } = await supabase
         .from("login_logs")
         .select("*")
         .order("login_at", { ascending: false });
-
       if (!error && data) setRecentLogins(data);
     };
     fetchLogins();
   }, []);
 
-  // === Fetch weekly quiz activity ===
+  const fetchActivity = async (weekStart: Date) => {
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekStart.getDate() + 6);
+
+    const { data, error } = await supabase
+      .from("scores")
+      .select("created_at, quizzes(subject)")
+      .gte("created_at", weekStart.toISOString())
+      .lte("created_at", weekEnd.toISOString());
+
+    if (error) {
+      console.error("Error fetching quiz activity:", error);
+      return;
+    }
+
+    const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+    const counts: Record<string, { arithmetic: number; motion: number }> = {};
+    days.forEach((d) => (counts[d] = { arithmetic: 0, motion: 0 }));
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    data?.forEach((row: any) => {
+      const day = days[new Date(row.created_at).getDay()];
+      const subject = row.quizzes?.subject?.toLowerCase() || "";
+      if (subject.includes("arithmetic")) counts[day].arithmetic++;
+      else if (subject.includes("motion")) counts[day].motion++;
+    });
+
+    const formatted = days.map((d) => ({
+      day: d,
+      arithmetic: counts[d].arithmetic,
+      motion: counts[d].motion,
+    }));
+
+    setActivityData(formatted);
+  };
+
   useEffect(() => {
-    const fetchActivity = async () => {
-      const { data, error } = await supabase
-        .from("scores")
-        .select("created_at, quizzes(subject)");
+    fetchActivity(currentWeekStart);
+  }, [currentWeekStart]);
 
-      if (error) {
-        console.error("Error fetching quiz activity:", error);
-        return;
-      }
+  const handleNextWeek = () => {
+    const newDate = new Date(currentWeekStart);
+    newDate.setDate(newDate.getDate() + 7);
+    setCurrentWeekStart(newDate);
+  };
 
-      const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-      const counts: Record<string, { arithmetic: number; motion: number }> = {};
-      days.forEach((d) => (counts[d] = { arithmetic: 0, motion: 0 }));
+  const handlePrevWeek = () => {
+    const newDate = new Date(currentWeekStart);
+    newDate.setDate(newDate.getDate() - 7);
+    setCurrentWeekStart(newDate);
+  };
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      data?.forEach((row: any) => {
-        const day = days[new Date(row.created_at).getDay()];
-        const subject = row.quizzes?.subject?.toLowerCase() || "";
-        if (subject.includes("arithmetic")) counts[day].arithmetic++;
-        else if (subject.includes("motion")) counts[day].motion++;
-      });
+  const formatDateRange = (start: Date) => {
+    const end = new Date(start);
+    end.setDate(start.getDate() + 6);
+    const monthNames = [
+      "January","February","March","April","May","June",
+      "July","August","September","October","November","December"
+    ];
+    const month = monthNames[start.getMonth()];
+    const year = start.getFullYear();
+    const startDay = start.getDate();
+    const endDay = end.getDate();
+    return `${month} ${startDay}–${endDay}, ${year}`;
+  };
 
-      const formatted = days.map((d) => ({
-        day: d,
-        arithmetic: counts[d].arithmetic,
-        motion: counts[d].motion,
-      }));
-
-      setActivityData(formatted);
-    };
-
-    fetchActivity();
-  }, []);
-
-  // === Chart data ===
   const chartData = {
     labels: activityData.map((d) => d.day),
     datasets: [
@@ -165,6 +197,8 @@ const AdminHome: React.FC = () => {
         tension: 0.4,
         borderWidth: 3,
         pointRadius: 5,
+        pointHoverRadius: 7,
+        pointHitRadius: 5, // 👈 restrict hit area to exact point
         pointBackgroundColor: "rgba(54,162,235,1)",
       },
       {
@@ -176,46 +210,61 @@ const AdminHome: React.FC = () => {
         tension: 0.4,
         borderWidth: 3,
         pointRadius: 5,
+        pointHoverRadius: 7,
+        pointHitRadius: 5, // 👈 restrict hit area to exact point
         pointBackgroundColor: "rgba(255,99,132,1)",
       },
     ],
   };
 
-  // === Chart options (fixed 1–10 lane style) ===
   const chartOptions: ChartOptions<"line"> = {
     responsive: true,
     maintainAspectRatio: false,
+    interaction: {
+      mode: "point", // 👈 trigger only when directly on a point
+      intersect: true,
+    },
     plugins: {
       legend: { position: "top" },
       title: {
         display: true,
-        text: "Weekly Quiz Activity (Arithmetic vs Motion)",
+        text: "Weekly Quiz Activity",
         font: { size: 18, weight: "bold" },
+      },
+      tooltip: {
+        mode: "point",
+        intersect: true,
+        backgroundColor: "rgba(0,0,0,0.8)",
+        titleFont: { size: 13 },
+        bodyFont: { size: 12 },
+        padding: 8,
+        callbacks: {
+          title: (tooltipItems) => {
+            const item = tooltipItems[0];
+            const dayIndex = item.dataIndex;
+            const date = new Date(currentWeekStart);
+            date.setDate(currentWeekStart.getDate() + dayIndex);
+            return `${item.label} (${date.toLocaleDateString()})`;
+          },
+        },
       },
     },
     scales: {
       y: {
         beginAtZero: true,
         min: 0,
-        max: 10, // 👈 fixed up to 10
-        ticks: {
-          stepSize: 1, // 👈 increments of 1
-        },
-        grid: {
-          color: "rgba(200,200,200,0.3)", // subtle lane lines
-        },
+        max: 10,
+        ticks: { stepSize: 1 },
+        grid: { color: "rgba(200,200,200,0.3)" },
         title: { display: true, text: "Number of Participants" },
       },
       x: {
-        grid: {
-          color: "rgba(200,200,200,0.2)",
-        },
+        grid: { color: "rgba(200,200,200,0.2)" },
         title: { display: true, text: "Day of the Week" },
       },
     },
   };
 
-  // === Pagination ===
   const totalItems = recentLogins.length;
   const startIndex = currentPage * itemsPerPage;
   const endIndex = Math.min(startIndex + itemsPerPage, totalItems);
@@ -224,7 +273,6 @@ const AdminHome: React.FC = () => {
   const handleNext = () => {
     if (endIndex < totalItems) setCurrentPage((prev) => prev + 1);
   };
-
   const handlePrev = () => {
     if (currentPage > 0) setCurrentPage((prev) => prev - 1);
   };
@@ -247,34 +295,22 @@ const AdminHome: React.FC = () => {
           <IonRow>
             <IonCol size="12" sizeMd="4">
               <IonCard className="card-admin">
-                <IonCardHeader>
-                  <IonCardTitle>Admin Users</IonCardTitle>
-                </IonCardHeader>
-                <IonCardContent>
-                  <h1>{animatedStats.admin}</h1>
-                </IonCardContent>
+                <IonCardHeader><IonCardTitle>Admin Users</IonCardTitle></IonCardHeader>
+                <IonCardContent><h1>{animatedStats.admin}</h1></IonCardContent>
               </IonCard>
             </IonCol>
 
             <IonCol size="12" sizeMd="4">
               <IonCard className="card-users">
-                <IonCardHeader>
-                  <IonCardTitle>Users</IonCardTitle>
-                </IonCardHeader>
-                <IonCardContent>
-                  <h1>{animatedStats.user}</h1>
-                </IonCardContent>
+                <IonCardHeader><IonCardTitle>Users</IonCardTitle></IonCardHeader>
+                <IonCardContent><h1>{animatedStats.user}</h1></IonCardContent>
               </IonCard>
             </IonCol>
 
             <IonCol size="12" sizeMd="4">
               <IonCard className="card-total">
-                <IonCardHeader>
-                  <IonCardTitle>Total Users</IonCardTitle>
-                </IonCardHeader>
-                <IonCardContent>
-                  <h1>{animatedStats.total}</h1>
-                </IonCardContent>
+                <IonCardHeader><IonCardTitle>Total Users</IonCardTitle></IonCardHeader>
+                <IonCardContent><h1>{animatedStats.total}</h1></IonCardContent>
               </IonCard>
             </IonCol>
           </IonRow>
@@ -282,8 +318,16 @@ const AdminHome: React.FC = () => {
 
         {/* === CHART SECTION === */}
         <div className="chart-section">
-          <h3 className="chart-title">Weekly Quiz Activity</h3>
-          <div className="chart-container">
+          <div className="chart-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <h3 className="chart-title">Weekly Quiz Activity</h3>
+            <div className="week-selector" style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "0.9rem" }}>
+              <IonButton fill="clear" onClick={handlePrevWeek}><IonIcon icon={chevronUpOutline} /></IonButton>
+              <span>{formatDateRange(currentWeekStart)}</span>
+              <IonButton fill="clear" onClick={handleNextWeek}><IonIcon icon={chevronDownOutline} /></IonButton>
+            </div>
+          </div>
+
+          <div className="chart-container" style={{ height: "400px", marginTop: "10px" }}>
             <Line data={chartData} options={chartOptions} />
           </div>
         </div>
@@ -305,7 +349,6 @@ const AdminHome: React.FC = () => {
             </IonRow>
           ))}
 
-          {/* Pagination */}
           <IonRow className="pagination-row">
             <IonButton fill="clear" disabled={currentPage === 0} onClick={handlePrev}>
               <IonIcon icon={chevronUpOutline} />

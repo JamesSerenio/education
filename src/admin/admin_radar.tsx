@@ -16,6 +16,7 @@ import {
   Title,
 } from "chart.js";
 import ChartDataLabels from "chartjs-plugin-datalabels";
+import * as XLSX from "xlsx";
 import { supabase } from "../utils/supabaseClient";
 
 ChartJS.register(
@@ -52,6 +53,11 @@ interface ScoreWithQuizzes {
   created_at: string;
   quiz_id: string;
   quizzes: Quiz | null;
+  profiles?: {
+    firstname?: string;
+    lastname?: string;
+    email?: string;
+  };
 }
 
 const AdminRadar: React.FC = () => {
@@ -65,16 +71,17 @@ const AdminRadar: React.FC = () => {
     solving: 0,
     problemSolving: 0,
   });
-
   const [physicsScore, setPhysicsScore] = useState<UserScore>({
     time: 0,
     solving: 0,
     problemSolving: 0,
   });
 
+  const [isRefreshing, setIsRefreshing] = useState(false); // 🔄 state for refresh animation
+
   const mapToScoreWithQuizzes = (rawData: Record<string, unknown>): ScoreWithQuizzes => {
     const quiz = rawData.quizzes as Record<string, unknown> | null;
-
+    const profiles = rawData.profiles as Record<string, unknown> | undefined;
     return {
       id: (rawData.id as string) || "",
       score: (rawData.score as number) ?? null,
@@ -88,10 +95,16 @@ const AdminRadar: React.FC = () => {
             subject: (quiz.subject as string) || "",
           }
         : null,
+      profiles: profiles
+        ? {
+            firstname: (profiles.firstname as string) || "",
+            lastname: (profiles.lastname as string) || "",
+            email: (profiles.email as string) || "",
+          }
+        : undefined,
     };
   };
 
-  // 🔹 Fetch subject data with dynamic decimal display
   const fetchSubjectData = async (subject: string): Promise<UserScore> => {
     try {
       const { data, error } = await supabase
@@ -106,46 +119,29 @@ const AdminRadar: React.FC = () => {
       if (error) throw error;
 
       const scores: ScoreWithQuizzes[] = (data || []).map(mapToScoreWithQuizzes);
+      if (scores.length === 0) return { time: 0, solving: 0, problemSolving: 0 };
 
-      if (scores.length === 0) {
-        return { time: 0, solving: 0, problemSolving: 0 };
-      }
+      const subjectScores = scores.filter((s) => s.quizzes?.subject === subject);
 
-      const subjectScores = scores.filter(
-        (s) => s.quizzes?.subject === subject
-      );
-
-      // ⏱ Average Time (with decimals)
       const avgTime =
-        subjectScores.reduce((sum, s) => sum + (s.time_taken || 0), 0) /
+        subjectScores.reduce((sum, s) => sum + (s.time_taken ?? 0), 0) /
         subjectScores.length;
-      const timePercent = Math.max(
-        0,
-        Math.min(100, ((MAX_TIME - avgTime) / MAX_TIME) * 100)
-      );
+      const timePercent = Math.max(0, Math.min(100, ((MAX_TIME - avgTime) / MAX_TIME) * 100));
 
-      // 🧮 Solving (with decimals)
       const solvingScores = subjectScores.filter(
         (s) => s.quizzes?.category === "Solving" && s.score !== null
       );
       const solvingPercent =
         solvingScores.length > 0
-          ? ((solvingScores.reduce((sum, s) => sum + (s.score || 0), 0) /
-              solvingScores.length /
-              MAX_SCORE) *
-            100)
+          ? (solvingScores.reduce((sum, s) => sum + (s.score ?? 0), 0) / solvingScores.length / MAX_SCORE) * 100
           : 0;
 
-      // 🧩 Problem Solving (with decimals)
       const problemScores = subjectScores.filter(
         (s) => s.quizzes?.category === "Problem Solving" && s.score !== null
       );
       const problemSolvingPercent =
         problemScores.length > 0
-          ? ((problemScores.reduce((sum, s) => sum + (s.score || 0), 0) /
-              problemScores.length /
-              MAX_SCORE) *
-            100)
+          ? (problemScores.reduce((sum, s) => sum + (s.score ?? 0), 0) / problemScores.length / MAX_SCORE) * 100
           : 0;
 
       return {
@@ -166,7 +162,87 @@ const AdminRadar: React.FC = () => {
     setPhysicsScore(physics);
   };
 
-  // ✅ Helper for formatting decimals dynamically
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await fetchAllData();
+    setTimeout(() => setIsRefreshing(false), 800); // smooth delay
+  };
+
+  const fetchAllScores = async (): Promise<ScoreWithQuizzes[]> => {
+    try {
+      const { data, error } = await supabase
+        .from("scores")
+        .select(`
+          id,
+          score,
+          time_taken,
+          created_at,
+          quiz_id,
+          quizzes!quiz_id (subject, category),
+          profiles!user_id (firstname, lastname, email)
+        `)
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      return (data || []).map(mapToScoreWithQuizzes);
+    } catch (err) {
+      console.error("Error fetching all scores:", err);
+      return [];
+    }
+  };
+
+  const exportAllToExcel = async () => {
+    const allScores = await fetchAllScores();
+    if (allScores.length === 0) return;
+
+    const formatted = allScores.map((item) => ({
+      "Full Name": `${item.profiles?.lastname || ""}, ${item.profiles?.firstname || ""}`.trim() || "N/A",
+      Email: item.profiles?.email || "N/A",
+      Subject: item.quizzes?.subject || "N/A",
+      Category: item.quizzes?.category || "N/A",
+      Score: item.score ?? 0,
+      "Time Taken (s)": item.time_taken ?? 0,
+      "Date Taken": new Date(item.created_at).toLocaleString(),
+    }));
+
+    const summarySection = [
+      { "📊 AVERAGE SUMMARY": "" },
+      {
+        Subject: "Arithmetic Sequence",
+        "⏱ Time (%)": `${arithmeticScore.time}%`,
+        "🧩 Problem Solving (%)": `${arithmeticScore.problemSolving}%`,
+        "🧮 Solving (%)": `${arithmeticScore.solving}%`,
+      },
+      {
+        Subject: "Uniform Motion in Physics",
+        "⏱ Time (%)": `${physicsScore.time}%`,
+        "🧩 Problem Solving (%)": `${physicsScore.problemSolving}%`,
+        "🧮 Solving (%)": `${physicsScore.solving}%`,
+      },
+      {},
+      { "STUDENT QUIZ RESULTS": "" },
+    ];
+
+    const ws = XLSX.utils.json_to_sheet([...summarySection, {}, ...formatted]);
+    ws["!cols"] = [
+      { wch: 30 },
+      { wch: 25 },
+      { wch: 25 },
+      { wch: 20 },
+      { wch: 10 },
+      { wch: 15 },
+      { wch: 25 },
+    ];
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "All Results");
+
+    const dateStr = new Date().toISOString().split("T")[0];
+    XLSX.writeFile(wb, `All_Student_Results_${dateStr}.xlsx`);
+
+    await fetchAllData();
+  };
+
   const formatValue = (value: number): string => {
     return Number.isInteger(value) ? `${value}%` : `${value.toFixed(2)}%`;
   };
@@ -175,7 +251,7 @@ const AdminRadar: React.FC = () => {
     ctx: CanvasRenderingContext2D,
     data: UserScore,
     title: string
-  ) => {
+  ): ChartJS => {
     const gradient = ctx.createLinearGradient(0, 0, 0, 400);
     gradient.addColorStop(0, "rgba(54, 162, 235, 0.3)");
     gradient.addColorStop(1, "rgba(236, 72, 153, 0.3)");
@@ -194,8 +270,6 @@ const AdminRadar: React.FC = () => {
             borderWidth: 3,
             pointBackgroundColor: "rgb(236, 72, 153)",
             pointBorderColor: "#fff",
-            pointHoverBackgroundColor: "#fff",
-            pointHoverBorderColor: "rgb(236, 72, 153)",
           },
         ],
       },
@@ -213,28 +287,14 @@ const AdminRadar: React.FC = () => {
             color: "#111",
             font: { size: 18, weight: "bold" },
           },
-          tooltip: {
-            enabled: true,
-            callbacks: {
-              label: (context) => {
-                const value = context.raw as number;
-                return `${context.label}: ${formatValue(value)}`; // ✅ No .00 if not needed
-              },
-            },
-            titleFont: { size: 14, weight: "bold" },
-            bodyFont: { size: 13 },
-          },
           datalabels: {
             color: "#000",
             font: { weight: "bold", size: 12 },
-            formatter: (val) => formatValue(val), // ✅ Dynamic decimals
+            formatter: (val: number) => formatValue(val),
           },
         },
         scales: {
           r: {
-            angleLines: { color: "rgba(156, 163, 175, 0.3)" },
-            grid: { color: "rgba(209, 213, 219, 0.3)" },
-            pointLabels: { color: "#111", font: { size: 13, weight: "bold" } },
             suggestedMin: 0,
             suggestedMax: 100,
             ticks: { display: false },
@@ -247,7 +307,6 @@ const AdminRadar: React.FC = () => {
 
   useEffect(() => {
     if (!radarRefArithmetic.current || !radarRefPhysics.current) return;
-
     const ctxA = radarRefArithmetic.current.getContext("2d");
     const ctxP = radarRefPhysics.current.getContext("2d");
     if (!ctxA || !ctxP) return;
@@ -255,16 +314,8 @@ const AdminRadar: React.FC = () => {
     chartArithmetic.current?.destroy();
     chartPhysics.current?.destroy();
 
-    chartArithmetic.current = createRadarChart(
-      ctxA,
-      arithmeticScore,
-      "Arithmetic Sequence"
-    );
-    chartPhysics.current = createRadarChart(
-      ctxP,
-      physicsScore,
-      "Uniform Motion in Physics"
-    );
+    chartArithmetic.current = createRadarChart(ctxA, arithmeticScore, "Arithmetic Sequence");
+    chartPhysics.current = createRadarChart(ctxP, physicsScore, "Uniform Motion in Physics");
 
     return () => {
       chartArithmetic.current?.destroy();
@@ -280,6 +331,15 @@ const AdminRadar: React.FC = () => {
     <IonPage>
       <IonHeader />
       <IonContent fullscreen>
+        <style>
+          {`
+            @keyframes spin {
+              from { transform: rotate(0deg); }
+              to { transform: rotate(360deg); }
+            }
+          `}
+        </style>
+
         <div
           style={{
             padding: "20px",
@@ -303,7 +363,6 @@ const AdminRadar: React.FC = () => {
                 width: "100%",
                 maxWidth: "500px",
                 height: "60vh",
-                minHeight: "300px",
                 background: "white",
                 borderRadius: "16px",
                 boxShadow: "0px 6px 18px rgba(0,0,0,0.08)",
@@ -318,7 +377,6 @@ const AdminRadar: React.FC = () => {
                 width: "100%",
                 maxWidth: "500px",
                 height: "60vh",
-                minHeight: "300px",
                 background: "white",
                 borderRadius: "16px",
                 boxShadow: "0px 6px 18px rgba(0,0,0,0.08)",
@@ -329,8 +387,10 @@ const AdminRadar: React.FC = () => {
             </div>
           </div>
 
+          {/* 🔄 Refresh Button */}
           <button
-            onClick={fetchAllData}
+            onClick={handleRefresh}
+            disabled={isRefreshing}
             style={{
               padding: "12px 24px",
               background: "linear-gradient(90deg, #6366F1, #EC4899)",
@@ -339,13 +399,47 @@ const AdminRadar: React.FC = () => {
               fontWeight: "bold",
               borderRadius: "12px",
               border: "none",
-              cursor: "pointer",
+              cursor: isRefreshing ? "wait" : "pointer",
               width: "100%",
               maxWidth: "250px",
               marginTop: "10px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "8px",
+              opacity: isRefreshing ? 0.8 : 1,
+              transition: "all 0.3s ease",
             }}
           >
-            🔄 Refresh Both Subjects
+            <span
+              style={{
+                display: "inline-block",
+                animation: isRefreshing ? "spin 1s linear infinite" : "none",
+                fontSize: "18px",
+              }}
+            >
+              🔄
+            </span>
+            {isRefreshing ? "Refreshing..." : "Refresh Both Subjects"}
+          </button>
+
+          {/* 📘 Export Button */}
+          <button
+            onClick={exportAllToExcel}
+            style={{
+              padding: "12px 24px",
+              background: "linear-gradient(90deg, #0EA5E9, #2563EB)",
+              color: "white",
+              fontSize: "16px",
+              fontWeight: "bold",
+              borderRadius: "12px",
+              border: "none",
+              cursor: "pointer",
+              width: "100%",
+              maxWidth: "250px",
+            }}
+          >
+            📘 Export All Students Data
           </button>
         </div>
       </IonContent>

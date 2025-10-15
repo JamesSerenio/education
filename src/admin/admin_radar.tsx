@@ -77,7 +77,7 @@ const AdminRadar: React.FC = () => {
     problemSolving: 0,
   });
 
-  const [isRefreshing, setIsRefreshing] = useState(false); // 🔄 state for refresh animation
+  const [isRefreshing, setIsRefreshing] = useState(false); // 🔄 loading state
 
   const mapToScoreWithQuizzes = (rawData: Record<string, unknown>): ScoreWithQuizzes => {
     const quiz = rawData.quizzes as Record<string, unknown> | null;
@@ -155,17 +155,48 @@ const AdminRadar: React.FC = () => {
     }
   };
 
+  // 🔹 Smooth animation function (babalik muna sa zero tapos bubukadkad)
+  const animateRadarUpdate = (
+    setScore: React.Dispatch<React.SetStateAction<UserScore>>,
+    newScore: UserScore,
+    duration = 1000
+  ) => {
+    const steps = 30;
+    const interval = duration / steps;
+
+    setScore({ time: 0, solving: 0, problemSolving: 0 }); // reset to 0 first
+
+    let currentStep = 0;
+    const start = { time: 0, solving: 0, problemSolving: 0 };
+
+    const animate = setInterval(() => {
+      currentStep++;
+      const progress = currentStep / steps;
+
+      setScore({
+        time: start.time + (newScore.time - start.time) * progress,
+        solving: start.solving + (newScore.solving - start.solving) * progress,
+        problemSolving:
+          start.problemSolving +
+          (newScore.problemSolving - start.problemSolving) * progress,
+      });
+
+      if (currentStep >= steps) clearInterval(animate);
+    }, interval);
+  };
+
   const fetchAllData = async () => {
     const arithmetic = await fetchSubjectData("Arithmetic Sequence");
     const physics = await fetchSubjectData("Uniform Motion in Physics");
-    setArithmeticScore(arithmetic);
-    setPhysicsScore(physics);
+
+    animateRadarUpdate(setArithmeticScore, arithmetic);
+    animateRadarUpdate(setPhysicsScore, physics);
   };
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
     await fetchAllData();
-    setTimeout(() => setIsRefreshing(false), 800); // smooth delay
+    setTimeout(() => setIsRefreshing(false), 1200);
   };
 
   const fetchAllScores = async (): Promise<ScoreWithQuizzes[]> => {

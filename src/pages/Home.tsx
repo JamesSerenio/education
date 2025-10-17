@@ -37,7 +37,7 @@ const Home: React.FC = () => {
   }, []);
 
   const handleNavigate = (path: string) => history.push(path);
-  const handleLogout = () => history.push("/education/login");
+  const handleLogout = () => history.push("/login");
 
   return (
     <IonPage>
@@ -127,7 +127,7 @@ const Home: React.FC = () => {
                     <IonButton
                       expand="block"
                       color="primary"
-                      onClick={() => handleNavigate("/education/dashboard_arithmetic")}
+                      onClick={() => handleNavigate("/dashboard_arithmetic")}
                     >
                       START
                     </IonButton>
@@ -151,7 +151,7 @@ const Home: React.FC = () => {
                     <IonButton
                       expand="block"
                       color="primary"
-                      onClick={() => handleNavigate("/education/dashboard_motion")}
+                      onClick={() => handleNavigate("/dashboard_motion")}
                     >
                       START
                     </IonButton>

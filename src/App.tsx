@@ -36,7 +36,7 @@ setupIonicReact();
 
 const App: React.FC = () => (
   <IonApp>
-    {/* ✅ HashRouter fixes GitHub Pages refresh issues */}
+    {}
     <Router>
       <IonRouterOutlet>
         {/* Auth */}
@@ -44,7 +44,7 @@ const App: React.FC = () => (
         <Route exact path="/register" component={Register} />
 
         {/* Home */}
-        <Route exact path="#/home" component={Home} />
+        <Route exact path="/home" component={Home} />  
 
         {/* Dashboards */}
         <Route

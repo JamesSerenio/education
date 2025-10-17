@@ -246,7 +246,7 @@ const Register: React.FC = () => {
             </form>
 
             <motion.p className="auth-footer" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.3 }}>
-              Already have an account? <Link to="/education/login" className="auth-link">Login here 🚀</Link>
+              Already have an account? <Link to="/login" className="auth-link">Login here 🚀</Link>
             </motion.p>
           </motion.div>
         </motion.div>
@@ -261,7 +261,7 @@ const Register: React.FC = () => {
               text: "OK",
               handler: () => {
                 setShowAlert(false);
-                history.push("/education/login");
+                history.push("/login");
               },
             },
           ]}

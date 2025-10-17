@@ -147,7 +147,7 @@ const Dashboard_Arithmetic: React.FC = () => {
                   <IonButton
                     expand="block"
                     color="primary"
-                    onClick={() => history.push("/education/home")}
+                    onClick={() => history.push("/home")}
                   >
                     <IonIcon icon={logOutOutline} slot="start" />
                     Logout

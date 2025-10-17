@@ -151,7 +151,7 @@ const AdminDashboard: React.FC = () => {
                   <IonButton
                     expand="block"
                     color="primary"
-                    onClick={() => history.push("/education/login")}
+                    onClick={() => history.push("/login")}
                   >
                     <IonIcon icon={logOutOutline} slot="start" />
                     Logout

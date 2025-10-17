@@ -77,8 +77,8 @@ const Login: React.FC = () => {
       // Redirect based on role
       history.push(
         roleToLog === "admin"
-          ? "/education/admin/admin_dashboard"
-          : "/education/home"
+          ? "/admin/admin_dashboard"
+          : "/home"
       );
     } catch (err) {
       console.error("Unexpected login error:", err);
@@ -224,7 +224,7 @@ const Login: React.FC = () => {
               transition={{ delay: 0.8 }}
             >
               Don’t have an account?{" "}
-              <Link to="/education/register" className="auth-link">
+              <Link to="/register" className="auth-link">
                 Register here ➕
               </Link>
             </motion.p>

@@ -12,7 +12,7 @@ export default defineConfig({
     tailwindcss(),
     legacy()
   ],
-  base: "education",
+  base: "/education",
   test: {
     globals: true,
     environment: 'jsdom',

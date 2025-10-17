@@ -40,74 +40,74 @@ const App: React.FC = () => (
     <Router>
       <IonRouterOutlet>
         {/* Auth */}
-        <Route exact path="/education/login" component={Login} />
-        <Route exact path="/education/register" component={Register} />
+        <Route exact path="/login" component={Login} />
+        <Route exact path="/register" component={Register} />
 
         {/* Home */}
-        <Route exact path="/education/home" component={Home} />
+        <Route exact path="/home" component={Home} />
 
         {/* Dashboards */}
         <Route
           exact
-          path="/education/dashboard_arithmetic"
+          path="/dashboard_arithmetic"
           component={Dashboard_Arithmetic}
         />
         <Route
           exact
-          path="/education/dashboard_motion"
+          path="/dashboard_motion"
           component={Dashboard_Motion}
         />
 
         {/* Arithmetic */}
         <Route
           exact
-          path="/education/arithmetic_practice"
+          path="/arithmetic_practice"
           component={Arithmetic_Practice}
         />
         <Route
           exact
-          path="/education/arithmetic_home"
+          path="/arithmetic_home"
           component={ArithmeticHome}
         />
         <Route
           exact
-          path="/education/arithmetic_module"
+          path="/arithmetic_module"
           component={ArithmeticModule}
         />
         <Route
           exact
-          path="/education/arithmetic_leaderboard"
+          path="/arithmetic_leaderboard"
           component={ArithmeticLeaderboard}
         />
         <Route
           exact
-          path="/education/arithmetic_radar"
+          path="/arithmetic_radar"
           component={ArithmeticRadar}
         />
         <Route
           exact
-          path="/education/arithmetic_quiz"
+          path="/arithmetic_quiz"
           component={ArithmeticQuiz}
         />
 
         {/* Motion */}
         <Route
           exact
-          path="/education/motion_practice"
+          path="/motion_practice"
           component={MotionPractice}
         />
-        <Route exact path="/education/motion_quiz" component={MotionQuiz} />
+        <Route exact path="/motion_quiz" component={MotionQuiz} />
 
         {/* Admin */}
         <Route
           exact
-          path="/education/admin/admin_dashboard"
+          path="/admin/admin_dashboard"
           component={AdminDashboard}
         />
 
         {/* Default redirect */}
         <Route exact path="/">
-          <Redirect to="/education/login" />
+          <Redirect to="/login" />
         </Route>
       </IonRouterOutlet>
     </Router>

@@ -51,6 +51,7 @@ const ArithmeticQuiz: React.FC = () => {
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const inputRef = useRef<HTMLIonInputElement | null>(null);
 
+  // 🔹 Pick one random quiz per level
   const pickOnePerLevel = (pool: Quiz[]): Quiz[] => {
     const picks: Quiz[] = [];
     for (let lvl = 1; lvl <= 5; lvl++) {
@@ -63,18 +64,21 @@ const ArithmeticQuiz: React.FC = () => {
     return picks.sort((a, b) => a.level - b.level);
   };
 
+  // 🔹 Fetch all quizzes
   useEffect(() => {
     const fetchQuizzes = async () => {
       const { data, error } = await supabase
         .from("quizzes")
         .select("*")
         .eq("subject", "Arithmetic Sequence");
+
       if (error) console.error("Error fetching quizzes:", error.message);
       else setAllQuizzes(data || []);
     };
     fetchQuizzes();
   }, []);
 
+  // 🔹 When user selects a category
   const handleCategorySelect = (category: string) => {
     setSelectedCategory(category);
     const filtered = allQuizzes.filter((q) => q.category === category);
@@ -92,11 +96,13 @@ const ArithmeticQuiz: React.FC = () => {
     }
   };
 
-  const saveResult = async (quizId: string, finalScore: number) => {
+  // 🔹 Save result in Supabase
+  const saveResult = async (finalScore: number) => {
     try {
       const {
         data: { session },
       } = await supabase.auth.getSession();
+
       if (!session) {
         console.warn("⚠️ No session found");
         return;
@@ -106,8 +112,14 @@ const ArithmeticQuiz: React.FC = () => {
       const timeTaken = startTime ? Math.floor((Date.now() - startTime) / 1000) : 0;
 
       const { error } = await supabase.from("scores").insert([
-        { user_id: userId, quiz_id: quizId, score: finalScore, time_taken: timeTaken },
+        {
+          user_id: userId,
+          quiz_id: quizzes[0]?.id || null, // first quiz as reference
+          score: finalScore,
+          time_taken: timeTaken,
+        },
       ]);
+
       if (error) console.error("❌ Error saving score:", error.message);
       else console.log("✅ Score saved!");
     } catch (err) {
@@ -115,6 +127,7 @@ const ArithmeticQuiz: React.FC = () => {
     }
   };
 
+  // 🔹 Timer logic
   useEffect(() => {
     if (!currentQuiz) return;
 
@@ -136,6 +149,7 @@ const ArithmeticQuiz: React.FC = () => {
     };
   }, [currentQuiz, questionStart]);
 
+  // 🔹 Handle next question or finish
   const handleNext = useCallback(
     (auto = false) => {
       if (!currentQuiz || !selectedCategory) return;
@@ -157,7 +171,9 @@ const ArithmeticQuiz: React.FC = () => {
         normalizedAnswer === correctAnswer || alternates.includes(normalizedAnswer);
 
       const newScore = isCorrect ? score + 1 : score;
+      setScore(newScore);
 
+      // 🧩 Store user's attempt
       setUserSolutions((prev) => [
         ...prev,
         {
@@ -170,18 +186,21 @@ const ArithmeticQuiz: React.FC = () => {
       ]);
 
       const currentIndex = quizzes.findIndex((q) => q.id === currentQuiz.id);
+
       if (currentIndex < quizzes.length - 1) {
+        // Move to next question
         setCurrentQuiz(quizzes[currentIndex + 1]);
         setUserAnswer("");
         setTimeLeft(TIME_PER_QUESTION);
         setQuestionStart(Date.now());
       } else {
-        setShowResultModal(true);
+        // ✅ Finished quiz
         clearInterval(timerRef.current!);
-        saveResult(quizzes[0].id, newScore);
+        setShowResultModal(true);
+        saveResult(newScore); // ✅ Save final score properly
       }
     },
-    [currentQuiz, selectedCategory, quizzes, userAnswer, score]
+    [currentQuiz, selectedCategory, quizzes, userAnswer, score, startTime]
   );
 
   useIonViewDidEnter(() => {
@@ -215,7 +234,11 @@ const ArithmeticQuiz: React.FC = () => {
 
   return (
     <IonPage>
-      <IonHeader></IonHeader>
+      <IonHeader>
+        <IonToolbar>
+          <IonTitle>Arithmetic Quiz</IonTitle>
+        </IonToolbar>
+      </IonHeader>
 
       <IonContent fullscreen scrollEvents>
         {!selectedCategory ? (

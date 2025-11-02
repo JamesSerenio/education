@@ -30,7 +30,8 @@ interface Quiz {
   created_at: string;
 }
 
-const difficultyMap: Record<string, number> = {
+// Map difficulty to numbers for sorting
+const difficultyOrder: Record<string, number> = {
   Easy: 1,
   Average: 2,
   Difficult: 3,
@@ -54,12 +55,20 @@ const AdminArithmeticQuiz: React.FC = () => {
     const { data, error } = await supabase
       .from("quizzes")
       .select("*")
-      .eq("subject", "Arithmetic Sequence")
-      .order("category", { ascending: true })
-      .order("difficulty", { ascending: true }); // order by difficulty
+      .eq("subject", "Arithmetic Sequence");
 
-    if (error) console.error("Error fetching quizzes:", error.message);
-    else setQuizzes(data || []);
+    if (error) {
+      console.error("Error fetching quizzes:", error.message);
+      setQuizzes([]);
+    } else {
+      // Sort first by category, then by difficulty number
+      const sorted = (data || []).sort((a, b) => {
+        if (a.category < b.category) return -1;
+        if (a.category > b.category) return 1;
+        return difficultyOrder[a.difficulty] - difficultyOrder[b.difficulty];
+      });
+      setQuizzes(sorted);
+    }
     setLoading(false);
   };
 
@@ -108,8 +117,9 @@ const AdminArithmeticQuiz: React.FC = () => {
       })
       .eq("id", editQuiz.id);
 
-    if (error) console.error("Error updating quiz:", error.message);
-    else {
+    if (error) {
+      console.error("Error updating quiz:", error.message);
+    } else {
       setQuizzes(
         quizzes.map((q) =>
           q.id === editQuiz.id
@@ -172,7 +182,7 @@ const AdminArithmeticQuiz: React.FC = () => {
                 <table className="quiz-table">
                   <thead>
                     <tr>
-                      <th>Level</th>
+                      <th>Difficulty</th>
                       <th>Question</th>
                       <th>Answer</th>
                       <th>Solution</th>
@@ -183,7 +193,7 @@ const AdminArithmeticQuiz: React.FC = () => {
                   <tbody>
                     {groupedQuizzes[category].map((quiz) => (
                       <tr key={quiz.id}>
-                        <td>L{difficultyMap[quiz.difficulty]}</td>
+                        <td>{quiz.difficulty}</td>
                         <td><pre>{quiz.question}</pre></td>
                         <td><pre>{quiz.answer}</pre></td>
                         <td><pre>{quiz.solution || "No solution"}</pre></td>
@@ -205,6 +215,7 @@ const AdminArithmeticQuiz: React.FC = () => {
           ))
         )}
 
+        {/* Delete Alert */}
         <IonAlert
           isOpen={!!deleteId}
           onDidDismiss={() => setDeleteId(null)}
@@ -216,6 +227,7 @@ const AdminArithmeticQuiz: React.FC = () => {
           ]}
         />
 
+        {/* Edit Modal */}
         <IonModal isOpen={!!editQuiz} onDidDismiss={() => setEditQuiz(null)}>
           <IonHeader>
             <IonToolbar>
@@ -252,7 +264,12 @@ const AdminArithmeticQuiz: React.FC = () => {
 
             <IonItem>
               <IonLabel position="stacked">Alternate Answers (one per line)</IonLabel>
-              <IonTextarea autoGrow value={editAcceptedAnswers} onIonChange={(e) => setEditAcceptedAnswers(e.detail.value!)} placeholder="Example:\n2,300\n2300.0\n2.3k" />
+              <IonTextarea
+                autoGrow
+                value={editAcceptedAnswers}
+                onIonChange={(e) => setEditAcceptedAnswers(e.detail.value!)}
+                placeholder="Example:\n2,300\n2300.0\n2.3k"
+              />
             </IonItem>
 
             <IonItem>

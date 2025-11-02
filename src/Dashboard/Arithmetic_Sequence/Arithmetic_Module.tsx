@@ -12,16 +12,20 @@ import { motion, AnimatePresence } from "framer-motion";
 // Import images
 import anImg from "../../assets/an_arithmetic.png";
 import discoverImg from "../../assets/who_discover_arithmetic.png";
-import a1Img from "../../assets/a1_arithmetic.png";
+import a1Img1 from "../../assets/A-1.png";
+import a1Img2 from "../../assets/A-2.png";
 import dImg from "../../assets/d_arithmetic.png";
 import nImg from "../../assets/n_arithmetic.png";
 
 const Arithmetic_Module: React.FC = () => {
   const [selected, setSelected] = useState<string>("module");
 
-  const images: Record<string, { src: string; label: string }> = {
+  const images: Record<
+    string,
+    { src: string | string[]; label: string }
+  > = {
     module: { src: anImg, label: "An Formula" },
-    a1: { src: a1Img, label: "Find a₁" },
+    a1: { src: [a1Img1, a1Img2], label: "Find a₁ (scroll to view more)" },
     d: { src: dImg, label: "Find d" },
     n: { src: nImg, label: "Find n" },
   };
@@ -30,7 +34,7 @@ const Arithmetic_Module: React.FC = () => {
     <IonPage>
       <IonHeader></IonHeader>
       <IonContent fullscreen>
-        {/* Container with staggered fade-in */}
+        {/* Container */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -114,23 +118,55 @@ const Arithmetic_Module: React.FC = () => {
               </IonSegmentButton>
             </IonSegment>
 
-            {/* Image transition on tab change */}
-            <div style={{ marginTop: "15px", position: "relative" }}>
+            {/* Scrollable image container */}
+            <div
+              style={{
+                marginTop: "15px",
+                position: "relative",
+                maxHeight: "400px",
+                overflowY: "auto",
+                borderRadius: "8px",
+              }}
+            >
               <AnimatePresence mode="wait">
-                <motion.img
-                  key={selected}
-                  src={images[selected].src}
-                  alt={images[selected].label}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.6, ease: "easeInOut" }}
-                  style={{
-                    width: "100%",
-                    borderRadius: "8px",
-                    position: "relative",
-                  }}
-                />
+                {selected === "a1" ? (
+                  <motion.div
+                    key="a1-scroll"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.6, ease: "easeInOut" }}
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "10px",
+                    }}
+                  >
+                    {(images.a1.src as string[]).map((img, index) => (
+                      <motion.img
+                        key={index}
+                        src={img}
+                        alt={`a1 image ${index + 1}`}
+                        style={{ width: "100%", borderRadius: "8px" }}
+                      />
+                    ))}
+                  </motion.div>
+                ) : (
+                  <motion.img
+                    key={selected}
+                    src={images[selected].src as string}
+                    alt={images[selected].label}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.6, ease: "easeInOut" }}
+                    style={{
+                      width: "100%",
+                      borderRadius: "8px",
+                      position: "relative",
+                    }}
+                  />
+                )}
               </AnimatePresence>
             </div>
           </motion.div>

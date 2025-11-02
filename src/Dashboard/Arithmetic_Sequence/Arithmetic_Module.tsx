@@ -11,20 +11,40 @@ import { motion, AnimatePresence } from "framer-motion";
 
 // Import images
 import discoverImg from "../../assets/who_discover_arithmetic.png";
-import a1Img from "../../assets/a1_arithmetic.png";
+
+// ✅ Multiple a1 images
+import a1_1 from "../../assets/A1-1.png";
+import a1_2 from "../../assets/A1-2.png";
+import a1_3 from "../../assets/A1-3.png";
+import a1_4 from "../../assets/A1-4.png";
+
+// ✅ Multiple images for An
 import an1Img from "../../assets/An-1.png";
 import an2Img from "../../assets/An-2.png";
 import an3Img from "../../assets/An-3.png";
 import an4Img from "../../assets/An-4.png";
-import dImg from "../../assets/d_arithmetic.png";
+
+// ✅ Multiple images for d
+import d1Img from "../../assets/d-1.png";
+import d2Img from "../../assets/d-2.png";
+import d3Img from "../../assets/d-3.png";
 
 const Arithmetic_Module: React.FC = () => {
   const [selected, setSelected] = useState<string>("a1");
 
+  // Updated all segments to support multiple images
   const images: Record<string, { src: string | string[]; label: string }> = {
-    a1: { src: a1Img, label: "Find a₁" },
-    d: { src: dImg, label: "Find d" },
-    n:  {src: [an1Img, an2Img, an3Img, an4Img], label: "Find n (scroll to view more)",
+    a1: {
+      src: [a1_1, a1_2, a1_3, a1_4],
+      label: "Find a₁ (scroll to view more)",
+    },
+    d: {
+      src: [d1Img, d2Img, d3Img],
+      label: "Find d (scroll to view more)",
+    },
+    n: {
+      src: [an1Img, an2Img, an3Img, an4Img],
+      label: "Find n (scroll to view more)",
     },
   };
 
@@ -32,7 +52,6 @@ const Arithmetic_Module: React.FC = () => {
     <IonPage>
       <IonHeader></IonHeader>
       <IonContent fullscreen>
-        {/* Container */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -122,9 +141,9 @@ const Arithmetic_Module: React.FC = () => {
               }}
             >
               <AnimatePresence mode="wait">
-                {selected === "n" ? (
+                {Array.isArray(images[selected].src) ? (
                   <motion.div
-                    key="n-scroll"
+                    key={`${selected}-scroll`}
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
@@ -135,11 +154,11 @@ const Arithmetic_Module: React.FC = () => {
                       gap: "10px",
                     }}
                   >
-                    {(images.n.src as string[]).map((img, index) => (
+                    {(images[selected].src as string[]).map((img, index) => (
                       <motion.img
                         key={index}
                         src={img}
-                        alt={`n image ${index + 1}`}
+                        alt={`${selected} image ${index + 1}`}
                         style={{ width: "100%", borderRadius: "8px" }}
                       />
                     ))}

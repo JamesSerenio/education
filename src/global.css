@@ -30,10 +30,12 @@ input:-webkit-autofill:focus {
   font-weight: 700;
   font-size: 1.5rem;
   color: #FFEF00;
-  opacity: 0.4;
+  background-color: #FFD300; /* Brighter Canary Yellow */
+  opacity: 0.8; /* mas visible */
   text-shadow: 0 0 12px rgba(255, 239, 0, 0.8);
   animation: floaty 8s ease-in-out infinite;
   z-index: 0;
+  box-shadow: 0 0 10px rgba(255, 211, 0, 0.8); /* glowing effect */
 }
 
 @keyframes floaty {

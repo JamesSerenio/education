@@ -98,6 +98,27 @@ input:-webkit-autofill:focus {
   transition: border 0.3s ease, box-shadow 0.3s ease;
 }
 
+/* Terms & Conditions Text */
+.auth-terms {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #333;
+  letter-spacing: 0.3px;
+  user-select: none;
+}
+
+.auth-terms span {
+  color: #32CD32; /* Light Green link */
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+  transition: color 0.2s ease;
+}
+
+.auth-terms span:hover {
+  color: #FFEF00; /* Canary Yellow hover */
+}
+
 .auth-input:hover {
   border-color: #32CD32;
   box-shadow: 0 0 10px rgba(144, 238, 144, 0.3);

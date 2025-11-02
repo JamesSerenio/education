@@ -14,6 +14,7 @@ import anImg from "../../assets/an_arithmetic.png";
 import discoverImg from "../../assets/who_discover_arithmetic.png";
 import a1Img1 from "../../assets/A-1.png";
 import a1Img2 from "../../assets/A-2.png";
+import a1Img3 from "../../assets/A-3.png";
 import dImg from "../../assets/d_arithmetic.png";
 import nImg from "../../assets/n_arithmetic.png";
 
@@ -25,7 +26,7 @@ const Arithmetic_Module: React.FC = () => {
     { src: string | string[]; label: string }
   > = {
     module: { src: anImg, label: "An Formula" },
-    a1: { src: [a1Img1, a1Img2], label: "Find a₁ (scroll to view more)" },
+    a1: { src: [a1Img1, a1Img2, a1Img3], label: "Find a₁ (scroll to view more)" },
     d: { src: dImg, label: "Find d" },
     n: { src: nImg, label: "Find n" },
   };

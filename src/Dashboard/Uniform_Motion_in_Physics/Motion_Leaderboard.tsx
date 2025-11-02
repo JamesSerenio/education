@@ -1,7 +1,12 @@
 import React, { useEffect, useState } from "react";
-import { IonPage, IonHeader, IonToolbar, IonTitle, IonContent } from "@ionic/react";
+import {
+  IonPage,
+  IonHeader,
+  IonContent,
+  IonTitle,
+  IonToolbar,
+} from "@ionic/react";
 import { Trophy } from "lucide-react";
-import { motion } from "framer-motion";
 import { supabase } from "../../utils/supabaseClient";
 
 interface Profile {
@@ -13,70 +18,110 @@ interface Quiz {
   subject: string;
 }
 
-interface ScoreRow {
+interface RawScoreRow {
   score: number;
   time_taken: number;
-  profiles: Profile;
-  quizzes: Quiz;
+  profiles: Profile | Profile[];
+  quizzes: Quiz | Quiz[];
 }
 
-const MotionLeaderboard: React.FC = () => {
-  const [solvingData, setSolvingData] = useState<ScoreRow[]>([]);
-  const [problemSolvingData, setProblemSolvingData] = useState<ScoreRow[]>([]);
+interface LeaderboardRow {
+  score: number;
+  time_taken: number;
+  profiles: { lastname: string };
+  quizzes: { category: string; subject: string };
+}
+
+const UniformMotionLeaderboard: React.FC = () => {
+  const [wordProblemData, setWordProblemData] = useState<LeaderboardRow[]>([]);
+  const [problemSolvingData, setProblemSolvingData] = useState<LeaderboardRow[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchLeaderboards();
   }, []);
 
-  const normalizeRow = (r: Partial<ScoreRow>): ScoreRow => ({
-    score: Number(r?.score ?? 0),
-    time_taken: Number(r?.time_taken ?? 0),
-    profiles: { lastname: r?.profiles?.lastname ?? "-" },
-    quizzes: { category: r?.quizzes?.category ?? "-", subject: r?.quizzes?.subject ?? "-" },
-  });
+  const normalizeRow = (r: RawScoreRow): LeaderboardRow => {
+    let lastname = "";
+    if (r?.profiles) {
+      lastname = Array.isArray(r.profiles)
+        ? r.profiles[0]?.lastname ?? ""
+        : r.profiles.lastname ?? "";
+    }
+
+    let category = "";
+    let subject = "";
+    if (r?.quizzes) {
+      if (Array.isArray(r.quizzes)) {
+        category = r.quizzes[0]?.category ?? "";
+        subject = r.quizzes[0]?.subject ?? "";
+      } else {
+        category = r.quizzes.category ?? "";
+        subject = r.quizzes.subject ?? "";
+      }
+    }
+
+    return {
+      score: Number(r?.score ?? 0),
+      time_taken: Number(r?.time_taken ?? 0),
+      profiles: { lastname },
+      quizzes: { category, subject },
+    };
+  };
+
+  const filterHighestPerUser = (data: LeaderboardRow[]) => {
+    const map = new Map<string, LeaderboardRow>();
+
+    data.forEach((row) => {
+      const key = row.profiles.lastname;
+      const existing = map.get(key);
+      if (!existing) {
+        map.set(key, row);
+      } else {
+        if (row.score > existing.score) {
+          map.set(key, row);
+        } else if (row.score === existing.score && row.time_taken < existing.time_taken) {
+          map.set(key, row);
+        }
+      }
+    });
+
+    return Array.from(map.values()).sort((a, b) => {
+      if (b.score !== a.score) return b.score - a.score;
+      return a.time_taken - b.time_taken;
+    });
+  };
 
   const fetchLeaderboards = async () => {
     setLoading(true);
     try {
-      // --- Solving leaderboard
-      const { data: solvingRaw, error: err1 } = await supabase
-        .from("scores")
-        .select(`
-          score,
-          time_taken,
-          profiles(lastname),
-          quizzes(category,subject)
-        `)
-        .eq("quizzes.category", "Solving")
-        .eq("quizzes.subject", "Motion")
-        .order("score", { ascending: false })
-        .order("time_taken", { ascending: true });
+      const fetchCategory = async (category: string) => {
+        const { data, error } = await supabase
+          .from("scores")
+          .select(`
+            score,
+            time_taken,
+            profiles!inner(lastname),
+            quizzes!inner(category, subject)
+          `)
+          .eq("quizzes.subject", "Uniform Motion in Physics")
+          .eq("quizzes.category", category);
 
-      if (err1) console.error("Solving Error:", err1);
-      else if (solvingRaw)
-        setSolvingData(solvingRaw.map((r) => normalizeRow(r as unknown as ScoreRow)));
+        if (error) {
+          console.error(`${category} Error:`, error);
+          return [];
+        }
+        return (data as RawScoreRow[]).map(normalizeRow);
+      };
 
-      // --- Problem Solving leaderboard
-      const { data: problemRaw, error: err2 } = await supabase
-        .from("scores")
-        .select(`
-          score,
-          time_taken,
-          profiles(lastname),
-          quizzes(category,subject)
-        `)
-        .eq("quizzes.category", "Problem Solving")
-        .eq("quizzes.subject", "Motion")
-        .order("score", { ascending: false })
-        .order("time_taken", { ascending: true });
+      const wordRaw = await fetchCategory("Solving");
+      const problemRaw = await fetchCategory("Problem Solving");
 
-      if (err2) console.error("Problem Solving Error:", err2);
-      else if (problemRaw)
-        setProblemSolvingData(problemRaw.map((r) => normalizeRow(r as unknown as ScoreRow)));
+      setWordProblemData(filterHighestPerUser(wordRaw));
+      setProblemSolvingData(filterHighestPerUser(problemRaw));
     } catch (e) {
-      console.error("Unexpected fetch error:", e);
-      setSolvingData([]);
+      console.error("Unexpected fetch error", e);
+      setWordProblemData([]);
       setProblemSolvingData([]);
     } finally {
       setLoading(false);
@@ -90,9 +135,9 @@ const MotionLeaderboard: React.FC = () => {
     return `${mins}:${secs < 10 ? "0" : ""}${secs}`;
   };
 
-  const renderTable = (data: ScoreRow[]) => (
-    <table style={tableStyle}>
-      <thead style={theadStyle}>
+  const renderTable = (data: LeaderboardRow[]) => (
+    <table style={{ width: "100%", borderCollapse: "collapse", marginTop: 12 }}>
+      <thead style={{ background: "#f3f4f6" }}>
         <tr>
           <th style={thStyle}>Place</th>
           <th style={thStyle}>Lastname</th>
@@ -103,18 +148,12 @@ const MotionLeaderboard: React.FC = () => {
       <tbody>
         {data.length > 0 ? (
           data.map((row, index) => (
-            <motion.tr
-              key={index}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: index * 0.05 }}
-              style={{ borderBottom: "1px solid #e5e7eb" }}
-            >
+            <tr key={index} style={{ borderBottom: "1px solid #e5e7eb" }}>
               <td style={tdStyle}>{index + 1}</td>
-              <td style={tdStyle}>{row.profiles.lastname}</td>
-              <td style={tdStyle}>{row.score}</td>
+              <td style={tdStyle}>{row.profiles?.lastname || "-"}</td>
+              <td style={tdStyle}>{Math.round(row.score)}</td>
               <td style={tdStyle}>{formatTime(row.time_taken)}</td>
-            </motion.tr>
+            </tr>
           ))
         ) : (
           <tr>
@@ -131,77 +170,53 @@ const MotionLeaderboard: React.FC = () => {
     <IonPage>
       <IonHeader>
         <IonToolbar>
-          <IonTitle>Motion Leaderboard</IonTitle>
+          <IonTitle>Uniform Motion in Physics Leaderboard</IonTitle>
         </IonToolbar>
       </IonHeader>
 
       <IonContent className="ion-padding">
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+        <div
+          style={{
+            display: "flex",
+            gap: "20px",
+            justifyContent: "center",
+            alignItems: "flex-start",
+            flexWrap: "wrap",
+          }}
+        >
           {/* Word Problem Leaderboard */}
-          <motion.div
-            initial={{ opacity: 0, y: 40 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            style={cardStyle}
-          >
-            <h2 style={blackTitle}>Solving Leaderboard</h2>
-            <div style={iconWrapper}>
-              <Trophy size={24} color="#f59e0b" />
+          <div style={cardStyle}>
+            <h2 style={{ margin: 0, textAlign: "center" }}>Word Problem Leaderboard</h2>
+            <div style={{ display: "flex", justifyContent: "center", margin: "8px 0" }}>
+              <Trophy size={20} color="#f59e0b" />
             </div>
-            {loading ? <p>Loading...</p> : renderTable(solvingData)}
-          </motion.div>
+            {loading ? <p>Loading...</p> : renderTable(wordProblemData)}
+          </div>
 
           {/* Problem Solving Leaderboard */}
-          <motion.div
-            initial={{ opacity: 0, y: 40 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.3 }}
-            style={{ ...cardStyle, marginTop: 20 }}
-          >
-            <h2 style={blackTitle}>Problem Solving Leaderboard</h2>
-            <div style={iconWrapper}>
-              <Trophy size={24} color="#3b82f6" />
+          <div style={cardStyle}>
+            <h2 style={{ margin: 0, textAlign: "center" }}>Problem Solving Leaderboard</h2>
+            <div style={{ display: "flex", justifyContent: "center", margin: "8px 0" }}>
+              <Trophy size={20} color="#3b82f6" />
             </div>
             {loading ? <p>Loading...</p> : renderTable(problemSolvingData)}
-          </motion.div>
-        </motion.div>
+          </div>
+        </div>
       </IonContent>
     </IonPage>
   );
 };
 
-/* 🎨 Styles */
+/* Inline styles */
 const cardStyle: React.CSSProperties = {
-  maxWidth: 720,
-  margin: "0 auto",
+  flex: "1 1 320px",
   background: "#fff",
   borderRadius: 16,
   boxShadow: "0 6px 18px rgba(0,0,0,0.06)",
   padding: 16,
   border: "1px solid #e5e7eb",
-};
-
-const blackTitle: React.CSSProperties = {
-  textAlign: "center",
-  color: "#000",
-  fontSize: 22,
-  margin: 0,
-};
-
-const iconWrapper: React.CSSProperties = {
-  display: "flex",
-  justifyContent: "center",
-  margin: "8px 0",
-};
-
-const tableStyle: React.CSSProperties = {
-  width: "100%",
-  borderCollapse: "collapse",
-  marginTop: 12,
-};
-
-const theadStyle: React.CSSProperties = {
-  background: "#f3f4f6",
+  minWidth: "300px",
+  maxWidth: "360px",
 };
 
 const thStyle: React.CSSProperties = {
@@ -216,4 +231,4 @@ const tdStyle: React.CSSProperties = {
   textAlign: "center",
 };
 
-export default MotionLeaderboard;
+export default UniformMotionLeaderboard;

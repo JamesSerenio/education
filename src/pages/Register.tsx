@@ -277,11 +277,59 @@ const Register: React.FC = () => {
             <IonIcon icon={informationCircleOutline} style={{ fontSize: "2rem", color: "#4dabf7" }} />
             <h3 style={{ marginTop: "0.5rem" }}>Terms and Conditions</h3>
             <p style={{ fontSize: "0.9rem", marginTop: "0.5rem", color: "#444" }}>
-                    By registering, you agree to use this application
-                    responsibly and comply with all platform policies. Your
-                    data will be securely stored and used only for educational
-                    purposes. Please avoid sharing credentials or performing
-                    unauthorized actions.
+                    📜 Terms and Conditions
+
+By registering and using this application, you agree to comply with all terms stated below and applicable Philippine laws.
+
+1. Proper Use
+
+You agree to use this platform solely for educational and academic purposes.
+
+Any attempt to exploit, damage, or disrupt the system (e.g., hacking, data manipulation, or spreading malicious software) is strictly prohibited and may result in account suspension or legal action.
+
+2. Account Responsibility
+
+You are responsible for maintaining the confidentiality of your username and password.
+
+Unauthorized access or impersonation of another user’s account is a violation of these terms and may be subject to sanctions under the Cybercrime Prevention Act of 2012 (Republic Act No. 10175).
+
+3. Data Privacy and Protection
+
+Your personal data will be collected, stored, and processed in accordance with the Data Privacy Act of 2012 (Republic Act No. 10173).
+
+Information gathered will only be used for legitimate educational and administrative purposes.
+
+The system implements security measures to protect your data from unauthorized access or disclosure.
+
+You may request to access, correct, or delete your personal information by contacting the system administrator.
+
+4. Intellectual Property
+
+All contents in this platform (including lessons, quizzes, and designs) are protected under the Intellectual Property Code of the Philippines (Republic Act No. 8293).
+
+Reproduction, redistribution, or modification of any materials without permission is strictly prohibited.
+
+5. User Conduct
+
+You must engage respectfully and avoid posting or sharing any offensive, discriminatory, or harmful content.
+
+Violations may lead to disciplinary action or suspension from the platform.
+
+6. Monitoring and Security
+
+The system may collect activity logs (login history, progress, and usage patterns) for monitoring, improvement, and security auditing.
+
+Any detected malicious or unauthorized actions will be reported and may be subject to penalties under RA 10175 (Cybercrime Law).
+
+7. Updates to Terms
+
+These Terms and Conditions may be revised periodically to reflect changes in policies or laws.
+
+Continued use of the platform after updates implies your acceptance of the revised terms.
+
+8. Consent
+
+By clicking “Register” or continuing to use the platform, you signify that you have read, understood, and agreed to these Terms and Conditions, including the application of the Data Privacy Act of 2012 and the Cybercrime Prevention Act of 2012.
             </p>
             <IonButton expand="block" onClick={() => setShowTermsModal(false)} style={{ marginTop: "1rem" }}>
               OK

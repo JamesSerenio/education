@@ -4,31 +4,15 @@ import { Trophy } from "lucide-react";
 import { motion } from "framer-motion";
 import { supabase } from "../../utils/supabaseClient";
 
-interface Profile {
-  lastname: string;
-}
-
-interface Quiz {
-  category: string;
-  subject: string;
-}
-
-interface RawScoreRow {
-  score: number;
-  time_taken: number;
-  profiles: Profile | Profile[];
-  quizzes: Quiz | Quiz[];
-}
-
 interface LeaderboardRow {
   score: number;
   time_taken: number;
-  profiles: { lastname: string };
-  quizzes: { category: string; subject: string };
+  lastname: string;
+  category: string;
 }
 
 const UniformMotionLeaderboard: React.FC = () => {
-  const [solvingData, setSolvingData] = useState<LeaderboardRow[]>([]);
+  const [wordProblemData, setWordProblemData] = useState<LeaderboardRow[]>([]);
   const [problemSolvingData, setProblemSolvingData] = useState<LeaderboardRow[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -36,56 +20,65 @@ const UniformMotionLeaderboard: React.FC = () => {
     fetchLeaderboards();
   }, []);
 
-  const normalizeRow = (r: RawScoreRow): LeaderboardRow => {
-    const lastname = Array.isArray(r.profiles) ? r.profiles[0]?.lastname ?? "" : r.profiles?.lastname ?? "";
-    const category = Array.isArray(r.quizzes) ? r.quizzes[0]?.category ?? "" : r.quizzes?.category ?? "";
-    const subject = Array.isArray(r.quizzes) ? r.quizzes[0]?.subject ?? "" : r.quizzes?.subject ?? "";
-
-    return {
-      score: Number(r.score ?? 0),
-      time_taken: Number(r.time_taken ?? 0),
-      profiles: { lastname },
-      quizzes: { category, subject },
-    };
-  };
-
-  const filterHighestPerUser = (data: LeaderboardRow[]) => {
-    const map = new Map<string, LeaderboardRow>();
-    data.forEach((row) => {
-      const key = row.profiles.lastname;
-      const existing = map.get(key);
-      if (!existing || row.score > existing.score || (row.score === existing.score && row.time_taken < existing.time_taken)) {
-        map.set(key, row);
-      }
-    });
-    return Array.from(map.values()).sort((a, b) => (b.score !== a.score ? b.score - a.score : a.time_taken - b.time_taken));
-  };
-
   const fetchLeaderboards = async () => {
     setLoading(true);
     try {
       const fetchCategory = async (category: string) => {
+        // Adjust the select to match your Supabase schema
         const { data, error } = await supabase
           .from("scores")
-          .select(`score,time_taken,profiles!inner(lastname),quizzes!inner(category,subject)`)
-          .eq("quizzes.subject", "Uniform Motion in Physics")
-          .eq("quizzes.category", category);
+          .select("score,time_taken,user_id,category")
+          .eq("category", category)
+          .eq("subject", "Uniform Motion in Physics")
+          .order("score", { ascending: false })
+          .order("time_taken", { ascending: true });
 
         if (error) {
           console.error(`${category} fetch error:`, error);
           return [];
         }
-        return (data as RawScoreRow[]).map(normalizeRow);
+
+        // Fetch profile for each score
+        const scoresWithProfile: LeaderboardRow[] = [];
+        for (const row of data) {
+          const { data: profileData, error: profileError } = await supabase
+            .from("profiles")
+            .select("lastname")
+            .eq("id", row.user_id)
+            .single();
+
+          if (profileError) continue;
+
+          scoresWithProfile.push({
+            score: row.score,
+            time_taken: row.time_taken,
+            lastname: profileData.lastname,
+            category: row.category,
+          });
+        }
+
+        // Keep only highest per user
+        const map = new Map<string, LeaderboardRow>();
+        for (const r of scoresWithProfile) {
+          const existing = map.get(r.lastname);
+          if (!existing || r.score > existing.score || (r.score === existing.score && r.time_taken < existing.time_taken)) {
+            map.set(r.lastname, r);
+          }
+        }
+
+        return Array.from(map.values()).sort(
+          (a, b) => b.score - a.score || a.time_taken - b.time_taken
+        );
       };
 
-      const solvingRaw = await fetchCategory("Solving");
-      const problemRaw = await fetchCategory("Problem Solving");
+      const wordProblem = await fetchCategory("Word Problem");
+      const problemSolving = await fetchCategory("Problem Solving");
 
-      setSolvingData(filterHighestPerUser(solvingRaw));
-      setProblemSolvingData(filterHighestPerUser(problemRaw));
-    } catch (e) {
-      console.error("Unexpected fetch error:", e);
-      setSolvingData([]);
+      setWordProblemData(wordProblem);
+      setProblemSolvingData(problemSolving);
+    } catch (err) {
+      console.error("Unexpected fetch error:", err);
+      setWordProblemData([]);
       setProblemSolvingData([]);
     } finally {
       setLoading(false);
@@ -120,7 +113,7 @@ const UniformMotionLeaderboard: React.FC = () => {
               style={{ borderBottom: "1px solid #e5e7eb" }}
             >
               <td style={tdStyle}>{index + 1}</td>
-              <td style={tdStyle}>{row.profiles.lastname || "-"}</td>
+              <td style={tdStyle}>{row.lastname || "-"}</td>
               <td style={tdStyle}>{row.score}</td>
               <td style={tdStyle}>{formatTime(row.time_taken)}</td>
             </motion.tr>
@@ -150,27 +143,15 @@ const UniformMotionLeaderboard: React.FC = () => {
           animate={{ opacity: 1 }}
           transition={{ staggerChildren: 0.3, delayChildren: 0.2 }}
         >
-          {/* Solving */}
-          <motion.div
-            initial={{ opacity: 0, y: 40 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, ease: "easeOut" }}
-            style={cardStyle}
-          >
-            <h2 style={blackTitle}>Solving Leaderboard</h2>
+          <motion.div style={cardStyle}>
+            <h2 style={blackTitle}>Word Problem Leaderboard</h2>
             <div style={iconWrapper}>
               <Trophy size={24} color="#f59e0b" />
             </div>
-            {loading ? <p>Loading...</p> : renderTable(solvingData)}
+            {loading ? <p>Loading...</p> : renderTable(wordProblemData)}
           </motion.div>
 
-          {/* Problem Solving */}
-          <motion.div
-            initial={{ opacity: 0, y: 40 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, ease: "easeOut", delay: 0.3 }}
-            style={{ ...cardStyle, marginTop: 20 }}
-          >
+          <motion.div style={{ ...cardStyle, marginTop: 20 }}>
             <h2 style={blackTitle}>Problem Solving Leaderboard</h2>
             <div style={iconWrapper}>
               <Trophy size={24} color="#3b82f6" />

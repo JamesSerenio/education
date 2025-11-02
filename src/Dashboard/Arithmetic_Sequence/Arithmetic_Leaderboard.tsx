@@ -69,57 +69,61 @@ const ArithmeticLeaderboard: React.FC = () => {
     };
   };
 
+  const filterHighestPerUser = (data: LeaderboardRow[]) => {
+    const map = new Map<string, LeaderboardRow>();
+
+    data.forEach((row) => {
+      const key = row.profiles.lastname;
+      const existing = map.get(key);
+      if (!existing) {
+        map.set(key, row);
+      } else {
+        // Keep the one with higher score or if tie, lower time_taken
+        if (row.score > existing.score) {
+          map.set(key, row);
+        } else if (row.score === existing.score && row.time_taken < existing.time_taken) {
+          map.set(key, row);
+        }
+      }
+    });
+
+    // Convert map back to array and sort
+    return Array.from(map.values()).sort((a, b) => {
+      if (b.score !== a.score) return b.score - a.score;
+      return a.time_taken - b.time_taken;
+    });
+  };
+
   const fetchLeaderboards = async () => {
     setLoading(true);
 
     try {
-      // ✅ Solving - Arithmetic Sequence only
-      const { data: solvingRaw, error: err1 } = await supabase
-        .from("scores")
-        .select(
+      const fetchCategory = async (category: string) => {
+        const { data, error } = await supabase
+          .from("scores")
+          .select(
+            `
+            score,
+            time_taken,
+            profiles!inner(lastname),
+            quizzes!inner(category, subject)
           `
-          score,
-          time_taken,
-          profiles!inner(lastname),
-          quizzes!inner(category, subject)
-        `
-        )
-        .eq("quizzes.subject", "Arithmetic Sequence")
-        .eq("quizzes.category", "Solving")
-        .order("score", { ascending: false })
-        .order("time_taken", { ascending: true });
+          )
+          .eq("quizzes.subject", "Arithmetic Sequence")
+          .eq("quizzes.category", category);
 
-      if (err1) {
-        console.error("Solving Error:", err1);
-        setSolvingData([]);
-      } else if (solvingRaw) {
-        const mapped = (solvingRaw as RawScoreRow[]).map(normalizeRow);
-        setSolvingData(mapped);
-      }
+        if (error) {
+          console.error(`${category} Error:`, error);
+          return [];
+        }
+        return (data as RawScoreRow[]).map(normalizeRow);
+      };
 
-      // ✅ Problem Solving - Arithmetic Sequence only
-      const { data: problemRaw, error: err2 } = await supabase
-        .from("scores")
-        .select(
-          `
-          score,
-          time_taken,
-          profiles!inner(lastname),
-          quizzes!inner(category, subject)
-        `
-        )
-        .eq("quizzes.subject", "Arithmetic Sequence")
-        .eq("quizzes.category", "Problem Solving")
-        .order("score", { ascending: false })
-        .order("time_taken", { ascending: true });
+      const solvingRaw = await fetchCategory("Solving");
+      const problemRaw = await fetchCategory("Problem Solving");
 
-      if (err2) {
-        console.error("Problem Solving Error:", err2);
-        setProblemSolvingData([]);
-      } else if (problemRaw) {
-        const mapped = (problemRaw as RawScoreRow[]).map(normalizeRow);
-        setProblemSolvingData(mapped);
-      }
+      setSolvingData(filterHighestPerUser(solvingRaw));
+      setProblemSolvingData(filterHighestPerUser(problemRaw));
     } catch (e) {
       console.error("Unexpected fetch error", e);
       setSolvingData([]);
@@ -129,7 +133,6 @@ const ArithmeticLeaderboard: React.FC = () => {
     }
   };
 
-  // Helper: format seconds to mm:ss
   const formatTime = (seconds: number) => {
     if (!Number.isFinite(seconds)) return "0:00";
     const mins = Math.floor(seconds / 60);

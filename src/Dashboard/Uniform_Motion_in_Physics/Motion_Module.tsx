@@ -33,25 +33,19 @@ import distance4 from "../../assets/distance-4.png";
 const Motion_Module: React.FC = () => {
   const [selected, setSelected] = useState<string>("velocity");
 
-  const images: Record<string, { src: string; label: string }[]> = {
-    velocity: [
-      { src: velocity1, label: "Velocity 1" },
-      { src: velocity2, label: "Velocity 2" },
-      { src: velocity3, label: "Velocity 3" },
-      { src: velocity4, label: "Velocity 4" },
-    ],
-    time: [
-      { src: time1, label: "Time 1" },
-      { src: time2, label: "Time 2" },
-      { src: time3, label: "Time 3" },
-      { src: time4, label: "Time 4" },
-    ],
-    distance: [
-      { src: distance1, label: "Distance 1" },
-      { src: distance2, label: "Distance 2" },
-      { src: distance3, label: "Distance 3" },
-      { src: distance4, label: "Distance 4" },
-    ],
+  const images: Record<string, { src: string[]; label: string }> = {
+    velocity: {
+      src: [velocity1, velocity2, velocity3, velocity4],
+      label: "Velocity (scroll to view more)",
+    },
+    time: {
+      src: [time1, time2, time3, time4],
+      label: "Time (scroll to view more)",
+    },
+    distance: {
+      src: [distance1, distance2, distance3, distance4],
+      label: "Distance (scroll to view more)",
+    },
   };
 
   return (
@@ -129,7 +123,7 @@ const Motion_Module: React.FC = () => {
               </IonSegmentButton>
             </IonSegment>
 
-            {/* Scrollable images */}
+            {/* Scrollable images container */}
             <div
               style={{
                 marginTop: "15px",
@@ -141,11 +135,11 @@ const Motion_Module: React.FC = () => {
               }}
             >
               <AnimatePresence mode="wait">
-                {images[selected].map((img) => (
+                {images[selected].src.map((img, idx) => (
                   <motion.img
-                    key={img.src}
-                    src={img.src}
-                    alt={img.label}
+                    key={img}
+                    src={img}
+                    alt={`${selected} image ${idx + 1}`}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0 }}

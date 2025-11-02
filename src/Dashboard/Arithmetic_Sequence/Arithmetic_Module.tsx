@@ -42,9 +42,9 @@ const Arithmetic_Module: React.FC = () => {
       src: [d1Img, d2Img, d3Img],
       label: "Find d (scroll to view more)",
     },
-    n: {
+    an: {
       src: [an1Img, an2Img, an3Img, an4Img],
-      label: "Find n (scroll to view more)",
+      label: "Find an (scroll to view more)",
     },
   };
 

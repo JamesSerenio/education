@@ -34,18 +34,9 @@ const Motion_Module: React.FC = () => {
   const [selected, setSelected] = useState<string>("velocity");
 
   const images: Record<string, { src: string[]; label: string }> = {
-    velocity: {
-      src: [velocity1, velocity2, velocity3, velocity4],
-      label: "Velocity (scroll to view more)",
-    },
-    time: {
-      src: [time1, time2, time3, time4],
-      label: "Time (scroll to view more)",
-    },
-    distance: {
-      src: [distance1, distance2, distance3, distance4],
-      label: "Distance (scroll to view more)",
-    },
+    velocity: { src: [velocity1, velocity2, velocity3, velocity4], label: "Velocity" },
+    time: { src: [time1, time2, time3, time4], label: "Time" },
+    distance: { src: [distance1, distance2, distance3, distance4], label: "Distance" },
   };
 
   return (
@@ -58,10 +49,11 @@ const Motion_Module: React.FC = () => {
           transition={{ staggerChildren: 0.3, delayChildren: 0.2 }}
           style={{
             display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            padding: "20px",
+            justifyContent: "center",
+            alignItems: "flex-start",
             gap: "20px",
+            padding: "20px",
+            flexWrap: "wrap",
           }}
         >
           {/* Who Discovered Motion */}
@@ -75,8 +67,9 @@ const Motion_Module: React.FC = () => {
               padding: "10px",
               textAlign: "center",
               width: "100%",
-              maxWidth: "500px",
+              maxWidth: "400px",
               boxShadow: "0 4px 8px rgba(0,0,0,0.1)",
+              flex: "1 1 300px",
             }}
           >
             <h3 style={{ marginBottom: "10px" }}>Who Discovered Motion</h3>
@@ -100,7 +93,7 @@ const Motion_Module: React.FC = () => {
               borderRadius: "10px",
               padding: "10px",
               width: "100%",
-              maxWidth: "500px",
+              maxWidth: "400px",
               boxShadow: "0 4px 8px rgba(0,0,0,0.1)",
               textAlign: "center",
             }}
@@ -123,7 +116,7 @@ const Motion_Module: React.FC = () => {
               </IonSegmentButton>
             </IonSegment>
 
-            {/* Scrollable images container */}
+            {/* Vertical scrollable images */}
             <div
               style={{
                 marginTop: "15px",

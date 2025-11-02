@@ -4,76 +4,87 @@ import { Trophy } from "lucide-react";
 import { motion } from "framer-motion";
 import { supabase } from "../../utils/supabaseClient";
 
+interface Profile {
+  lastname: string;
+}
+
+interface Quiz {
+  category: string;
+  subject: string;
+}
+
+interface RawScoreRow {
+  score: number;
+  time_taken: number;
+  profiles: Profile | Profile[];
+  quizzes: Quiz | Quiz[];
+}
+
 interface LeaderboardRow {
   score: number;
   time_taken: number;
   profiles: { lastname: string };
-  quizzes: { category: string };
+  quizzes: { category: string; subject: string };
 }
 
-const MotionLeaderboard: React.FC = () => {
+const UniformMotionLeaderboard: React.FC = () => {
   const [solvingData, setSolvingData] = useState<LeaderboardRow[]>([]);
   const [problemSolvingData, setProblemSolvingData] = useState<LeaderboardRow[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchLeaderboards();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Normalize a raw Supabase row into our LeaderboardRow
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const normalizeRow = (r: any): LeaderboardRow => {
-    let lastname = "";
-    if (r?.profiles) {
-      if (Array.isArray(r.profiles)) lastname = r.profiles[0]?.lastname ?? "";
-      else lastname = r.profiles.lastname ?? "";
-    }
-
-    let category = "";
-    if (r?.quizzes) {
-      if (Array.isArray(r.quizzes)) category = r.quizzes[0]?.category ?? "";
-      else category = r.quizzes.category ?? "";
-    }
+  const normalizeRow = (r: RawScoreRow): LeaderboardRow => {
+    const lastname = Array.isArray(r.profiles) ? r.profiles[0]?.lastname ?? "" : r.profiles?.lastname ?? "";
+    const category = Array.isArray(r.quizzes) ? r.quizzes[0]?.category ?? "" : r.quizzes?.category ?? "";
+    const subject = Array.isArray(r.quizzes) ? r.quizzes[0]?.subject ?? "" : r.quizzes?.subject ?? "";
 
     return {
-      score: Number(r?.score ?? 0),
-      time_taken: Number(r?.time_taken ?? 0),
+      score: Number(r.score ?? 0),
+      time_taken: Number(r.time_taken ?? 0),
       profiles: { lastname },
-      quizzes: { category },
+      quizzes: { category, subject },
     };
+  };
+
+  const filterHighestPerUser = (data: LeaderboardRow[]) => {
+    const map = new Map<string, LeaderboardRow>();
+    data.forEach((row) => {
+      const key = row.profiles.lastname;
+      const existing = map.get(key);
+      if (!existing || row.score > existing.score || (row.score === existing.score && row.time_taken < existing.time_taken)) {
+        map.set(key, row);
+      }
+    });
+    return Array.from(map.values()).sort((a, b) => (b.score !== a.score ? b.score - a.score : a.time_taken - b.time_taken));
   };
 
   const fetchLeaderboards = async () => {
     setLoading(true);
     try {
-      // Solving
-      const { data: solvingRaw, error: err1 } = await supabase
-        .from("scores")
-        .select(`score,time_taken,profiles!inner(lastname),quizzes!inner(category,subject)`)
-        .eq("quizzes.category", "Solving")
-        .eq("quizzes.subject", "Uniform Motion in Physics")
-        .order("score", { ascending: false })
-        .order("time_taken", { ascending: true });
+      const fetchCategory = async (category: string) => {
+        const { data, error } = await supabase
+          .from("scores")
+          .select(`score,time_taken,profiles!inner(lastname),quizzes!inner(category,subject)`)
+          .eq("quizzes.subject", "Uniform Motion in Physics")
+          .eq("quizzes.category", category);
 
-      if (err1) console.error("Solving Error:", err1);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      else setSolvingData((solvingRaw ?? []).map((r: any) => normalizeRow(r)));
+        if (error) {
+          console.error(`${category} fetch error:`, error);
+          return [];
+        }
+        return (data as RawScoreRow[]).map(normalizeRow);
+      };
 
-      // Problem Solving
-      const { data: problemRaw, error: err2 } = await supabase
-        .from("scores")
-        .select(`score,time_taken,profiles!inner(lastname),quizzes!inner(category,subject)`)
-        .eq("quizzes.category", "Problem Solving")
-        .eq("quizzes.subject", "Uniform Motion in Physics")
-        .order("score", { ascending: false })
-        .order("time_taken", { ascending: true });
+      const solvingRaw = await fetchCategory("Solving");
+      const problemRaw = await fetchCategory("Problem Solving");
 
-      if (err2) console.error("Problem Solving Error:", err2);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      else setProblemSolvingData((problemRaw ?? []).map((r: any) => normalizeRow(r)));
+      setSolvingData(filterHighestPerUser(solvingRaw));
+      setProblemSolvingData(filterHighestPerUser(problemRaw));
     } catch (e) {
-      console.error("Unexpected fetch error", e);
+      console.error("Unexpected fetch error:", e);
       setSolvingData([]);
       setProblemSolvingData([]);
     } finally {
@@ -134,13 +145,12 @@ const MotionLeaderboard: React.FC = () => {
       </IonHeader>
 
       <IonContent className="ion-padding">
-        {/* Wrapper for fade-in and stagger animation */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ staggerChildren: 0.3, delayChildren: 0.2 }}
         >
-          {/* Solving Leaderboard Card */}
+          {/* Solving Leaderboard */}
           <motion.div
             initial={{ opacity: 0, y: 40 }}
             animate={{ opacity: 1, y: 0 }}
@@ -154,7 +164,7 @@ const MotionLeaderboard: React.FC = () => {
             {loading ? <p>Loading...</p> : renderTable(solvingData)}
           </motion.div>
 
-          {/* Problem Solving Leaderboard Card */}
+          {/* Problem Solving Leaderboard */}
           <motion.div
             initial={{ opacity: 0, y: 40 }}
             animate={{ opacity: 1, y: 0 }}
@@ -219,4 +229,4 @@ const tdStyle: React.CSSProperties = {
   textAlign: "center",
 };
 
-export default MotionLeaderboard;
+export default UniformMotionLeaderboard;

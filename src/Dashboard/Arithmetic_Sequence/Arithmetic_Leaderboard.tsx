@@ -7,7 +7,6 @@ import {
   IonToolbar,
 } from "@ionic/react";
 import { Trophy } from "lucide-react";
-import { motion } from "framer-motion";
 import { supabase } from "../../utils/supabaseClient";
 
 interface Profile {
@@ -139,12 +138,7 @@ const ArithmeticLeaderboard: React.FC = () => {
   };
 
   const renderTable = (data: LeaderboardRow[]) => (
-    <motion.table
-      style={{ width: "100%", borderCollapse: "collapse", marginTop: 12 }}
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-    >
+    <table style={{ width: "100%", borderCollapse: "collapse", marginTop: 12 }}>
       <thead style={{ background: "#f3f4f6" }}>
         <tr>
           <th style={thStyle}>Place</th>
@@ -156,18 +150,12 @@ const ArithmeticLeaderboard: React.FC = () => {
       <tbody>
         {data.length > 0 ? (
           data.map((row, index) => (
-            <motion.tr
-              key={index}
-              style={{ borderBottom: "1px solid #e5e7eb" }}
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1, duration: 0.3 }}
-            >
+            <tr key={index} style={{ borderBottom: "1px solid #e5e7eb" }}>
               <td style={tdStyle}>{index + 1}</td>
               <td style={tdStyle}>{row.profiles?.lastname || "-"}</td>
               <td style={tdStyle}>{Math.round(row.score)}</td>
               <td style={tdStyle}>{formatTime(row.time_taken)}</td>
-            </motion.tr>
+            </tr>
           ))
         ) : (
           <tr>
@@ -177,59 +165,33 @@ const ArithmeticLeaderboard: React.FC = () => {
           </tr>
         )}
       </tbody>
-    </motion.table>
+    </table>
   );
 
   return (
     <IonPage>
       <IonHeader>
-        <IonToolbar color="light">
-          <IonTitle className="ion-text-center">
-            🧮 Arithmetic Sequence Leaderboard
-          </IonTitle>
+        <IonToolbar>
+          <IonTitle>Arithmetic Sequence Leaderboard</IonTitle>
         </IonToolbar>
       </IonHeader>
 
       <IonContent className="ion-padding">
-        <motion.div
-          style={cardStyle}
-          initial={{ opacity: 0, scale: 0.9, y: 30 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-        >
+        <div style={cardStyle}>
           <h2 style={{ margin: 0, textAlign: "center" }}>Solving Leaderboard</h2>
           <div style={{ display: "flex", justifyContent: "center", margin: "8px 0" }}>
-            <motion.div
-              initial={{ rotate: -20, scale: 0 }}
-              animate={{ rotate: 0, scale: 1 }}
-              transition={{ duration: 0.6, type: "spring" }}
-            >
-              <Trophy size={22} color="#f59e0b" />
-            </motion.div>
+            <Trophy size={20} color="#f59e0b" />
           </div>
           {loading ? <p>Loading...</p> : renderTable(solvingData)}
-        </motion.div>
+        </div>
 
-        <motion.div
-          style={{ ...cardStyle, marginTop: 18 }}
-          initial={{ opacity: 0, scale: 0.9, y: 30 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.2 }}
-        >
-          <h2 style={{ margin: 0, textAlign: "center" }}>
-            Problem Solving Leaderboard
-          </h2>
+        <div style={{ ...cardStyle, marginTop: 18 }}>
+          <h2 style={{ margin: 0, textAlign: "center" }}>Problem Solving Leaderboard</h2>
           <div style={{ display: "flex", justifyContent: "center", margin: "8px 0" }}>
-            <motion.div
-              initial={{ rotate: 20, scale: 0 }}
-              animate={{ rotate: 0, scale: 1 }}
-              transition={{ duration: 0.6, type: "spring" }}
-            >
-              <Trophy size={22} color="#3b82f6" />
-            </motion.div>
+            <Trophy size={20} color="#3b82f6" />
           </div>
           {loading ? <p>Loading...</p> : renderTable(problemSolvingData)}
-        </motion.div>
+        </div>
       </IonContent>
     </IonPage>
   );
@@ -241,7 +203,7 @@ const cardStyle: React.CSSProperties = {
   margin: "0 auto",
   background: "#fff",
   borderRadius: 16,
-  boxShadow: "0 6px 18px rgba(0,0,0,0.08)",
+  boxShadow: "0 6px 18px rgba(0,0,0,0.06)",
   padding: 16,
   border: "1px solid #e5e7eb",
 };
@@ -250,8 +212,6 @@ const thStyle: React.CSSProperties = {
   padding: "8px 10px",
   border: "1px solid #e5e7eb",
   textAlign: "center",
-  fontWeight: "bold",
-  background: "#f9fafb",
 };
 
 const tdStyle: React.CSSProperties = {

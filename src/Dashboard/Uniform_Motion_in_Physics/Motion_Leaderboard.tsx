@@ -1,14 +1,10 @@
 import React, { useEffect, useState } from "react";
-import {
-  IonPage,
-  IonHeader,
-  IonContent,
-  IonTitle,
-  IonToolbar,
-} from "@ionic/react";
+import { IonPage, IonHeader, IonToolbar, IonTitle, IonContent } from "@ionic/react";
 import { Trophy } from "lucide-react";
+import { motion } from "framer-motion";
 import { supabase } from "../../utils/supabaseClient";
 
+/* ✅ Define the structure of your database responses */
 interface Profile {
   lastname: string;
 }
@@ -18,113 +14,72 @@ interface Quiz {
   subject: string;
 }
 
-interface RawScoreRow {
+interface ScoreRow {
   score: number;
   time_taken: number;
-  profiles: Profile | Profile[];
-  quizzes: Quiz | Quiz[];
+  profiles: Profile;
+  quizzes: Quiz;
 }
 
-interface LeaderboardRow {
-  score: number;
-  time_taken: number;
-  profiles: { lastname: string };
-  quizzes: { category: string; subject: string };
-}
-
+/* ✅ Component */
 const MotionLeaderboard: React.FC = () => {
-  const [solvingData, setSolvingData] = useState<LeaderboardRow[]>([]);
-  const [problemSolvingData, setProblemSolvingData] = useState<LeaderboardRow[]>([]);
+  const [solvingData, setSolvingData] = useState<ScoreRow[]>([]);
+  const [problemSolvingData, setProblemSolvingData] = useState<ScoreRow[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchLeaderboards();
   }, []);
 
-  // Normalize Supabase row data
-  const normalizeRow = (r: RawScoreRow): LeaderboardRow => {
-    let lastname = "";
-    if (r?.profiles) {
-      lastname = Array.isArray(r.profiles)
-        ? r.profiles[0]?.lastname ?? ""
-        : r.profiles.lastname ?? "";
-    }
+  /* ✅ Normalize database row safely */
+  const normalizeRow = (r: Partial<ScoreRow>): ScoreRow => ({
+    score: Number(r?.score ?? 0),
+    time_taken: Number(r?.time_taken ?? 0),
+    profiles: { lastname: r?.profiles?.lastname ?? "-" },
+    quizzes: { category: r?.quizzes?.category ?? "-", subject: r?.quizzes?.subject ?? "-" },
+  });
 
-    let category = "";
-    let subject = "";
-    if (r?.quizzes) {
-      if (Array.isArray(r.quizzes)) {
-        category = r.quizzes[0]?.category ?? "";
-        subject = r.quizzes[0]?.subject ?? "";
-      } else {
-        category = r.quizzes.category ?? "";
-        subject = r.quizzes.subject ?? "";
-      }
-    }
-
-    return {
-      score: Number(r?.score ?? 0),
-      time_taken: Number(r?.time_taken ?? 0),
-      profiles: { lastname },
-      quizzes: { category, subject },
-    };
-  };
-
-  // Keep only highest score per user
-  const filterHighestPerUser = (data: LeaderboardRow[]) => {
-    const map = new Map<string, LeaderboardRow>();
-
-    data.forEach((row) => {
-      const key = row.profiles.lastname;
-      const existing = map.get(key);
-      if (!existing) {
-        map.set(key, row);
-      } else {
-        // Keep higher score, or if tie, lower time
-        if (row.score > existing.score) {
-          map.set(key, row);
-        } else if (row.score === existing.score && row.time_taken < existing.time_taken) {
-          map.set(key, row);
-        }
-      }
-    });
-
-    return Array.from(map.values()).sort((a, b) => {
-      if (b.score !== a.score) return b.score - a.score;
-      return a.time_taken - b.time_taken;
-    });
-  };
-
-  // Fetch leaderboard data
+  /* ✅ Fetch both leaderboards */
   const fetchLeaderboards = async () => {
     setLoading(true);
     try {
-      const fetchCategory = async (category: string) => {
-        const { data, error } = await supabase
-          .from("scores")
-          .select(`
-            score,
-            time_taken,
-            profiles!inner(lastname),
-            quizzes!inner(category, subject)
-          `)
-          .eq("quizzes.subject", "Uniform Motion in Physics")
-          .eq("quizzes.category", category);
+      // --- Solving leaderboard
+      const { data: solvingRaw, error: err1 } = await supabase
+        .from("scores")
+        .select(`
+          score,
+          time_taken,
+          profiles(lastname),
+          quizzes(category,subject)
+        `)
+        .eq("quizzes.category", "Solving")
+        .eq("quizzes.subject", "Uniform Motion in Physics")
+        .order("score", { ascending: false })
+        .order("time_taken", { ascending: true });
 
-        if (error) {
-          console.error(`${category} Error:`, error);
-          return [];
-        }
-        return (data as RawScoreRow[]).map(normalizeRow);
-      };
+      if (err1) console.error("Solving Error:", err1);
+      else if (solvingRaw)
+        setSolvingData(solvingRaw.map((r) => normalizeRow(r as unknown as ScoreRow)));
 
-      const solvingRaw = await fetchCategory("Solving");
-      const problemRaw = await fetchCategory("Problem Solving");
+      // --- Problem Solving leaderboard
+      const { data: problemRaw, error: err2 } = await supabase
+        .from("scores")
+        .select(`
+          score,
+          time_taken,
+          profiles(lastname),
+          quizzes(category,subject)
+        `)
+        .eq("quizzes.category", "Problem Solving")
+        .eq("quizzes.subject", "Uniform Motion in Physics")
+        .order("score", { ascending: false })
+        .order("time_taken", { ascending: true });
 
-      setSolvingData(filterHighestPerUser(solvingRaw));
-      setProblemSolvingData(filterHighestPerUser(problemRaw));
+      if (err2) console.error("Problem Solving Error:", err2);
+      else if (problemRaw)
+        setProblemSolvingData(problemRaw.map((r) => normalizeRow(r as unknown as ScoreRow)));
     } catch (e) {
-      console.error("Unexpected fetch error", e);
+      console.error("Unexpected fetch error:", e);
       setSolvingData([]);
       setProblemSolvingData([]);
     } finally {
@@ -139,9 +94,9 @@ const MotionLeaderboard: React.FC = () => {
     return `${mins}:${secs < 10 ? "0" : ""}${secs}`;
   };
 
-  const renderTable = (data: LeaderboardRow[]) => (
-    <table style={{ width: "100%", borderCollapse: "collapse", marginTop: 12 }}>
-      <thead style={{ background: "#f3f4f6" }}>
+  const renderTable = (data: ScoreRow[]) => (
+    <table style={tableStyle}>
+      <thead style={theadStyle}>
         <tr>
           <th style={thStyle}>Place</th>
           <th style={thStyle}>Lastname</th>
@@ -152,12 +107,18 @@ const MotionLeaderboard: React.FC = () => {
       <tbody>
         {data.length > 0 ? (
           data.map((row, index) => (
-            <tr key={index} style={{ borderBottom: "1px solid #e5e7eb" }}>
+            <motion.tr
+              key={index}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: index * 0.05 }}
+              style={{ borderBottom: "1px solid #e5e7eb" }}
+            >
               <td style={tdStyle}>{index + 1}</td>
-              <td style={tdStyle}>{row.profiles?.lastname || "-"}</td>
-              <td style={tdStyle}>{Math.round(row.score)}</td>
+              <td style={tdStyle}>{row.profiles.lastname}</td>
+              <td style={tdStyle}>{row.score}</td>
               <td style={tdStyle}>{formatTime(row.time_taken)}</td>
-            </tr>
+            </motion.tr>
           ))
         ) : (
           <tr>
@@ -174,32 +135,46 @@ const MotionLeaderboard: React.FC = () => {
     <IonPage>
       <IonHeader>
         <IonToolbar>
-          <IonTitle>Uniform Motion in Physics Leaderboard</IonTitle>
+          <IonTitle>Uniform Motion Leaderboard</IonTitle>
         </IonToolbar>
       </IonHeader>
 
       <IonContent className="ion-padding">
-        <div style={cardStyle}>
-          <h2 style={{ margin: 0, textAlign: "center" }}>Solving Leaderboard</h2>
-          <div style={{ display: "flex", justifyContent: "center", margin: "8px 0" }}>
-            <Trophy size={20} color="#f59e0b" />
-          </div>
-          {loading ? <p>Loading...</p> : renderTable(solvingData)}
-        </div>
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+          {/* Solving */}
+          <motion.div
+            initial={{ opacity: 0, y: 40 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            style={cardStyle}
+          >
+            <h2 style={blackTitle}>Solving Leaderboard</h2>
+            <div style={iconWrapper}>
+              <Trophy size={24} color="#f59e0b" />
+            </div>
+            {loading ? <p>Loading...</p> : renderTable(solvingData)}
+          </motion.div>
 
-        <div style={{ ...cardStyle, marginTop: 18 }}>
-          <h2 style={{ margin: 0, textAlign: "center" }}>Problem Solving Leaderboard</h2>
-          <div style={{ display: "flex", justifyContent: "center", margin: "8px 0" }}>
-            <Trophy size={20} color="#3b82f6" />
-          </div>
-          {loading ? <p>Loading...</p> : renderTable(problemSolvingData)}
-        </div>
+          {/* Problem Solving */}
+          <motion.div
+            initial={{ opacity: 0, y: 40 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.3 }}
+            style={{ ...cardStyle, marginTop: 20 }}
+          >
+            <h2 style={blackTitle}>Problem Solving Leaderboard</h2>
+            <div style={iconWrapper}>
+              <Trophy size={24} color="#3b82f6" />
+            </div>
+            {loading ? <p>Loading...</p> : renderTable(problemSolvingData)}
+          </motion.div>
+        </motion.div>
       </IonContent>
     </IonPage>
   );
 };
 
-/* Inline styles */
+/* 🎨 Styles */
 const cardStyle: React.CSSProperties = {
   maxWidth: 720,
   margin: "0 auto",
@@ -208,6 +183,29 @@ const cardStyle: React.CSSProperties = {
   boxShadow: "0 6px 18px rgba(0,0,0,0.06)",
   padding: 16,
   border: "1px solid #e5e7eb",
+};
+
+const blackTitle: React.CSSProperties = {
+  textAlign: "center",
+  color: "#000",
+  fontSize: 22,
+  margin: 0,
+};
+
+const iconWrapper: React.CSSProperties = {
+  display: "flex",
+  justifyContent: "center",
+  margin: "8px 0",
+};
+
+const tableStyle: React.CSSProperties = {
+  width: "100%",
+  borderCollapse: "collapse",
+  marginTop: 12,
+};
+
+const theadStyle: React.CSSProperties = {
+  background: "#f3f4f6",
 };
 
 const thStyle: React.CSSProperties = {

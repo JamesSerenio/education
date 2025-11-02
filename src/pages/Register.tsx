@@ -216,7 +216,7 @@ const Register: React.FC = () => {
               </motion.div>
 
               {/* Terms */}
-              <motion.div style={{ display: "flex", alignItems: "center", marginTop: "0.5rem" }} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.9 }}>
+              <motion.div style={{ display: "flex", gap: "0.5rem", alignItems: "center", marginTop: "0.5rem" }} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.9 }}>
                 <IonCheckbox checked={agreeTerms} onIonChange={(e) => setAgreeTerms(e.detail.checked)} id="terms-checkbox" />
                 <label htmlFor="terms-checkbox" className="auth-terms">
                   I agree to the{" "}

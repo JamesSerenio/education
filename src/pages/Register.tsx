@@ -267,75 +267,105 @@ const Register: React.FC = () => {
           ]}
         />
 
-        {/* 🧾 Terms Modal */}
+          {/* 🧾 Terms Modal */}
           <IonModal
             isOpen={showTermsModal}
             onDidDismiss={() => setShowTermsModal(false)}
             className="terms-modal"
           >
-          <div style={{ padding: "1.2rem", textAlign: "center" }}>
-            <IonIcon icon={informationCircleOutline} style={{ fontSize: "2rem", color: "#4dabf7" }} />
-            <h3 style={{ marginTop: "0.5rem" }}>Terms and Conditions</h3>
-            <p style={{ fontSize: "0.9rem", marginTop: "0.5rem", color: "#444" }}>
-                    📜 Terms and Conditions
+            <div
+              style={{
+                padding: "1.2rem",
+                textAlign: "left",
+                maxHeight: "80vh",
+                overflowY: "auto",
+              }}
+            >
+              <div style={{ textAlign: "center" }}>
+                <IonIcon
+                  icon={informationCircleOutline}
+                  style={{ fontSize: "2rem", color: "#4dabf7" }}
+                />
+                <h3 style={{ marginTop: "0.5rem", fontWeight: "600" }}>
+                  Terms and Conditions
+                </h3>
+              </div>
 
-By registering and using this application, you agree to comply with all terms stated below and applicable Philippine laws.
+              <p style={{ fontSize: "0.8rem", marginTop: "1rem", color: "#333", lineHeight: "1.5" }}>
+                By registering and using this application, you agree to comply with all terms stated below and applicable Philippine laws.
+              </p>
 
-1. Proper Use
+              <h4 style={{ fontSize: "0.9rem", color: "#32CD32", marginTop: "1rem" }}>1. Proper Use</h4>
+              <p style={{ fontSize: "0.75rem", color: "#444" }}>
+                You agree to use this platform solely for educational and academic purposes. 
+                Any attempt to exploit, damage, or disrupt the system (e.g., hacking, data manipulation, or spreading malicious software) 
+                is strictly prohibited and may result in account suspension or legal action.
+              </p>
 
-You agree to use this platform solely for educational and academic purposes.
+              <h4 style={{ fontSize: "0.9rem", color: "#32CD32", marginTop: "1rem" }}>2. Account Responsibility</h4>
+              <p style={{ fontSize: "0.75rem", color: "#444" }}>
+                You are responsible for maintaining the confidentiality of your username and password. 
+                Unauthorized access or impersonation of another user’s account is a violation of these terms 
+                and may be subject to sanctions under the <b>Cybercrime Prevention Act of 2012 (RA 10175)</b>.
+              </p>
 
-Any attempt to exploit, damage, or disrupt the system (e.g., hacking, data manipulation, or spreading malicious software) is strictly prohibited and may result in account suspension or legal action.
+              <h4 style={{ fontSize: "0.9rem", color: "#32CD32", marginTop: "1rem" }}>3. Data Privacy and Protection</h4>
+              <p style={{ fontSize: "0.75rem", color: "#444" }}>
+                Your personal data will be collected, stored, and processed in accordance with the 
+                <b> Data Privacy Act of 2012 (RA 10173)</b>. Information gathered will only be used for legitimate educational purposes. 
+                The system implements security measures to protect your data from unauthorized access or disclosure. 
+                You may request to access, correct, or delete your personal information by contacting the system administrator.
+              </p>
 
-2. Account Responsibility
+              <h4 style={{ fontSize: "0.9rem", color: "#32CD32", marginTop: "1rem" }}>4. Intellectual Property</h4>
+              <p style={{ fontSize: "0.75rem", color: "#444" }}>
+                All contents in this platform (including lessons, quizzes, and designs) are protected under the 
+                <b> Intellectual Property Code of the Philippines (RA 8293)</b>. 
+                Reproduction, redistribution, or modification of any materials without permission is strictly prohibited.
+              </p>
 
-You are responsible for maintaining the confidentiality of your username and password.
+              <h4 style={{ fontSize: "0.9rem", color: "#32CD32", marginTop: "1rem" }}>5. User Conduct</h4>
+              <p style={{ fontSize: "0.75rem", color: "#444" }}>
+                You must engage respectfully and avoid posting or sharing any offensive, discriminatory, or harmful content. 
+                Violations may lead to disciplinary action or suspension from the platform.
+              </p>
 
-Unauthorized access or impersonation of another user’s account is a violation of these terms and may be subject to sanctions under the Cybercrime Prevention Act of 2012 (Republic Act No. 10175).
+              <h4 style={{ fontSize: "0.9rem", color: "#32CD32", marginTop: "1rem" }}>6. Monitoring and Security</h4>
+              <p style={{ fontSize: "0.75rem", color: "#444" }}>
+                The system may collect activity logs (login history, progress, and usage patterns) for monitoring, improvement, and security auditing. 
+                Any detected malicious or unauthorized actions will be reported and may be subject to penalties under RA 10175 (Cybercrime Law).
+              </p>
 
-3. Data Privacy and Protection
+              <h4 style={{ fontSize: "0.9rem", color: "#32CD32", marginTop: "1rem" }}>7. Updates to Terms</h4>
+              <p style={{ fontSize: "0.75rem", color: "#444" }}>
+                These Terms and Conditions may be revised periodically to reflect changes in policies or laws. 
+                Continued use of the platform after updates implies your acceptance of the revised terms.
+              </p>
 
-Your personal data will be collected, stored, and processed in accordance with the Data Privacy Act of 2012 (Republic Act No. 10173).
+              <h4 style={{ fontSize: "0.9rem", color: "#32CD32", marginTop: "1rem" }}>8. Consent</h4>
+              <p style={{ fontSize: "0.75rem", color: "#444" }}>
+                By clicking “Register” or continuing to use the platform, you signify that you have read, understood, 
+                and agreed to these Terms and Conditions, including the application of the 
+                <b> Data Privacy Act of 2012</b> and the <b>Cybercrime Prevention Act of 2012</b>.
+              </p>
 
-Information gathered will only be used for legitimate educational and administrative purposes.
+              <IonButton
+                expand="block"
+                onClick={() => setShowTermsModal(false)}
+                style={{
+                  marginTop: "1rem",
+                  "--background": "#90EE90",
+                  color: "#000",
+                  borderRadius: "1rem",
+                  fontSize: "0.9rem",
+                  boxShadow: "0 0 8px rgba(144,238,144,0.4)",
+                }}
+              >
+                OK
+              </IonButton>
+            </div>
+          </IonModal>
 
-The system implements security measures to protect your data from unauthorized access or disclosure.
-
-You may request to access, correct, or delete your personal information by contacting the system administrator.
-
-4. Intellectual Property
-
-All contents in this platform (including lessons, quizzes, and designs) are protected under the Intellectual Property Code of the Philippines (Republic Act No. 8293).
-
-Reproduction, redistribution, or modification of any materials without permission is strictly prohibited.
-
-5. User Conduct
-
-You must engage respectfully and avoid posting or sharing any offensive, discriminatory, or harmful content.
-
-Violations may lead to disciplinary action or suspension from the platform.
-
-6. Monitoring and Security
-
-The system may collect activity logs (login history, progress, and usage patterns) for monitoring, improvement, and security auditing.
-
-Any detected malicious or unauthorized actions will be reported and may be subject to penalties under RA 10175 (Cybercrime Law).
-
-7. Updates to Terms
-
-These Terms and Conditions may be revised periodically to reflect changes in policies or laws.
-
-Continued use of the platform after updates implies your acceptance of the revised terms.
-
-8. Consent
-
-By clicking “Register” or continuing to use the platform, you signify that you have read, understood, and agreed to these Terms and Conditions, including the application of the Data Privacy Act of 2012 and the Cybercrime Prevention Act of 2012.
-            </p>
-            <IonButton expand="block" onClick={() => setShowTermsModal(false)} style={{ marginTop: "1rem" }}>
-              OK
-            </IonButton>
-          </div>
-        </IonModal>
       </IonContent>
     </IonPage>
   );

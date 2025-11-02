@@ -1,5 +1,4 @@
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap');
-
 body, ion-app, ion-content, ion-input, ion-button, ion-label, ion-item, ion-text {
   font-family: 'Poppins', sans-serif !important;
 }
@@ -8,15 +7,15 @@ body, ion-app, ion-content, ion-input, ion-button, ion-label, ion-item, ion-text
 input:-webkit-autofill,
 input:-webkit-autofill:hover,
 input:-webkit-autofill:focus {
-  -webkit-text-fill-color: #000 !important;
-  caret-color: #ffef00 !important;
+  -webkit-text-fill-color: #000000 !important;
+  caret-color: #000000 !important;
   transition: background-color 9999s ease-in-out 0s !important;
   box-shadow: 0 0 0px 1000px transparent inset !important;
   -webkit-box-shadow: 0 0 0px 1000px transparent inset !important;
   background: transparent !important;
 }
 
-/* ===== WHITE BACKGROUND ===== */
+/* Background (White) */
 .auth-bg {
   --ion-background-color: #ffffff;
   color: #000;
@@ -25,23 +24,17 @@ input:-webkit-autofill:focus {
   overflow: hidden;
 }
 
-/* Floating symbols in canary yellow and light green */
+/* Floating Canary Yellow Symbols */
 .floating-symbol {
   position: absolute;
-  font-weight: 700;
-  opacity: 0.4;
-  text-shadow: 0 0 10px rgba(255, 239, 0, 0.6),
-               0 0 15px rgba(144, 238, 144, 0.5);
-  animation: floatMove 10s ease-in-out infinite alternate;
+  font-weight: 600;
+  color: #FFEF00; /* Canary Yellow */
+  opacity: 0.6;
+  text-shadow: 0 0 8px rgba(255, 239, 0, 0.6);
+  mix-blend-mode: multiply;
+  transition: opacity 0.5s ease-in-out;
 }
 
-@keyframes floatMove {
-  0% { transform: translateY(0px) rotate(0deg); opacity: 0.4; }
-  50% { transform: translateY(-20px) rotate(10deg); opacity: 0.7; }
-  100% { transform: translateY(0px) rotate(-10deg); opacity: 0.4; }
-}
-
-/* ===== AUTH CARD ===== */
 .auth-container {
   display: flex;
   align-items: center;
@@ -50,29 +43,28 @@ input:-webkit-autofill:focus {
   padding: 2rem;
 }
 
+/* Light Green Card */
 .auth-card {
-  background: rgba(255, 255, 255, 0.75);
-  backdrop-filter: blur(15px);
+  background: #90EE90; /* Light Green */
+  backdrop-filter: blur(6px);
   border: 1px solid rgba(0, 0, 0, 0.1);
   border-radius: 1.5rem;
   padding: 2rem;
   width: 380px;
   max-width: 420px;
-  box-shadow: 0 0 25px rgba(144, 238, 144, 0.3),
-              0 0 35px rgba(255, 239, 0, 0.2);
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.15);
   position: relative;
+  color: #000;
 }
 
 .auth-title {
   font-size: 1.8rem;
   text-align: center;
   margin-bottom: 1.5rem;
-  color: #000;
+  color: #006400; /* Darker green for title */
   letter-spacing: 1px;
-  font-weight: 700;
 }
 
-/* ===== FORM ELEMENTS ===== */
 .auth-form {
   display: flex;
   flex-direction: column;
@@ -83,39 +75,43 @@ input:-webkit-autofill:focus {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  background: rgba(0, 0, 0, 0.05);
+  background: rgba(255, 255, 255, 0.8);
   border-radius: 1.5rem;
   padding: 1rem;
   color: #000;
+  border: 1px solid rgba(0, 0, 0, 0.1);
 }
 
 .auth-input ion-icon {
-  color: #90ee90;
+  color: #228B22; /* Forest Green */
   font-size: 1rem;
 }
 
 .auth-input ion-input {
   --padding-start: 0;
   color: #000;
-  font-size: 0.8rem;
+  font-size: 0.9rem;
 }
 
-/* ===== BUTTON ===== */
 .auth-button {
-  --background: linear-gradient(135deg, #ffef00, #90ee90);
+  --background: linear-gradient(135deg, #32CD32, #228B22);
   --border-radius: 1rem;
   font-weight: bold;
   letter-spacing: 0.5px;
-  color: #000;
-  transition: 0.3s ease;
-  border: none;
+  transition: 0.3s;
+  color: white;
 }
 
 .auth-button:hover {
-  filter: brightness(1.1);
+  filter: brightness(1.15);
 }
 
-/* ===== FOOTER AND LINKS ===== */
+.auth-terms {
+  margin-left: 0.5rem;
+  font-size: 0.85rem;
+  color: #333;
+}
+
 .auth-footer {
   text-align: center;
   margin-top: 1rem;
@@ -124,19 +120,17 @@ input:-webkit-autofill:focus {
 }
 
 .auth-link {
-  color: #90ee90;
+  color: #006400;
   text-decoration: none;
   font-weight: 500;
 }
 
 .auth-link:hover {
-  color: #ffef00;
   text-decoration: underline;
 }
 
-/* ===== ERROR MESSAGE ===== */
 .auth-error {
-  color: #ffef00;
+  color: #ff4d4d;
   margin-top: 1px;
   margin-bottom: 1px;
   text-align: center;
@@ -145,12 +139,7 @@ input:-webkit-autofill:focus {
   animation: fadeIn 0.3s ease-in-out;
 }
 
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(-4px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-/* ===== PASSWORD TOGGLE ===== */
+/* Eye toggle */
 .password-input {
   position: relative;
   display: flex;
@@ -166,13 +155,17 @@ input:-webkit-autofill:focus {
   border: none;
   outline: none;
   cursor: pointer;
-  color: #ffef00;
+  color: #006400;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 5;
   font-size: 22px;
-  transition: color 0.3s ease, transform 0.2s ease;
+  transition: color 0.2s ease, transform 0.2s ease;
 }
 
 .toggle-btn:hover {
-  color: #90ee90;
+  color: #32CD32;
   transform: translateY(-50%) scale(1.1);
 }
 
@@ -180,18 +173,16 @@ input:-webkit-autofill:focus {
   pointer-events: none;
 }
 
-/* ===== REGISTER CARD ===== */
+/* Register page compact */
 .register-card {
   padding: 1.5rem;
   width: 340px;
   max-width: 360px;
-  background: rgba(255, 255, 255, 0.85);
 }
 
 .register-card .auth-title {
   font-size: 1.4rem;
   margin-bottom: 1rem;
-  color: #000;
 }
 
 .register-card .auth-form {
@@ -213,7 +204,6 @@ input:-webkit-autofill:focus {
   margin-top: 0.5rem;
   font-size: 0.85rem;
 }
-
 /* === ADMIN HOME === */
 
 /* --- Welcome Title --- */

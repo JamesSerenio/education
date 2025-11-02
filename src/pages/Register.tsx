@@ -286,7 +286,7 @@ const Register: React.FC = () => {
                   icon={informationCircleOutline}
                   style={{ fontSize: "2rem", color: "#4dabf7" }}
                 />
-                <h3 style={{ marginTop: "0.5rem", fontWeight: "600" }}>
+                <h3 style={{ marginTop: "0.5rem", fontWeight: "400" }}>
                   Terms and Conditions
                 </h3>
               </div>

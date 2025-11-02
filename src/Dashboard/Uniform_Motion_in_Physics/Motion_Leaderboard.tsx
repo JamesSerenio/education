@@ -150,7 +150,7 @@ const UniformMotionLeaderboard: React.FC = () => {
           animate={{ opacity: 1 }}
           transition={{ staggerChildren: 0.3, delayChildren: 0.2 }}
         >
-          {/* Solving Leaderboard */}
+          {/* Solving */}
           <motion.div
             initial={{ opacity: 0, y: 40 }}
             animate={{ opacity: 1, y: 0 }}
@@ -164,7 +164,7 @@ const UniformMotionLeaderboard: React.FC = () => {
             {loading ? <p>Loading...</p> : renderTable(solvingData)}
           </motion.div>
 
-          {/* Problem Solving Leaderboard */}
+          {/* Problem Solving */}
           <motion.div
             initial={{ opacity: 0, y: 40 }}
             animate={{ opacity: 1, y: 0 }}

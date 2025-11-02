@@ -10,27 +10,32 @@ import {
   IonInput,
   IonText,
   IonModal,
-  useIonViewDidEnter,
 } from "@ionic/react";
 import { supabase } from "../../utils/supabaseClient";
-
-const TIME_PER_QUESTION = 60;
 
 interface Quiz {
   id: string;
   subject: string;
   category: string;
-  level: number;
+  difficulty: "Easy" | "Average" | "Difficult";
   question: string;
   solution: string;
   answer: string;
   accepted_answers?: string[];
 }
 
+const DIFFICULTY_TIMERS: Record<Quiz["difficulty"], number> = {
+  Easy: 15,
+  Average: 30,
+  Difficult: 60,
+};
+
+const QUESTIONS_PER_DIFFICULTY = 5;
+
 const ArithmeticQuiz: React.FC = () => {
   const [allQuizzes, setAllQuizzes] = useState<Quiz[]>([]);
   const [quizzes, setQuizzes] = useState<Quiz[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [selectedDifficulty, setSelectedDifficulty] = useState<Quiz["difficulty"] | null>(null);
   const [currentQuiz, setCurrentQuiz] = useState<Quiz | null>(null);
   const [userAnswer, setUserAnswer] = useState<string>("");
   const [errorMessage, setErrorMessage] = useState<string>("");
@@ -45,26 +50,11 @@ const ArithmeticQuiz: React.FC = () => {
     }[]
   >([]);
   const [showResultModal, setShowResultModal] = useState(false);
-  const [timeLeft, setTimeLeft] = useState<number>(TIME_PER_QUESTION);
-  const [startTime, setStartTime] = useState<number | null>(null);
-  const [questionStart, setQuestionStart] = useState<number>(Date.now());
+  const [timeLeft, setTimeLeft] = useState<number>(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const inputRef = useRef<HTMLIonInputElement | null>(null);
 
-  // 🔹 Pick one random quiz per level
-  const pickOnePerLevel = (pool: Quiz[]): Quiz[] => {
-    const picks: Quiz[] = [];
-    for (let lvl = 1; lvl <= 5; lvl++) {
-      const items = pool.filter((q) => q.level === lvl);
-      if (items.length > 0) {
-        const randomIndex = Math.floor(Math.random() * items.length);
-        picks.push(items[randomIndex]);
-      }
-    }
-    return picks.sort((a, b) => a.level - b.level);
-  };
-
-  // 🔹 Fetch all quizzes
+  // Fetch quizzes from Supabase
   useEffect(() => {
     const fetchQuizzes = async () => {
       const { data, error } = await supabase
@@ -78,81 +68,51 @@ const ArithmeticQuiz: React.FC = () => {
     fetchQuizzes();
   }, []);
 
-  // 🔹 When user selects a category
-  const handleCategorySelect = (category: string) => {
-    setSelectedCategory(category);
-    const filtered = allQuizzes.filter((q) => q.category === category);
-    const randomPerLevel = pickOnePerLevel(filtered);
+  // Handle difficulty selection
+  const handleDifficultySelect = (difficulty: Quiz["difficulty"]) => {
+    setSelectedDifficulty(difficulty);
 
-    if (randomPerLevel.length > 0) {
-      setQuizzes(randomPerLevel);
-      setCurrentQuiz(randomPerLevel[0]);
+    const filtered = allQuizzes
+      .filter((q) => q.difficulty === difficulty)
+      .sort(() => Math.random() - 0.5)
+      .slice(0, QUESTIONS_PER_DIFFICULTY);
+
+    if (filtered.length > 0) {
+      setQuizzes(filtered);
+      setCurrentQuiz(filtered[0]);
       setScore(0);
       setUserSolutions([]);
       setUserAnswer("");
-      setStartTime(Date.now());
-      setTimeLeft(TIME_PER_QUESTION);
-      setQuestionStart(Date.now());
+      setTimeLeft(DIFFICULTY_TIMERS[difficulty]);
     }
   };
 
-  // 🔹 Save result in Supabase
-  const saveResult = async (finalScore: number) => {
-    try {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-
-      if (!session) {
-        console.warn("⚠️ No session found");
-        return;
-      }
-
-      const userId = session.user.id;
-      const timeTaken = startTime ? Math.floor((Date.now() - startTime) / 1000) : 0;
-
-      const { error } = await supabase.from("scores").insert([
-        {
-          user_id: userId,
-          quiz_id: quizzes[0]?.id || null, // first quiz as reference
-          score: finalScore,
-          time_taken: timeTaken,
-        },
-      ]);
-
-      if (error) console.error("❌ Error saving score:", error.message);
-      else console.log("✅ Score saved!");
-    } catch (err) {
-      console.error("Unexpected error:", err);
-    }
-  };
-
-  // 🔹 Timer logic
+  // Timer per question
   useEffect(() => {
     if (!currentQuiz) return;
 
     if (timerRef.current) clearInterval(timerRef.current);
 
     timerRef.current = setInterval(() => {
-      const elapsed = Math.floor((Date.now() - questionStart) / 1000);
-      const remaining = TIME_PER_QUESTION - elapsed;
-      setTimeLeft(remaining > 0 ? remaining : 0);
-
-      if (remaining <= 0) {
-        clearInterval(timerRef.current!);
-        handleNext(true);
-      }
+      setTimeLeft((prev) => {
+        if (prev <= 1) {
+          clearInterval(timerRef.current!);
+          handleNext(true);
+          return 0;
+        }
+        return prev - 1;
+      });
     }, 1000);
 
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [currentQuiz, questionStart]);
+  }, [currentQuiz]);
 
-  // 🔹 Handle next question or finish
+  // Handle next question
   const handleNext = useCallback(
     (auto = false) => {
-      if (!currentQuiz || !selectedCategory) return;
+      if (!currentQuiz || !selectedDifficulty) return;
 
       if (!auto && !userAnswer.trim()) {
         setErrorMessage("⚠️ Please enter your answer before proceeding.");
@@ -163,17 +123,11 @@ const ArithmeticQuiz: React.FC = () => {
 
       const normalizedAnswer = userAnswer.trim().toLowerCase();
       const correctAnswer = currentQuiz.answer.trim().toLowerCase();
-      const alternates = (currentQuiz.accepted_answers || []).map((a) =>
-        a.trim().toLowerCase()
-      );
+      const alternates = (currentQuiz.accepted_answers || []).map((a) => a.trim().toLowerCase());
 
-      const isCorrect =
-        normalizedAnswer === correctAnswer || alternates.includes(normalizedAnswer);
+      const isCorrect = normalizedAnswer === correctAnswer || alternates.includes(normalizedAnswer);
+      setScore((prev) => (isCorrect ? prev + 1 : prev));
 
-      const newScore = isCorrect ? score + 1 : score;
-      setScore(newScore);
-
-      // 🧩 Store user's attempt
       setUserSolutions((prev) => [
         ...prev,
         {
@@ -188,47 +142,38 @@ const ArithmeticQuiz: React.FC = () => {
       const currentIndex = quizzes.findIndex((q) => q.id === currentQuiz.id);
 
       if (currentIndex < quizzes.length - 1) {
-        // Move to next question
         setCurrentQuiz(quizzes[currentIndex + 1]);
         setUserAnswer("");
-        setTimeLeft(TIME_PER_QUESTION);
-        setQuestionStart(Date.now());
+        setTimeLeft(DIFFICULTY_TIMERS[selectedDifficulty]);
       } else {
-        // ✅ Finished quiz
         clearInterval(timerRef.current!);
         setShowResultModal(true);
-        saveResult(newScore); // ✅ Save final score properly
+        saveResult(score + (isCorrect ? 1 : 0));
       }
     },
-    [currentQuiz, selectedCategory, quizzes, userAnswer, score, startTime]
+    [currentQuiz, quizzes, userAnswer, score, selectedDifficulty]
   );
 
-  useIonViewDidEnter(() => {
-    if (inputRef.current) setTimeout(() => inputRef.current?.setFocus(), 400);
-  });
+  // Save quiz result
+  const saveResult = async (finalScore: number) => {
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
 
-  const formatTime = (seconds: number) => {
-    const m = Math.floor(seconds / 60).toString().padStart(2, "0");
-    const s = (seconds % 60).toString().padStart(2, "0");
-    return `${m}:${s}`;
-  };
+      if (!session) return;
+      const userId = session.user.id;
 
-  const getMessage = () => {
-    switch (score) {
-      case 0:
-        return "😢 Better luck next time!";
-      case 1:
-        return "🙂 You got 1 correct, keep practicing!";
-      case 2:
-        return "👍 Nice effort, you got 2 correct!";
-      case 3:
-        return "👏 Good job! 3 correct answers!";
-      case 4:
-        return "🔥 Almost perfect! You got 4!";
-      case 5:
-        return "🏆 Perfect score! Excellent work!";
-      default:
-        return "🎉 Quiz completed!";
+      await supabase.from("scores").insert([
+        {
+          user_id: userId,
+          quiz_id: quizzes[0]?.id || null,
+          score: finalScore,
+          time_taken: DIFFICULTY_TIMERS[selectedDifficulty!] * quizzes.length,
+        },
+      ]);
+    } catch (err) {
+      console.error("Error saving score:", err);
     }
   };
 
@@ -240,49 +185,45 @@ const ArithmeticQuiz: React.FC = () => {
         </IonToolbar>
       </IonHeader>
 
-      <IonContent fullscreen scrollEvents>
-        {!selectedCategory ? (
+      <IonContent fullscreen>
+        {!selectedDifficulty ? (
           <div className="flex flex-col items-center justify-center h-full p-6 text-center">
-            <h2>Select Category</h2>
+            <h2>Select Difficulty</h2>
             <div style={{ display: "flex", gap: "15px", flexWrap: "wrap", justifyContent: "center" }}>
-              <IonButton onClick={() => handleCategorySelect("Problem Solving")}>
-                Problem Solving
-              </IonButton>
-              <IonButton onClick={() => handleCategorySelect("Solving")}>
-                Number Solving
-              </IonButton>
+              {["Easy", "Average", "Difficult"].map((diff) => (
+                <IonButton key={diff} onClick={() => handleDifficultySelect(diff as Quiz["difficulty"])}>
+                  {diff}
+                </IonButton>
+              ))}
             </div>
           </div>
         ) : currentQuiz ? (
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "25px 10px 100px" }}>
-            <div style={{ fontSize: "22px", fontWeight: "bold", color: timeLeft <= 5 ? "red" : "#333", marginBottom: "10px", fontFamily: "monospace" }}>
-              ⏳ Time Left: {formatTime(timeLeft)}
+            <div
+              style={{
+                fontSize: "22px",
+                fontWeight: "bold",
+                color: timeLeft <= 5 ? "red" : "#333",
+                marginBottom: "10px",
+              }}
+            >
+              ⏳ Time Left: {timeLeft}s
             </div>
 
-            <h2>{selectedCategory}</h2>
-            <h1 style={{ fontSize: "26px", margin: "5px 0" }}>Level {currentQuiz.level}</h1>
-            <p style={{ textAlign: "center", fontSize: "18px", margin: "10px 0" }}>
-              {currentQuiz.question}
-            </p>
+            <h2>{selectedDifficulty}</h2>
+            <p style={{ textAlign: "center", fontSize: "18px", margin: "10px 0" }}>{currentQuiz.question}</p>
 
             <IonItem style={{ width: "90%", maxWidth: "400px", marginTop: "10px" }}>
               <IonInput
                 ref={inputRef}
                 value={userAnswer}
                 placeholder="Enter your answer"
-                inputmode="text"
-                enterkeyhint="done"
                 onIonInput={(e) => setUserAnswer(e.detail.value!)}
                 style={{ textAlign: "center" }}
-                clearInput
               />
             </IonItem>
 
-            {errorMessage && (
-              <IonText color="danger">
-                <p style={{ marginTop: "8px" }}>{errorMessage}</p>
-              </IonText>
-            )}
+            {errorMessage && <IonText color="danger">{errorMessage}</IonText>}
 
             <IonButton expand="block" onClick={() => handleNext(false)} style={{ marginTop: "20px" }}>
               Next
@@ -293,7 +234,7 @@ const ArithmeticQuiz: React.FC = () => {
               fill="outline"
               color="medium"
               onClick={() => {
-                setSelectedCategory(null);
+                setSelectedDifficulty(null);
                 setCurrentQuiz(null);
                 setUserAnswer("");
                 setErrorMessage("");
@@ -310,7 +251,6 @@ const ArithmeticQuiz: React.FC = () => {
           <p style={{ textAlign: "center", marginTop: "50px" }}>Loading...</p>
         )}
 
-        {/* 🔹 Result Modal */}
         <IonModal isOpen={showResultModal} backdropDismiss={false}>
           <IonHeader>
             <IonToolbar>
@@ -318,7 +258,7 @@ const ArithmeticQuiz: React.FC = () => {
             </IonToolbar>
           </IonHeader>
           <IonContent style={{ padding: "20px", overflowY: "auto" }}>
-            <h2>{getMessage()}</h2>
+            <h2>Quiz Completed!</h2>
             <h3>
               Score: {score}/{userSolutions.length}
             </h3>
@@ -337,16 +277,12 @@ const ArithmeticQuiz: React.FC = () => {
                   <b>Q{i + 1}:</b> {res.question}
                   <br />
                   <b>Your Answer:</b>{" "}
-                  <span style={{ color: res.isCorrect ? "green" : "red" }}>
-                    {res.userAnswer}
-                  </span>
+                  <span style={{ color: res.isCorrect ? "green" : "red" }}>{res.userAnswer}</span>
                   <br />
                   <b>Correct Answer:</b> {res.correct}
                   <br />
                   <b>Solution:</b>
-                  <pre style={{ whiteSpace: "pre-wrap", margin: 0 }}>
-                    {res.solution || "No solution provided."}
-                  </pre>
+                  <pre style={{ whiteSpace: "pre-wrap", margin: 0 }}>{res.solution || "No solution provided."}</pre>
                 </li>
               ))}
             </ul>
@@ -354,7 +290,7 @@ const ArithmeticQuiz: React.FC = () => {
               expand="block"
               onClick={() => {
                 setShowResultModal(false);
-                setSelectedCategory(null);
+                setSelectedDifficulty(null);
                 setCurrentQuiz(null);
                 setUserAnswer("");
                 setUserSolutions([]);

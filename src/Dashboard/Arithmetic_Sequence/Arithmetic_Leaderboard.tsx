@@ -181,7 +181,7 @@ const ArithmeticLeaderboard: React.FC = () => {
 
       <IonContent className="ion-padding">
         <div style={cardStyle}>
-          <h2 style={{ margin: 0, textAlign: "center" }}>Solving Leaderboard</h2>
+          <h2 style={{ margin: 0, textAlign: "center" }}>Word Problem Leaderboard</h2>
           <div style={{ display: "flex", justifyContent: "center", margin: "8px 0" }}>
             <Trophy size={20} color="#f59e0b" />
           </div>

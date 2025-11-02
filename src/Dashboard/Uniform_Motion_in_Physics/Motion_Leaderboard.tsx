@@ -4,7 +4,6 @@ import { Trophy } from "lucide-react";
 import { motion } from "framer-motion";
 import { supabase } from "../../utils/supabaseClient";
 
-/* ✅ Define the structure of your database responses */
 interface Profile {
   lastname: string;
 }
@@ -21,7 +20,6 @@ interface ScoreRow {
   quizzes: Quiz;
 }
 
-/* ✅ Component */
 const MotionLeaderboard: React.FC = () => {
   const [solvingData, setSolvingData] = useState<ScoreRow[]>([]);
   const [problemSolvingData, setProblemSolvingData] = useState<ScoreRow[]>([]);
@@ -31,7 +29,6 @@ const MotionLeaderboard: React.FC = () => {
     fetchLeaderboards();
   }, []);
 
-  /* ✅ Normalize database row safely */
   const normalizeRow = (r: Partial<ScoreRow>): ScoreRow => ({
     score: Number(r?.score ?? 0),
     time_taken: Number(r?.time_taken ?? 0),
@@ -39,7 +36,6 @@ const MotionLeaderboard: React.FC = () => {
     quizzes: { category: r?.quizzes?.category ?? "-", subject: r?.quizzes?.subject ?? "-" },
   });
 
-  /* ✅ Fetch both leaderboards */
   const fetchLeaderboards = async () => {
     setLoading(true);
     try {
@@ -53,7 +49,7 @@ const MotionLeaderboard: React.FC = () => {
           quizzes(category,subject)
         `)
         .eq("quizzes.category", "Solving")
-        .eq("quizzes.subject", "Uniform Motion in Physics")
+        .eq("quizzes.subject", "Motion")
         .order("score", { ascending: false })
         .order("time_taken", { ascending: true });
 
@@ -71,7 +67,7 @@ const MotionLeaderboard: React.FC = () => {
           quizzes(category,subject)
         `)
         .eq("quizzes.category", "Problem Solving")
-        .eq("quizzes.subject", "Uniform Motion in Physics")
+        .eq("quizzes.subject", "Motion")
         .order("score", { ascending: false })
         .order("time_taken", { ascending: true });
 
@@ -135,13 +131,13 @@ const MotionLeaderboard: React.FC = () => {
     <IonPage>
       <IonHeader>
         <IonToolbar>
-          <IonTitle>Uniform Motion Leaderboard</IonTitle>
+          <IonTitle>Motion Leaderboard</IonTitle>
         </IonToolbar>
       </IonHeader>
 
       <IonContent className="ion-padding">
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-          {/* Solving */}
+          {/* Word Problem Leaderboard */}
           <motion.div
             initial={{ opacity: 0, y: 40 }}
             animate={{ opacity: 1, y: 0 }}
@@ -155,7 +151,7 @@ const MotionLeaderboard: React.FC = () => {
             {loading ? <p>Loading...</p> : renderTable(solvingData)}
           </motion.div>
 
-          {/* Problem Solving */}
+          {/* Problem Solving Leaderboard */}
           <motion.div
             initial={{ opacity: 0, y: 40 }}
             animate={{ opacity: 1, y: 0 }}

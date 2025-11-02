@@ -29,13 +29,13 @@ input:-webkit-autofill:focus {
   position: absolute;
   font-weight: 700;
   font-size: 1.5rem;
-  color: #90EE90;
-  opacity: 0.8; /* mas visible */
-  text-shadow: 0 0 12px rgba(144, 238, 144, 0.9); /* light green glow */
+  color: #000000; /* black text */
+  opacity: 0.6; /* para soft, hindi sobrang itim */
+  text-shadow: 0 0 10px rgba(0, 0, 0, 0.3); /* subtle black glow */
   animation: floaty 8s ease-in-out infinite;
   z-index: 0;
-  box-shadow: 0 0 12px rgba(144, 238, 144, 0.9); /* glowing effect */
 }
+
 
 @keyframes floaty {
   0% { transform: translateY(0) rotate(0deg); opacity: 0.4; }

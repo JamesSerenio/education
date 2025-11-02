@@ -10,25 +10,22 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 
 // Import images
-import anImg from "../../assets/an_arithmetic.png";
 import discoverImg from "../../assets/who_discover_arithmetic.png";
-import a1Img1 from "../../assets/A-1.png";
-import a1Img2 from "../../assets/A-2.png";
-import a1Img3 from "../../assets/A-3.png";
+import a1Img from "../../assets/a1_arithmetic.png";
+import an1Img from "../../assets/An-1.png";
+import an2Img from "../../assets/An-2.png";
+import an3Img from "../../assets/An-3.png";
+import an4Img from "../../assets/An-4.png";
 import dImg from "../../assets/d_arithmetic.png";
-import nImg from "../../assets/n_arithmetic.png";
 
 const Arithmetic_Module: React.FC = () => {
-  const [selected, setSelected] = useState<string>("module");
+  const [selected, setSelected] = useState<string>("a1");
 
-  const images: Record<
-    string,
-    { src: string | string[]; label: string }
-  > = {
-    module: { src: anImg, label: "An Formula" },
-    a1: { src: [a1Img1, a1Img2, a1Img3], label: "Find a₁ (scroll to view more)" },
+  const images: Record<string, { src: string | string[]; label: string }> = {
+    a1: { src: a1Img, label: "Find a₁" },
     d: { src: dImg, label: "Find d" },
-    n: { src: nImg, label: "Find n" },
+    n:  {src: [an1Img, an2Img, an3Img, an4Img], label: "Find n (scroll to view more)",
+    },
   };
 
   return (
@@ -101,11 +98,6 @@ const Arithmetic_Module: React.FC = () => {
               onIonChange={(e) => setSelected(e.detail.value as string)}
               scrollable
             >
-              <IonSegmentButton value="module">
-                <IonLabel>
-                  A<sub>n</sub>
-                </IonLabel>
-              </IonSegmentButton>
               <IonSegmentButton value="a1">
                 <IonLabel>
                   a<sub>1</sub>
@@ -130,9 +122,9 @@ const Arithmetic_Module: React.FC = () => {
               }}
             >
               <AnimatePresence mode="wait">
-                {selected === "a1" ? (
+                {selected === "n" ? (
                   <motion.div
-                    key="a1-scroll"
+                    key="n-scroll"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
@@ -143,11 +135,11 @@ const Arithmetic_Module: React.FC = () => {
                       gap: "10px",
                     }}
                   >
-                    {(images.a1.src as string[]).map((img, index) => (
+                    {(images.n.src as string[]).map((img, index) => (
                       <motion.img
                         key={index}
                         src={img}
-                        alt={`a1 image ${index + 1}`}
+                        alt={`n image ${index + 1}`}
                         style={{ width: "100%", borderRadius: "8px" }}
                       />
                     ))}

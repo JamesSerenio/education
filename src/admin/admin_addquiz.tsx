@@ -16,16 +16,15 @@ import {
 } from "@ionic/react";
 import { closeCircleOutline } from "ionicons/icons";
 import { supabase } from "../utils/supabaseClient";
-import { motion } from "framer-motion"; // ✅ added animation import
+import { motion } from "framer-motion"; // animation
 
 const AdminAddQuiz: React.FC = () => {
   const [subject, setSubject] = useState("");
   const [category, setCategory] = useState("");
-  const [level, setLevel] = useState<number | null>(null);
+  const [level, setLevel] = useState<number | null>(null); // numeric 1-3
   const [question, setQuestion] = useState("");
   const [solution, setSolution] = useState("");
   const [answer, setAnswer] = useState("");
-
   const [altInput, setAltInput] = useState("");
   const [acceptedAnswers, setAcceptedAnswers] = useState<string[]>([]);
 
@@ -47,11 +46,18 @@ const AdminAddQuiz: React.FC = () => {
       return;
     }
 
+    // Map numeric level to difficulty string
+    const difficultyMap: Record<number, string> = {
+      1: "Easy",
+      2: "Average",
+      3: "Difficult",
+    };
+
     try {
       const payload: Record<string, unknown> = {
         subject,
         category,
-        level,
+        difficulty: difficultyMap[level!], // use mapped difficulty
         question,
         solution,
         answer,
@@ -69,6 +75,7 @@ const AdminAddQuiz: React.FC = () => {
       } else {
         console.log("Quiz Saved:", data);
         alert("Quiz saved successfully!");
+        // Reset fields
         setSubject("");
         setCategory("");
         setLevel(null);
@@ -132,29 +139,29 @@ const AdminAddQuiz: React.FC = () => {
                 <IonSelectOption value="Problem Solving">
                   Problem Solving
                 </IonSelectOption>
-                <IonSelectOption value="Solving">Number Solving</IonSelectOption>
+                <IonSelectOption value="Word Problem">
+                  Word Problem
+                </IonSelectOption>
               </IonSelect>
             </IonItem>
           </motion.div>
 
-          {/* Select Level */}
+          {/* Select Difficulty (Level) */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
           >
             <IonItem>
-              <IonLabel position="stacked">Select Level (1-5)</IonLabel>
+              <IonLabel position="stacked">Select Difficulty</IonLabel>
               <IonSelect
-                placeholder="Select level"
+                placeholder="Select difficulty"
                 value={level ?? ""}
                 onIonChange={(e) => setLevel(Number(e.detail.value))}
               >
-                <IonSelectOption value={1}>1</IonSelectOption>
-                <IonSelectOption value={2}>2</IonSelectOption>
-                <IonSelectOption value={3}>3</IonSelectOption>
-                <IonSelectOption value={4}>4</IonSelectOption>
-                <IonSelectOption value={5}>5</IonSelectOption>
+                <IonSelectOption value={1}>Easy</IonSelectOption>
+                <IonSelectOption value={2}>Average</IonSelectOption>
+                <IonSelectOption value={3}>Difficult</IonSelectOption>
               </IonSelect>
             </IonItem>
           </motion.div>

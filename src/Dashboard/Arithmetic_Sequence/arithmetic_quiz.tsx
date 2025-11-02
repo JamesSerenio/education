@@ -34,33 +34,28 @@ const QUESTIONS_PER_DIFFICULTY = 5;
 
 const ArithmeticQuiz: React.FC = () => {
   const [allQuizzes, setAllQuizzes] = useState<Quiz[]>([]);
-  const [quizzes, setQuizzes] = useState<Quiz[]>([]);
-  const [selectedDifficulty, setSelectedDifficulty] = useState<Quiz["difficulty"] | null>(null);
+  const [quizQueue, setQuizQueue] = useState<Quiz[]>([]);
+  const [currentQuizIndex, setCurrentQuizIndex] = useState<number>(0);
   const [currentQuiz, setCurrentQuiz] = useState<Quiz | null>(null);
   const [userAnswer, setUserAnswer] = useState<string>("");
   const [errorMessage, setErrorMessage] = useState<string>("");
   const [score, setScore] = useState<number>(0);
   const [userSolutions, setUserSolutions] = useState<
-    {
-      question: string;
-      correct: string;
-      userAnswer: string;
-      solution: string;
-      isCorrect: boolean;
-    }[]
+    { question: string; correct: string; userAnswer: string; solution: string; isCorrect: boolean }[]
   >([]);
   const [showResultModal, setShowResultModal] = useState(false);
   const [timeLeft, setTimeLeft] = useState<number>(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const inputRef = useRef<HTMLIonInputElement | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
-  // Fetch quizzes from Supabase
+  // Fetch quizzes from Supabase (Word Problem and Problem Solving)
   useEffect(() => {
     const fetchQuizzes = async () => {
       const { data, error } = await supabase
         .from("quizzes")
         .select("*")
-        .eq("subject", "Arithmetic Sequence");
+        .eq("subject", "Arithmetic Sequence")
+        .in("category", ["Word Problem", "Problem Solving"]);
 
       if (error) console.error("Error fetching quizzes:", error.message);
       else setAllQuizzes(data || []);
@@ -68,29 +63,32 @@ const ArithmeticQuiz: React.FC = () => {
     fetchQuizzes();
   }, []);
 
-  // Handle difficulty selection
-  const handleDifficultySelect = (difficulty: Quiz["difficulty"]) => {
-    setSelectedDifficulty(difficulty);
+  // Start quiz when category is selected
+  const startQuiz = (category: string) => {
+    setSelectedCategory(category);
 
-    const filtered = allQuizzes
-      .filter((q) => q.difficulty === difficulty)
-      .sort(() => Math.random() - 0.5)
-      .slice(0, QUESTIONS_PER_DIFFICULTY);
+    const categoryQuizzes = allQuizzes.filter((q) => q.category === category);
 
-    if (filtered.length > 0) {
-      setQuizzes(filtered);
-      setCurrentQuiz(filtered[0]);
-      setScore(0);
-      setUserSolutions([]);
-      setUserAnswer("");
-      setTimeLeft(DIFFICULTY_TIMERS[difficulty]);
-    }
+    const buildQueue = ["Easy", "Average", "Difficult"].flatMap((difficulty) => {
+      const filtered = categoryQuizzes
+        .filter((q) => q.difficulty === difficulty)
+        .sort(() => Math.random() - 0.5)
+        .slice(0, QUESTIONS_PER_DIFFICULTY);
+      return filtered;
+    });
+
+    setQuizQueue(buildQueue);
+    setCurrentQuizIndex(0);
+    setCurrentQuiz(buildQueue[0] || null);
+    setScore(0);
+    setUserSolutions([]);
+    setUserAnswer("");
+    if (buildQueue[0]) setTimeLeft(DIFFICULTY_TIMERS[buildQueue[0].difficulty]);
   };
 
   // Timer per question
   useEffect(() => {
     if (!currentQuiz) return;
-
     if (timerRef.current) clearInterval(timerRef.current);
 
     timerRef.current = setInterval(() => {
@@ -109,10 +107,9 @@ const ArithmeticQuiz: React.FC = () => {
     };
   }, [currentQuiz]);
 
-  // Handle next question
   const handleNext = useCallback(
     (auto = false) => {
-      if (!currentQuiz || !selectedDifficulty) return;
+      if (!currentQuiz) return;
 
       if (!auto && !userAnswer.trim()) {
         setErrorMessage("⚠️ Please enter your answer before proceeding.");
@@ -124,10 +121,9 @@ const ArithmeticQuiz: React.FC = () => {
       const normalizedAnswer = userAnswer.trim().toLowerCase();
       const correctAnswer = currentQuiz.answer.trim().toLowerCase();
       const alternates = (currentQuiz.accepted_answers || []).map((a) => a.trim().toLowerCase());
-
       const isCorrect = normalizedAnswer === correctAnswer || alternates.includes(normalizedAnswer);
-      setScore((prev) => (isCorrect ? prev + 1 : prev));
 
+      setScore((prev) => (isCorrect ? prev + 1 : prev));
       setUserSolutions((prev) => [
         ...prev,
         {
@@ -139,37 +135,34 @@ const ArithmeticQuiz: React.FC = () => {
         },
       ]);
 
-      const currentIndex = quizzes.findIndex((q) => q.id === currentQuiz.id);
-
-      if (currentIndex < quizzes.length - 1) {
-        setCurrentQuiz(quizzes[currentIndex + 1]);
+      // Move to next question in queue
+      if (currentQuizIndex < quizQueue.length - 1) {
+        const nextIndex = currentQuizIndex + 1;
+        setCurrentQuizIndex(nextIndex);
+        setCurrentQuiz(quizQueue[nextIndex]);
         setUserAnswer("");
-        setTimeLeft(DIFFICULTY_TIMERS[selectedDifficulty]);
+        setTimeLeft(DIFFICULTY_TIMERS[quizQueue[nextIndex].difficulty]);
       } else {
         clearInterval(timerRef.current!);
         setShowResultModal(true);
         saveResult(score + (isCorrect ? 1 : 0));
       }
     },
-    [currentQuiz, quizzes, userAnswer, score, selectedDifficulty]
+    [currentQuiz, currentQuizIndex, quizQueue, userAnswer, score]
   );
 
-  // Save quiz result
   const saveResult = async (finalScore: number) => {
     try {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-
+      const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
       const userId = session.user.id;
 
       await supabase.from("scores").insert([
         {
           user_id: userId,
-          quiz_id: quizzes[0]?.id || null,
+          quiz_id: quizQueue[0]?.id || null,
           score: finalScore,
-          time_taken: DIFFICULTY_TIMERS[selectedDifficulty!] * quizzes.length,
+          time_taken: quizQueue.reduce((sum, q) => sum + DIFFICULTY_TIMERS[q.difficulty], 0),
         },
       ]);
     } catch (err) {
@@ -186,13 +179,13 @@ const ArithmeticQuiz: React.FC = () => {
       </IonHeader>
 
       <IonContent fullscreen>
-        {!selectedDifficulty ? (
+        {!selectedCategory ? (
           <div className="flex flex-col items-center justify-center h-full p-6 text-center">
-            <h2>Select Difficulty</h2>
+            <h2>Select Category</h2>
             <div style={{ display: "flex", gap: "15px", flexWrap: "wrap", justifyContent: "center" }}>
-              {["Easy", "Average", "Difficult"].map((diff) => (
-                <IonButton key={diff} onClick={() => handleDifficultySelect(diff as Quiz["difficulty"])}>
-                  {diff}
+              {["Word Problem", "Problem Solving"].map((cat) => (
+                <IonButton key={cat} onClick={() => startQuiz(cat)}>
+                  {cat}
                 </IonButton>
               ))}
             </div>
@@ -210,12 +203,11 @@ const ArithmeticQuiz: React.FC = () => {
               ⏳ Time Left: {timeLeft}s
             </div>
 
-            <h2>{selectedDifficulty}</h2>
+            <h2>{currentQuiz.difficulty}</h2>
             <p style={{ textAlign: "center", fontSize: "18px", margin: "10px 0" }}>{currentQuiz.question}</p>
 
             <IonItem style={{ width: "90%", maxWidth: "400px", marginTop: "10px" }}>
               <IonInput
-                ref={inputRef}
                 value={userAnswer}
                 placeholder="Enter your answer"
                 onIonInput={(e) => setUserAnswer(e.detail.value!)}
@@ -234,7 +226,7 @@ const ArithmeticQuiz: React.FC = () => {
               fill="outline"
               color="medium"
               onClick={() => {
-                setSelectedDifficulty(null);
+                setSelectedCategory(null);
                 setCurrentQuiz(null);
                 setUserAnswer("");
                 setErrorMessage("");
@@ -290,7 +282,7 @@ const ArithmeticQuiz: React.FC = () => {
               expand="block"
               onClick={() => {
                 setShowResultModal(false);
-                setSelectedDifficulty(null);
+                setSelectedCategory(null);
                 setCurrentQuiz(null);
                 setUserAnswer("");
                 setUserSolutions([]);

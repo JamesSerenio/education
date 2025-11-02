@@ -1,4 +1,3 @@
-// src/pages/AdminArithmeticQuiz.tsx
 import React, { useEffect, useState } from "react";
 import {
   IonPage,
@@ -48,7 +47,7 @@ const AdminArithmeticQuiz: React.FC = () => {
   const [editCategory, setEditCategory] = useState<string>("");
   const [editAcceptedAnswers, setEditAcceptedAnswers] = useState<string>("");
 
-  // Fetch quizzes from Supabase
+  // ✅ Fetch quizzes
   const fetchQuizzes = async () => {
     setLoading(true);
     const { data, error } = await supabase
@@ -70,7 +69,7 @@ const AdminArithmeticQuiz: React.FC = () => {
     fetchQuizzes();
   }, []);
 
-  // Delete quiz
+  // ✅ Delete quiz
   const handleDelete = async () => {
     if (!deleteId) return;
     const { error } = await supabase.from("quizzes").delete().eq("id", deleteId);
@@ -79,7 +78,7 @@ const AdminArithmeticQuiz: React.FC = () => {
     setDeleteId(null);
   };
 
-  // Open edit modal
+  // ✅ Open edit modal
   const openEdit = (quiz: Quiz) => {
     setEditQuiz(quiz);
     setEditQuestion(quiz.question);
@@ -87,16 +86,15 @@ const AdminArithmeticQuiz: React.FC = () => {
     setEditSolution(quiz.solution || "");
     setEditLevel(quiz.level || 1);
     setEditCategory(quiz.category);
-    setEditAcceptedAnswers((quiz.accepted_answers || []).join(", "));
+    setEditAcceptedAnswers((quiz.accepted_answers || []).join("\n"));
   };
 
-  // Save edits
+  // ✅ Save edit
   const handleEditSave = async () => {
     if (!editQuiz) return;
 
-    // Split accepted answers by comma
     const acceptedAnswersArray = editAcceptedAnswers
-      .split(",")
+      .split("\n")
       .map((a) => a.trim())
       .filter((a) => a !== "");
 
@@ -134,7 +132,7 @@ const AdminArithmeticQuiz: React.FC = () => {
     }
   };
 
-  // Group quizzes by category
+  // ✅ Group quizzes by category
   const groupedQuizzes = quizzes.reduce((acc: { [key: string]: Quiz[] }, quiz) => {
     if (!acc[quiz.category]) acc[quiz.category] = [];
     acc[quiz.category].push(quiz);
@@ -150,7 +148,6 @@ const AdminArithmeticQuiz: React.FC = () => {
           <IonTitle>Admin Arithmetic Quizzes</IonTitle>
         </IonToolbar>
       </IonHeader>
-
       <IonContent style={{ padding: "1rem" }}>
         <style>{`
           .quiz-table-container {
@@ -166,7 +163,7 @@ const AdminArithmeticQuiz: React.FC = () => {
             font-weight: bold;
             text-align: center;
           }
-          .table-wrapper {
+           .table-wrapper {
             overflow-x: auto;
           }
           .quiz-table {
@@ -196,6 +193,7 @@ const AdminArithmeticQuiz: React.FC = () => {
             margin: 0;
             font-family: inherit;
           }
+
           @media (max-width: 768px) {
             .quiz-table th, .quiz-table td {
               font-size: 12px;
@@ -217,54 +215,54 @@ const AdminArithmeticQuiz: React.FC = () => {
               <div className="category-header">
                 {category} ({groupedQuizzes[category].length})
               </div>
-              <div className="table-wrapper">
-                <table className="quiz-table">
-                  <thead>
-                    <tr>
-                      <th>Level</th>
-                      <th>Question</th>
-                      <th>Answer</th>
-                      <th>Solution</th>
-                      <th>Created</th>
-                      <th>Actions</th>
+            <div className="table-wrapper">
+              <table className="quiz-table">
+                <thead>
+                  <tr>
+                    <th>Level</th>
+                    <th>Question</th>
+                    <th>Answer</th>
+                    <th>Solution</th>
+                    <th>Created</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {groupedQuizzes[category].map((quiz) => (
+                    <tr key={quiz.id}>
+                      <td>L{quiz.level}</td>
+                      <td><pre>{quiz.question}</pre></td>
+                      <td><pre>{quiz.answer}</pre></td>
+                      <td><pre>{quiz.solution || "No solution"}</pre></td>
+                      <td>{new Date(quiz.created_at).toLocaleDateString()}</td>
+                      <td className="actions-cell">
+                        <IonButton
+                          fill="clear"
+                          size="small"
+                          color="primary"
+                          onClick={() => openEdit(quiz)}
+                        >
+                          <IonIcon icon={createOutline} />
+                        </IonButton>
+                        <IonButton
+                          fill="clear"
+                          size="small"
+                          color="danger"
+                          onClick={() => setDeleteId(quiz.id)}
+                        >
+                          <IonIcon icon={trashOutline} />
+                        </IonButton>
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {groupedQuizzes[category].map((quiz) => (
-                      <tr key={quiz.id}>
-                        <td>L{quiz.level}</td>
-                        <td><pre>{quiz.question}</pre></td>
-                        <td><pre>{quiz.answer}</pre></td>
-                        <td><pre>{quiz.solution || "No solution"}</pre></td>
-                        <td>{new Date(quiz.created_at).toLocaleDateString()}</td>
-                        <td className="actions-cell">
-                          <IonButton
-                            fill="clear"
-                            size="small"
-                            color="primary"
-                            onClick={() => openEdit(quiz)}
-                          >
-                            <IonIcon icon={createOutline} />
-                          </IonButton>
-                          <IonButton
-                            fill="clear"
-                            size="small"
-                            color="danger"
-                            onClick={() => setDeleteId(quiz.id)}
-                          >
-                            <IonIcon icon={trashOutline} />
-                          </IonButton>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                  ))}
+                </tbody>
+              </table>
+            </div>
             </div>
           ))
         )}
 
-        {/* Delete Alert */}
+        {/* ✅ Delete Alert */}
         <IonAlert
           isOpen={!!deleteId}
           onDidDismiss={() => setDeleteId(null)}
@@ -276,7 +274,7 @@ const AdminArithmeticQuiz: React.FC = () => {
           ]}
         />
 
-        {/* Edit Modal */}
+        {/* ✅ Edit Modal */}
         <IonModal isOpen={!!editQuiz} onDidDismiss={() => setEditQuiz(null)}>
           <IonHeader>
             <IonToolbar>
@@ -323,12 +321,12 @@ const AdminArithmeticQuiz: React.FC = () => {
             </IonItem>
 
             <IonItem>
-              <IonLabel position="stacked">Alternate Answers (comma separated)</IonLabel>
+              <IonLabel position="stacked">Alternate Answers (one per line)</IonLabel>
               <IonTextarea
                 autoGrow
                 value={editAcceptedAnswers}
                 onIonChange={(e) => setEditAcceptedAnswers(e.detail.value!)}
-                placeholder="Example: 2,300, 2300.0, 2.3k"
+                placeholder="Example:\n2,300\n2300.0\n2.3k"
               />
             </IonItem>
 

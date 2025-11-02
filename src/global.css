@@ -29,7 +29,7 @@ input:-webkit-autofill:focus {
   position: absolute;
   font-weight: 700;
   font-size: 1.5rem;
-  color: #FFEF00;
+  color: #90EE90;
   opacity: 0.8; /* mas visible */
   text-shadow: 0 0 12px rgba(255, 239, 0, 0.8);
   animation: floaty 8s ease-in-out infinite;

@@ -10,39 +10,67 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 
 // Import images
-import velocityImg from "../../assets/velocity_motion.png";
 import discoverImg from "../../assets/who_discover_motion.png";
-import timeImg from "../../assets/time_motion.png";
-import distanceImg from "../../assets/distance_motion.png";
+
+// Velocity images
+import velocity1 from "../../assets/velocity-1.png";
+import velocity2 from "../../assets/velocity-2.png";
+import velocity3 from "../../assets/velocity-3.png";
+import velocity4 from "../../assets/velocity-4.png";
+
+// Time images
+import time1 from "../../assets/time-1.png";
+import time2 from "../../assets/time-2.png";
+import time3 from "../../assets/time-3.png";
+import time4 from "../../assets/time-4.png";
+
+// Distance images
+import distance1 from "../../assets/distance-1.png";
+import distance2 from "../../assets/distance-2.png";
+import distance3 from "../../assets/distance-3.png";
+import distance4 from "../../assets/distance-4.png";
 
 const Motion_Module: React.FC = () => {
   const [selected, setSelected] = useState<string>("velocity");
 
-  const images: Record<string, { src: string; label: string }> = {
-    velocity: { src: velocityImg, label: "Velocity" },
-    time: { src: timeImg, label: "Time" },
-    distance: { src: distanceImg, label: "Distance" },
+  const images: Record<string, { src: string; label: string }[]> = {
+    velocity: [
+      { src: velocity1, label: "Velocity 1" },
+      { src: velocity2, label: "Velocity 2" },
+      { src: velocity3, label: "Velocity 3" },
+      { src: velocity4, label: "Velocity 4" },
+    ],
+    time: [
+      { src: time1, label: "Time 1" },
+      { src: time2, label: "Time 2" },
+      { src: time3, label: "Time 3" },
+      { src: time4, label: "Time 4" },
+    ],
+    distance: [
+      { src: distance1, label: "Distance 1" },
+      { src: distance2, label: "Distance 2" },
+      { src: distance3, label: "Distance 3" },
+      { src: distance4, label: "Distance 4" },
+    ],
   };
 
   return (
     <IonPage>
       <IonHeader></IonHeader>
       <IonContent fullscreen>
-        {/* Container with staggered fade-in */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ staggerChildren: 0.3, delayChildren: 0.2 }}
           style={{
             display: "flex",
-            justifyContent: "center",
-            alignItems: "flex-start",
-            gap: "20px",
+            flexDirection: "column",
+            alignItems: "center",
             padding: "20px",
-            flexWrap: "wrap",
+            gap: "20px",
           }}
         >
-          {/* Card 1: Who Discovered Motion */}
+          {/* Who Discovered Motion */}
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
@@ -53,9 +81,8 @@ const Motion_Module: React.FC = () => {
               padding: "10px",
               textAlign: "center",
               width: "100%",
-              maxWidth: "400px",
+              maxWidth: "500px",
               boxShadow: "0 4px 8px rgba(0,0,0,0.1)",
-              flex: "1 1 300px",
             }}
           >
             <h3 style={{ marginBottom: "10px" }}>Who Discovered Motion</h3>
@@ -69,7 +96,7 @@ const Motion_Module: React.FC = () => {
             />
           </motion.div>
 
-          {/* Card 2: Motion Module */}
+          {/* Motion Module */}
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
@@ -78,11 +105,10 @@ const Motion_Module: React.FC = () => {
               border: "2px solid #ccc",
               borderRadius: "10px",
               padding: "10px",
-              textAlign: "center",
               width: "100%",
-              maxWidth: "400px",
+              maxWidth: "500px",
               boxShadow: "0 4px 8px rgba(0,0,0,0.1)",
-              flex: "1 1 300px",
+              textAlign: "center",
             }}
           >
             <h3 style={{ marginBottom: "10px" }}>Uniform Motion Module</h3>
@@ -103,23 +129,30 @@ const Motion_Module: React.FC = () => {
               </IonSegmentButton>
             </IonSegment>
 
-            {/* Image transition on tab change */}
-            <div style={{ marginTop: "15px", position: "relative" }}>
+            {/* Scrollable images */}
+            <div
+              style={{
+                marginTop: "15px",
+                maxHeight: "400px",
+                overflowY: "auto",
+                display: "flex",
+                flexDirection: "column",
+                gap: "15px",
+              }}
+            >
               <AnimatePresence mode="wait">
-                <motion.img
-                  key={selected}
-                  src={images[selected].src}
-                  alt={images[selected].label}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.6, ease: "easeInOut" }}
-                  style={{
-                    width: "100%",
-                    borderRadius: "8px",
-                    position: "relative",
-                  }}
-                />
+                {images[selected].map((img) => (
+                  <motion.img
+                    key={img.src}
+                    src={img.src}
+                    alt={img.label}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.6, ease: "easeInOut" }}
+                    style={{ width: "100%", borderRadius: "8px" }}
+                  />
+                ))}
               </AnimatePresence>
             </div>
           </motion.div>

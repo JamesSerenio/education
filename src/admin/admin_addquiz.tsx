@@ -26,6 +26,19 @@ const AdminAddQuiz: React.FC = () => {
   const [solution, setSolution] = useState("");
   const [answer, setAnswer] = useState("");
   const [altInput, setAltInput] = useState("");
+  const [acceptedAnswers, setAcceptedAnswers] = useState<string[]>([]);
+
+  const addAcceptedAnswer = () => {
+    const v = (altInput || "").trim();
+    if (!v) return;
+    const exists = acceptedAnswers.some((a) => a.toLowerCase() === v.toLowerCase());
+    if (!exists) setAcceptedAnswers((p) => [...p, v]);
+    setAltInput("");
+  };
+
+  const removeAcceptedAnswer = (idx: number) => {
+    setAcceptedAnswers((p) => p.filter((_, i) => i !== idx));
+  };
 
   const handleSubmit = async () => {
     if (!subject || !category || !level || !question || !answer) {
@@ -40,17 +53,11 @@ const AdminAddQuiz: React.FC = () => {
       3: "Difficult",
     };
 
-    // Generate accepted answers from altInput
-    const acceptedAnswers = altInput
-      .split(/[\n,]+/) // split by newline or comma
-      .map((a) => a.trim())
-      .filter((a) => a !== "");
-
     try {
       const payload: Record<string, unknown> = {
         subject,
         category,
-        difficulty: difficultyMap[level!],
+        difficulty: difficultyMap[level!], // use mapped difficulty
         question,
         solution,
         answer,
@@ -64,7 +71,7 @@ const AdminAddQuiz: React.FC = () => {
 
       if (error) {
         console.error("Error inserting quiz:", error.message);
-        alert("Failed to save quiz! — " + error.message);
+        alert("Failed to save quiz! (check DB) — " + error.message);
       } else {
         console.log("Quiz Saved:", data);
         alert("Quiz saved successfully!");
@@ -75,6 +82,7 @@ const AdminAddQuiz: React.FC = () => {
         setQuestion("");
         setSolution("");
         setAnswer("");
+        setAcceptedAnswers([]);
         setAltInput("");
       }
     } catch (err) {
@@ -185,7 +193,7 @@ const AdminAddQuiz: React.FC = () => {
               <IonTextarea
                 placeholder="Write the solution"
                 value={solution}
-                autoGrow
+                autoGrow={true}
                 onIonChange={(e) => setSolution(e.detail.value!)}
               />
             </IonItem>
@@ -207,7 +215,7 @@ const AdminAddQuiz: React.FC = () => {
             </IonItem>
           </motion.div>
 
-          {/* Alternate / Accepted Answers */}
+          {/* Alternate Answers */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -217,43 +225,32 @@ const AdminAddQuiz: React.FC = () => {
               <IonLabel position="stacked">
                 Alternate / Accepted Answers (optional)
               </IonLabel>
-              <IonTextarea
-                placeholder="Enter one per line or separated by commas"
-                value={altInput}
-                autoGrow
-                onIonChange={(e) => setAltInput(e.detail.value!)}
-              />
+              <div style={{ display: "flex", gap: 8, width: "100%" }}>
+                <IonInput
+                  placeholder="e.g. 2,300 or 2300"
+                  value={altInput}
+                  onIonChange={(e) => setAltInput(e.detail.value!)}
+                />
+                <IonButton onClick={addAcceptedAnswer}>Add</IonButton>
+              </div>
             </IonItem>
 
             <IonList>
-              {altInput
-                .split(/[\n,]+/)
-                .map((a) => a.trim())
-                .filter((a) => a !== "")
-                .map((a, i) => (
-                  <motion.div
-                    key={i}
-                    initial={{ opacity: 0, x: 30 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.1 * i }}
-                  >
-                    <IonItem>
-                      <div style={{ flex: 1 }}>{a}</div>
-                      <IonButton
-                        fill="clear"
-                        onClick={() => {
-                          const parts = altInput
-                            .split(/[\n,]+/)
-                            .map((p) => p.trim())
-                            .filter((p) => p !== "" && p !== a);
-                          setAltInput(parts.join("\n"));
-                        }}
-                      >
-                        <IonIcon icon={closeCircleOutline} />
-                      </IonButton>
-                    </IonItem>
-                  </motion.div>
-                ))}
+              {acceptedAnswers.map((a, i) => (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, x: 30 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.1 * i }}
+                >
+                  <IonItem>
+                    <div style={{ flex: 1 }}>{a}</div>
+                    <IonButton fill="clear" onClick={() => removeAcceptedAnswer(i)}>
+                      <IonIcon icon={closeCircleOutline} />
+                    </IonButton>
+                  </IonItem>
+                </motion.div>
+              ))}
             </IonList>
           </motion.div>
 

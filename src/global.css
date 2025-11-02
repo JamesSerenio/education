@@ -31,10 +31,10 @@ input:-webkit-autofill:focus {
   font-size: 1.5rem;
   color: #90EE90;
   opacity: 0.8; /* mas visible */
-  text-shadow: 0 0 12px rgba(255, 239, 0, 0.8);
+  text-shadow: 0 0 12px rgba(144, 238, 144, 0.9); /* light green glow */
   animation: floaty 8s ease-in-out infinite;
   z-index: 0;
-  box-shadow: 0 0 10px rgba(255, 211, 0, 0.8); /* glowing effect */
+  box-shadow: 0 0 12px rgba(144, 238, 144, 0.9); /* glowing effect */
 }
 
 @keyframes floaty {

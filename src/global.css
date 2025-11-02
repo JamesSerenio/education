@@ -15,10 +15,10 @@ input:-webkit-autofill:focus {
   background: transparent !important;
 }
 
-/* White background */
+/* Soft white background for Home */
 .auth-bg {
-  --ion-background-color: #ffffff;
-  background: #ffffff;
+  --ion-background-color: #f8f9fa; /* slightly off-white */
+  background: #f8f9fa;
   color: #000;
   position: relative;
   overflow: hidden;
@@ -53,21 +53,22 @@ input:-webkit-autofill:focus {
   z-index: 1;
 }
 
-/* White card with green border and subtle glow */
+/* Transparent card with green border */
 .auth-card {
-  background: #ffffff;
+  background: rgba(255, 255, 255, 0.2); /* transparent white */
+  backdrop-filter: blur(12px);
   border-radius: 1.5rem;
   padding: 2rem;
   width: 380px;
   max-width: 420px;
   border: 2px solid #90EE90;
-  box-shadow: 0 0 15px rgba(144, 238, 144, 0.2);
+  box-shadow: 0 0 25px rgba(144, 238, 144, 0.3);
   transition: box-shadow 0.3s ease, transform 0.3s ease;
 }
 
 .auth-card:hover {
-  box-shadow: 0 0 25px rgba(255, 239, 0, 0.3);
-  transform: translateY(-3px);
+  box-shadow: 0 0 35px rgba(255, 239, 0, 0.4);
+  transform: translateY(-4px);
 }
 
 /* Title */
@@ -94,29 +95,8 @@ input:-webkit-autofill:focus {
   border-radius: 1rem;
   padding: 0.75rem 1rem;
   color: #000;
-  background: #fff;
+  background: rgba(255, 255, 255, 0.6);
   transition: border 0.3s ease, box-shadow 0.3s ease;
-}
-
-/* Terms & Conditions Text */
-.auth-terms {
-  font-size: 0.7rem;
-  font-weight: 500;
-  color: #333;
-  letter-spacing: 0.3px;
-  user-select: none;
-}
-
-.auth-terms span {
-  color: #32CD32; /* Light Green link */
-  font-weight: 600;
-  cursor: pointer;
-  text-decoration: underline;
-  transition: color 0.2s ease;
-}
-
-.auth-terms span:hover {
-  color: #FFEF00; /* Canary Yellow hover */
 }
 
 .auth-input:hover {
@@ -133,6 +113,27 @@ input:-webkit-autofill:focus {
   --padding-start: 0;
   color: #000;
   font-size: 0.9rem;
+}
+
+/* Terms & Conditions Text */
+.auth-terms {
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: #333;
+  letter-spacing: 0.3px;
+  user-select: none;
+}
+
+.auth-terms span {
+  color: #32CD32;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+  transition: color 0.2s ease;
+}
+
+.auth-terms span:hover {
+  color: #FFEF00;
 }
 
 /* Button - Light Green with yellow hover */
@@ -156,7 +157,7 @@ input:-webkit-autofill:focus {
 .auth-footer {
   text-align: center;
   margin-top: 1rem;
-  font-size: 0.6rem;
+  font-size: 0.7rem;
   color: #333;
 }
 
@@ -205,15 +206,16 @@ input:-webkit-autofill:focus {
   transform: translateY(-50%) scale(1.1);
 }
 
-/* Register card – slightly smaller */
+/* Register card */
 .register-card {
   padding: 1.5rem;
   width: 340px;
   max-width: 360px;
   border: 2px solid #90EE90;
-  background: #ffffff;
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(12px);
   border-radius: 1.5rem;
-  box-shadow: 0 0 15px rgba(144, 238, 144, 0.2);
+  box-shadow: 0 0 20px rgba(144, 238, 144, 0.25);
 }
 
 .register-card .auth-title {
@@ -225,6 +227,8 @@ input:-webkit-autofill:focus {
   --background: #90EE90;
   color: #000;
 }
+
+/* Terms modal */
 .terms-modal {
   --height: auto;
   --width: 90%;

@@ -2,6 +2,10 @@ import {
   IonPage,
   IonHeader,
   IonContent,
+  IonToolbar,
+  IonTitle,
+  IonButton,
+  IonAlert,
 } from "@ionic/react";
 import { useEffect, useRef, useState } from "react";
 import {
@@ -61,9 +65,8 @@ const Motion_Radar: React.FC = () => {
     problemSolving: 0,
   });
   const [loading, setLoading] = useState(false);
-  const [visible, setVisible] = useState(false);
+  const [showAlert, setShowAlert] = useState(false);
 
-  // 🔹 Smooth radar animation
   const animateRadarUpdate = (
     newScore: { time: number; solving: number; problemSolving: number },
     duration = 1000
@@ -87,7 +90,6 @@ const Motion_Radar: React.FC = () => {
     }, interval);
   };
 
-  // 🔹 Map Supabase data
   const mapToScoreWithQuizzes = (
     rawData: Record<string, unknown>
   ): ScoreWithQuizzes => {
@@ -110,7 +112,6 @@ const Motion_Radar: React.FC = () => {
     };
   };
 
-  // 🔹 Group attempts (based on date)
   const groupAttempts = (scores: ScoreWithQuizzes[]): ScoreWithQuizzes[][] => {
     const grouped: ScoreWithQuizzes[][] = [];
     let currentGroup: ScoreWithQuizzes[] = [];
@@ -129,7 +130,6 @@ const Motion_Radar: React.FC = () => {
     return grouped;
   };
 
-  // 🔹 Compute radar data per attempt
   const updateRadarForAttempt = (index: number, data = attempts) => {
     const target = data[index];
     if (!target || target.length === 0) {
@@ -137,7 +137,6 @@ const Motion_Radar: React.FC = () => {
       return;
     }
 
-    // 🕒 TIME PERFORMANCE (inverse of time_taken)
     const avgTime =
       target.reduce((sum, s) => sum + (s.time_taken || 0), 0) / target.length;
     const timePercent = Math.max(
@@ -145,7 +144,6 @@ const Motion_Radar: React.FC = () => {
       Math.min(100, ((MAX_TIME - avgTime) / MAX_TIME) * 100)
     );
 
-    // 🧮 SOLVING
     const solvingScores = target.filter(
       (s) => s.quizzes?.category === "Solving"
     );
@@ -156,7 +154,6 @@ const Motion_Radar: React.FC = () => {
           100
         : 0;
 
-    // 🧩 PROBLEM SOLVING
     const problemScores = target.filter(
       (s) => s.quizzes?.category === "Problem Solving"
     );
@@ -174,7 +171,6 @@ const Motion_Radar: React.FC = () => {
     });
   };
 
-  // 🔹 Fetch scores from Supabase
   const fetchRadarData = async () => {
     setLoading(true);
     try {
@@ -209,7 +205,6 @@ const Motion_Radar: React.FC = () => {
   };
 
   useEffect(() => {
-    setVisible(true);
     fetchRadarData();
   }, []);
 
@@ -223,7 +218,6 @@ const Motion_Radar: React.FC = () => {
       chartInstance.current = null;
     }
 
-    // 🎨 Gradient like Arithmetic style
     const gradient = ctx.createLinearGradient(0, 0, 0, 400);
     gradient.addColorStop(0, "rgba(54, 162, 235, 0.3)");
     gradient.addColorStop(1, "rgba(236, 72, 153, 0.3)");
@@ -261,7 +255,7 @@ const Motion_Radar: React.FC = () => {
           legend: { display: false },
           title: {
             display: true,
-            text: "📊 Uniform Motion in Physics Progress",
+            text: "📘 Uniform Motion in Physics Progress Overview",
             font: { size: 18, weight: "bold" },
           },
         },
@@ -285,87 +279,91 @@ const Motion_Radar: React.FC = () => {
 
   return (
     <IonPage>
-      <IonHeader />
+      <IonHeader>
+        <IonToolbar>
+          <IonTitle>Radar</IonTitle>
+        </IonToolbar>
+      </IonHeader>
       <IonContent fullscreen>
         <AnimatePresence>
-          {visible && (
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              padding: 20,
+            }}
+          >
+            <h2 style={{ fontWeight: "bold", fontSize: 22 }}>
+              ⚙️ Uniform Motion in Physics Progress Overview
+            </h2>
+
+            <div style={{ marginTop: 10 }}>
+              <IonButton onClick={() => setShowAlert(true)}>
+                Attempt {currentAttempt + 1}ᵗʰ Take
+              </IonButton>
+            </div>
+
+            <IonAlert
+              isOpen={showAlert}
+              onDidDismiss={() => setShowAlert(false)}
+              header={"Select Attempt"}
+              inputs={attempts.map((_, i) => ({
+                label: `${i + 1}ᵗʰ Take`,
+                type: "radio",
+                value: i,
+                checked: i === currentAttempt,
+              }))}
+              buttons={[
+                { text: "Cancel", role: "cancel" },
+                {
+                  text: "OK",
+                  handler: (value) => {
+                    setCurrentAttempt(value);
+                    updateRadarForAttempt(value);
+                  },
+                },
+              ]}
+            />
+
+            <div
               style={{
+                width: "100%",
+                maxWidth: 480,
+                height: 420,
+                marginTop: 20,
+                background: "#fff",
+                borderRadius: 16,
+                boxShadow: "0 6px 15px rgba(0,0,0,0.1)",
                 display: "flex",
-                flexDirection: "column",
                 alignItems: "center",
-                padding: 20,
+                justifyContent: "center",
+                padding: 12,
               }}
             >
-              <h2 style={{ fontWeight: "bold", fontSize: 22 }}>
-                ⚙️ Uniform Motion in Physics Radar
-              </h2>
+              <canvas ref={radarRef}></canvas>
+            </div>
 
-              {/* Attempt Selector */}
-              <div style={{ marginTop: 16 }}>
-                <select
-                  value={currentAttempt}
-                  onChange={(e) => {
-                    const idx = Number(e.target.value);
-                    setCurrentAttempt(idx);
-                    updateRadarForAttempt(idx);
-                  }}
-                  style={{
-                    padding: "8px 12px",
-                    borderRadius: 8,
-                    border: "1px solid #ccc",
-                    fontWeight: "bold",
-                  }}
-                >
-                  {attempts.map((_, i) => (
-                    <option key={i} value={i}>
-                      Attempt {i + 1}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Radar Chart Container */}
-              <div
-                style={{
-                  width: "100%",
-                  maxWidth: 480,
-                  height: 420,
-                  marginTop: 20,
-                  background: "#fff",
-                  borderRadius: 16,
-                  boxShadow: "0 6px 15px rgba(0,0,0,0.1)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  padding: 12,
-                }}
-              >
-                <canvas ref={radarRef}></canvas>
-              </div>
-
-              {/* Refresh Button */}
-              <motion.button
-                onClick={fetchRadarData}
-                whileTap={{ scale: 0.95 }}
-                style={{
-                  marginTop: 20,
-                  background: "linear-gradient(90deg,#36A2EB,#EC4899)",
-                  color: "#fff",
-                  fontWeight: "bold",
-                  padding: "10px 20px",
-                  border: "none",
-                  borderRadius: 10,
-                  cursor: "pointer",
-                }}
-              >
-                🔄 {loading ? "Refreshing..." : "Refresh Data"}
-              </motion.button>
-            </motion.div>
-          )}
+            <motion.button
+              onClick={fetchRadarData}
+              whileTap={{ scale: 0.95 }}
+              style={{
+                marginTop: 20,
+                background: "linear-gradient(90deg,#36A2EB,#EC4899)",
+                color: "#fff",
+                fontWeight: "bold",
+                padding: "10px 20px",
+                border: "none",
+                borderRadius: 10,
+                cursor: "pointer",
+              }}
+            >
+              🔄 {loading ? "Refreshing..." : "Refresh Data"}
+            </motion.button>
+          </motion.div>
         </AnimatePresence>
       </IonContent>
     </IonPage>

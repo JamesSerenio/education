@@ -2,6 +2,10 @@ import {
   IonPage,
   IonHeader,
   IonContent,
+  IonSelect,
+  IonSelectOption,
+  IonLabel,
+  IonItem,
 } from "@ionic/react";
 import { useEffect, useRef, useState } from "react";
 import {
@@ -34,13 +38,19 @@ ChartJS.register(
 const MAX_SCORE = 5;
 const MAX_TIME = 300;
 
+interface QuizRef {
+  id?: string;
+  category?: string;
+  subject?: string;
+}
+
 interface ScoreWithQuizzes {
   id: string;
   score: number | null;
   time_taken: number | null;
   created_at: string;
   quiz_id: string;
-  quizzes: { id: string; category: string; subject?: string } | null;
+  quizzes: QuizRef | null;
 }
 
 const Arithmetic_Radar: React.FC = () => {
@@ -53,56 +63,69 @@ const Arithmetic_Radar: React.FC = () => {
     problemSolving: 0,
   });
 
-  const [visible, setVisible] = useState(false);
+  const [attempts, setAttempts] = useState<ScoreWithQuizzes[][]>([]);
+  const [selectedAttemptIndex, setSelectedAttemptIndex] = useState<number>(0);
   const [loading, setLoading] = useState(false);
 
-  // helper mapper for Supabase data
-  const mapToScoreWithQuizzes = (rawData: Record<string, unknown>): ScoreWithQuizzes => {
-    const quizzesRaw = rawData["quizzes"] as Record<string, unknown> | undefined;
-    return {
-      id: String(rawData["id"] ?? ""),
-      score:
-        rawData["score"] === undefined || rawData["score"] === null
-          ? null
-          : Number(rawData["score"]),
-      time_taken:
-        rawData["time_taken"] === undefined || rawData["time_taken"] === null
-          ? null
-          : Number(rawData["time_taken"]),
-      created_at: String(rawData["created_at"] ?? new Date().toISOString()),
-      quiz_id: String(rawData["quiz_id"] ?? ""),
-      quizzes: quizzesRaw
-        ? {
-            id: String(quizzesRaw["id"] ?? ""),
-            category: String(quizzesRaw["category"] ?? ""),
-            subject: quizzesRaw["subject"] ? String(quizzesRaw["subject"]) : undefined,
-          }
-        : null,
-    };
-  };
-
+  // Animate Radar transitions
   const animateRadarUpdate = (
     newData: { time: number; solving: number; problemSolving: number },
     duration = 800
   ) => {
     const steps = 30;
     const interval = duration / steps;
-
-    setPerformance({ time: 0, solving: 0, problemSolving: 0 }); // reset
     let currentStep = 0;
+    const startData = { ...performance };
 
     const animate = setInterval(() => {
       currentStep++;
       const progress = currentStep / steps;
-
       setPerformance({
-        time: newData.time * progress,
-        solving: newData.solving * progress,
-        problemSolving: newData.problemSolving * progress,
+        time: startData.time + (newData.time - startData.time) * progress,
+        solving: startData.solving + (newData.solving - startData.solving) * progress,
+        problemSolving:
+          startData.problemSolving + (newData.problemSolving - startData.problemSolving) * progress,
       });
-
       if (currentStep >= steps) clearInterval(animate);
     }, interval);
+  };
+
+  // Safe mapper: handles quizzes being null, object or array
+  const safeMapScore = (r: Record<string, unknown>): ScoreWithQuizzes => {
+    const rawQuizzes = r["quizzes"];
+    let quizObj: QuizRef | null = null;
+
+    if (rawQuizzes) {
+      // quizzes might be an array (joined) or object
+      if (Array.isArray(rawQuizzes) && rawQuizzes.length > 0) {
+        const q = rawQuizzes[0] as Record<string, unknown>;
+        quizObj = {
+          id: q.id ? String(q.id) : undefined,
+          category: q.category ? String(q.category) : undefined,
+          subject: q.subject ? String(q.subject) : undefined,
+        };
+      } else if (typeof rawQuizzes === "object") {
+        const q = rawQuizzes as Record<string, unknown>;
+        quizObj = {
+          id: q.id ? String(q.id) : undefined,
+          category: q.category ? String(q.category) : undefined,
+          subject: q.subject ? String(q.subject) : undefined,
+        };
+      }
+    }
+
+    return {
+      id: String(r["id"] ?? ""),
+      score:
+        r["score"] === undefined || r["score"] === null ? null : Number(r["score"]),
+      time_taken:
+        r["time_taken"] === undefined || r["time_taken"] === null
+          ? null
+          : Number(r["time_taken"]),
+      created_at: String(r["created_at"] ?? new Date().toISOString()),
+      quiz_id: String(r["quiz_id"] ?? ""),
+      quizzes: quizObj,
+    };
   };
 
   const fetchRadarData = async () => {
@@ -110,91 +133,84 @@ const Arithmetic_Radar: React.FC = () => {
     try {
       const {
         data: { user },
-        error: userError,
       } = await supabase.auth.getUser();
-
-      if (userError || !user) {
-        console.error("No user logged in:", userError);
+      if (!user) {
+        setAttempts([]);
         setPerformance({ time: 0, solving: 0, problemSolving: 0 });
         return;
       }
 
-      const { data: allScores, error: scoresError } = await supabase
+      const { data, error } = await supabase
         .from("scores")
-        .select(
-          `id, score, time_taken, created_at, quiz_id, quizzes!quiz_id(id, category, subject)`
-        )
+        .select(`id, score, time_taken, created_at, quiz_id, quizzes!quiz_id(id, category, subject)`)
         .eq("user_id", user.id)
-        .order("created_at", { ascending: false })
-        .limit(50);
+        .order("created_at", { ascending: true });
 
-      if (scoresError) {
-        console.error("Error fetching scores:", scoresError);
-        setPerformance({ time: 0, solving: 0, problemSolving: 0 });
-        return;
+      if (error) throw error;
+
+      const raw = (data || []) as Record<string, unknown>[];
+      const typed: ScoreWithQuizzes[] = raw.map(safeMapScore);
+
+      // filter to subject = Arithmetic Sequence
+      const arithmeticScores = typed.filter((s) => s.quizzes?.subject === "Arithmetic Sequence");
+
+      // group into attempts: we consider each pair (Solving + Problem Solving) as one "take"
+      const grouped: ScoreWithQuizzes[][] = [];
+      // Sort by created_at just in case
+      const sorted = arithmeticScores.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+      for (let i = 0; i < sorted.length; i += 2) {
+        grouped.push(sorted.slice(i, i + 2));
       }
 
-      const rawArray = (allScores ?? []) as Record<string, unknown>[];
-      const typedScores: ScoreWithQuizzes[] = rawArray.map(mapToScoreWithQuizzes);
+      setAttempts(grouped);
 
-      if (!typedScores.length) {
+      // initialise performance with first attempt if exists
+      if (grouped.length > 0) {
+        updateRadarForAttempt(0, grouped);
+        setSelectedAttemptIndex(0);
+      } else {
         setPerformance({ time: 0, solving: 0, problemSolving: 0 });
-        return;
       }
-
-      const arithmeticScores = typedScores.filter(
-        (s) => s.quizzes?.subject === "Arithmetic Sequence"
-      );
-
-      if (!arithmeticScores.length) {
-        setPerformance({ time: 0, solving: 0, problemSolving: 0 });
-        return;
-      }
-
-      const avgTime =
-        arithmeticScores.reduce((sum, s) => sum + (s.time_taken || 0), 0) /
-        arithmeticScores.length;
-
-      const timeRaw = ((MAX_TIME - avgTime) / MAX_TIME) * 100;
-      const timePercent = Math.max(0, Math.min(100, parseFloat(timeRaw.toFixed(2))));
-
-      const solvingScores = arithmeticScores.filter(
-        (s) => s.quizzes?.category === "Solving" && s.score !== null
-      );
-      const problemSolvingScores = arithmeticScores.filter(
-        (s) => s.quizzes?.category === "Problem Solving" && s.score !== null
-      );
-
-      const avgSolving =
-        solvingScores.reduce((sum, s) => sum + (s.score || 0), 0) /
-        (solvingScores.length || 1);
-      const avgProblemSolving =
-        problemSolvingScores.reduce((sum, s) => sum + (s.score || 0), 0) /
-        (problemSolvingScores.length || 1);
-
-      const newPerformance = {
-        time: timePercent,
-        solving: Math.floor((avgSolving / MAX_SCORE) * 100),
-        problemSolving: Math.floor((avgProblemSolving / MAX_SCORE) * 100),
-      };
-
-      // animate the radar chart
-      animateRadarUpdate(newPerformance);
     } catch (err) {
       console.error("Error fetching radar data:", err);
+      setAttempts([]);
       setPerformance({ time: 0, solving: 0, problemSolving: 0 });
     } finally {
-      setTimeout(() => setLoading(false), 600);
+      setTimeout(() => setLoading(false), 300);
     }
   };
 
-  // mount
+  const updateRadarForAttempt = (index: number, data = attempts) => {
+    const target = data[index];
+    if (!target || target.length === 0) {
+      animateRadarUpdate({ time: 0, solving: 0, problemSolving: 0 });
+      return;
+    }
+
+    // average time across the attempt items
+    const avgTime = (target.reduce((sum, s) => sum + (s.time_taken || 0), 0) || 0) / target.length;
+    const timeRaw = ((MAX_TIME - avgTime) / MAX_TIME) * 100;
+    const timePercent = Math.max(0, Math.min(100, parseFloat(timeRaw.toFixed(2))));
+
+    const solving = target.find((s) => s.quizzes?.category === "Solving");
+    const problem = target.find((s) => s.quizzes?.category === "Problem Solving");
+
+    const newPerf = {
+      time: timePercent,
+      solving: solving && solving.score != null ? (Number(solving.score) / MAX_SCORE) * 100 : 0,
+      problemSolving: problem && problem.score != null ? (Number(problem.score) / MAX_SCORE) * 100 : 0,
+    };
+
+    animateRadarUpdate(newPerf);
+  };
+
   useEffect(() => {
-    setVisible(true);
+    // initial load
     void fetchRadarData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // redraw chart when data changes
+  // redraw chart when performance changes
   useEffect(() => {
     if (!radarRef.current) return;
     const ctx = radarRef.current.getContext("2d");
@@ -205,188 +221,122 @@ const Arithmetic_Radar: React.FC = () => {
       chartInstance.current = null;
     }
 
-    const gradient = ctx.createLinearGradient(0, 0, 0, 500);
-    gradient.addColorStop(0, "rgba(54, 162, 235, 0.32)");
-    gradient.addColorStop(1, "rgba(236, 72, 153, 0.32)");
-
     chartInstance.current = new ChartJS(ctx, {
       type: "radar",
       data: {
         labels: ["⏱ Time", "🧩 Problem Solving", "🧮 Solving"],
         datasets: [
           {
-            label: "✨ My Performance (Arithmetic Sequence)",
+            label: "My Performance (Arithmetic Sequence)",
             data: [performance.time, performance.problemSolving, performance.solving],
             fill: true,
-            backgroundColor: gradient,
-            borderColor: "rgb(54, 162, 235)",
+            backgroundColor: "rgba(54,162,235,0.28)",
+            borderColor: "rgb(54,162,235)",
             borderWidth: 3,
-            pointBackgroundColor: "rgb(236, 72, 153)",
-            pointBorderColor: "#fff",
-            pointHoverBackgroundColor: "#fff",
-            pointHoverBorderColor: "rgb(236, 72, 153)",
+            pointBackgroundColor: "rgb(236,72,153)",
           },
         ],
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        animation: { duration: 800, easing: "easeOutCirc" },
-        plugins: {
-          legend: {
-            display: true,
-            labels: { color: "#111", font: { size: 13, weight: "bold" } },
-          },
-          title: {
-            display: true,
-            text: "📊 Arithmetic Sequence",
-            color: "#111",
-            font: { size: 18, weight: "bold" },
-          },
-          datalabels: {
-            color: "#000",
-            font: { weight: "bold", size: 11 },
-            formatter: (val: number) =>
-              val % 1 !== 0 ? `${val.toFixed(2)}%` : `${Math.round(val)}%`,
-          },
-        },
         scales: {
           r: {
-            angleLines: { color: "rgba(156, 163, 175, 0.3)" },
-            grid: { color: "rgba(209, 213, 219, 0.3)" },
-            pointLabels: { color: "#111", font: { size: 12, weight: "bold" } },
             suggestedMin: 0,
             suggestedMax: 100,
             ticks: { display: false },
+          },
+        },
+        plugins: {
+          legend: { display: false },
+          datalabels: {
+            color: "#000",
+            font: { weight: "bold" },
+            formatter: (val: number) => `${Math.round(val)}%`,
           },
         },
       },
       plugins: [ChartDataLabels],
     });
 
-    return () => {
-      chartInstance.current?.destroy();
-      chartInstance.current = null;
-    };
+    return () => chartInstance.current?.destroy();
   }, [performance]);
-
-  const labels = ["⏱ Time", "🧩 Problem Solving", "🧮 Solving"];
 
   return (
     <IonPage>
       <IonHeader />
       <IonContent fullscreen>
         <AnimatePresence>
-          {visible && (
-            <motion.div
-              key="radar-root"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.5 }}
-              style={{
-                padding: 16,
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                justifyContent: "center",
-                minHeight: "90vh",
-              }}
-            >
-              <motion.h2
-                initial={{ opacity: 0, y: -8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: 0.1 }}
-                style={{ fontSize: 22, fontWeight: 700, color: "#222", margin: 0 }}
-              >
-                📈 Performance Overview
-              </motion.h2>
+          <motion.div
+            key="radar-root"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.35 }}
+            style={{ padding: 16, textAlign: "center" }}
+          >
+            <h2 style={{ margin: 0 }}>📊 Arithmetic Sequence Progress Overview</h2>
 
-              <div style={{ display: "flex", gap: 10, marginTop: 12 }}>
-                {labels.map((label, idx) => (
-                  <motion.div
-                    key={label}
-                    initial={{ opacity: 0, y: 12 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.55, delay: 0.25 + idx * 0.14 }}
-                    style={{
-                      background: "linear-gradient(90deg, #36A2EB, #EC4899)",
-                      padding: "6px 12px",
-                      borderRadius: 8,
-                      color: "white",
-                      fontWeight: 700,
-                      fontSize: 14,
+            <div style={{ marginTop: 12 }}>
+              {attempts.length > 0 ? (
+                <IonItem style={{ margin: "10px auto", width: "90%", maxWidth: 400 }}>
+                  <IonLabel>Attempt</IonLabel>
+                  <IonSelect
+                    value={selectedAttemptIndex}
+                    onIonChange={(e) => {
+                      const idx = Number(e.detail.value);
+                      setSelectedAttemptIndex(idx);
+                      updateRadarForAttempt(idx);
                     }}
                   >
-                    {label}
-                  </motion.div>
-                ))}
-              </div>
+                    {attempts.map((_, idx) => (
+                      <IonSelectOption key={idx} value={idx}>
+                        {idx + 1}ᵗʰ Take
+                      </IonSelectOption>
+                    ))}
+                  </IonSelect>
+                </IonItem>
+              ) : (
+                <p style={{ marginTop: 12 }}>No attempts found yet.</p>
+              )}
+            </div>
 
-              <motion.div
-                initial={{ opacity: 0, scale: 0.96, y: 12 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                transition={{ duration: 0.8, delay: 0.7, ease: "easeOut" }}
-                style={{
-                  width: "100%",
-                  maxWidth: 500,
-                  height: 450,
-                  background: "white",
-                  borderRadius: 16,
-                  boxShadow: "0px 8px 20px rgba(0,0,0,0.08)",
-                  marginTop: 24,
-                  padding: 16,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <canvas ref={radarRef} style={{ width: "100%", height: "100%" }} />
-              </motion.div>
+            <div
+              style={{
+                width: "100%",
+                maxWidth: 560,
+                height: 420,
+                margin: "20px auto",
+                background: "#fff",
+                borderRadius: 12,
+                boxShadow: "0 8px 24px rgba(0,0,0,0.06)",
+                padding: 12,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <canvas ref={radarRef} style={{ width: "100%", height: "100%" }} />
+            </div>
 
-              <motion.button
-                onClick={fetchRadarData}
-                disabled={loading}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 1.2 }}
-                whileTap={{ scale: 0.96 }}
-                whileHover={{ scale: loading ? 1 : 1.03 }}
-                style={{
-                  padding: "10px 20px",
-                  background: loading
-                    ? "linear-gradient(90deg, #9CA3AF, #D1D5DB)"
-                    : "linear-gradient(90deg, #36A2EB, #EC4899)",
-                  color: "white",
-                  fontSize: 15,
-                  fontWeight: 700,
-                  borderRadius: 10,
-                  border: "none",
-                  cursor: loading ? "default" : "pointer",
-                  marginTop: 24,
-                  width: "100%",
-                  maxWidth: 200,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: 8,
-                }}
-              >
-                {loading ? (
-                  <motion.span
-                    animate={{ rotate: 360 }}
-                    transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
-                    style={{ display: "inline-block" }}
-                  >
-                    🔄
-                  </motion.span>
-                ) : (
-                  "🔄"
-                )}
-                {loading ? "Refreshing..." : "Refresh"}
-              </motion.button>
-            </motion.div>
-          )}
+            <motion.button
+              onClick={fetchRadarData}
+              disabled={loading}
+              whileTap={{ scale: 0.97 }}
+              style={{
+                marginTop: 8,
+                background: loading ? "#9CA3AF" : "linear-gradient(90deg,#36A2EB,#EC4899)",
+                color: "#fff",
+                padding: "10px 18px",
+                borderRadius: 10,
+                border: "none",
+                cursor: loading ? "default" : "pointer",
+                fontWeight: 700,
+              }}
+            >
+              {loading ? "Refreshing..." : "🔄 Refresh Data"}
+            </motion.button>
+          </motion.div>
         </AnimatePresence>
       </IonContent>
     </IonPage>

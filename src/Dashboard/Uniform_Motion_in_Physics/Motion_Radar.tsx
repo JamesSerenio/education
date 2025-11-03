@@ -56,7 +56,6 @@ const Motion_Radar: React.FC = () => {
   const [visible, setVisible] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // helper mapper for Supabase data
   const mapToScoreWithQuizzes = (rawData: Record<string, unknown>): ScoreWithQuizzes => {
     const quizzesRaw = rawData["quizzes"] as Record<string, unknown> | undefined;
     return {
@@ -75,7 +74,9 @@ const Motion_Radar: React.FC = () => {
         ? {
             id: String(quizzesRaw["id"] ?? ""),
             category: String(quizzesRaw["category"] ?? ""),
-            subject: quizzesRaw["subject"] ? String(quizzesRaw["subject"]) : undefined,
+            subject: quizzesRaw["subject"]
+              ? String(quizzesRaw["subject"])
+              : undefined,
           }
         : null,
     };
@@ -87,20 +88,17 @@ const Motion_Radar: React.FC = () => {
   ) => {
     const steps = 30;
     const interval = duration / steps;
-
-    setPerformance({ time: 0, solving: 0, problemSolving: 0 }); // reset
+    setPerformance({ time: 0, solving: 0, problemSolving: 0 });
     let currentStep = 0;
 
     const animate = setInterval(() => {
       currentStep++;
       const progress = currentStep / steps;
-
       setPerformance({
         time: newData.time * progress,
         solving: newData.solving * progress,
         problemSolving: newData.problemSolving * progress,
       });
-
       if (currentStep >= steps) clearInterval(animate);
     }, interval);
   };
@@ -142,6 +140,7 @@ const Motion_Radar: React.FC = () => {
         return;
       }
 
+      // Filter for "Uniform Motion in Physics"
       const motionScores = typedScores.filter(
         (s) => s.quizzes?.subject === "Uniform Motion in Physics"
       );
@@ -151,34 +150,43 @@ const Motion_Radar: React.FC = () => {
         return;
       }
 
-      // Get the best (highest) scores and fastest (lowest) time
-      const bestSolving = Math.max(
-        ...motionScores
-          .filter((s) => s.quizzes?.category === "Solving" && s.score !== null)
-          .map((s) => s.score ?? 0),
-        0
+      // ✅ FIXED: Compute averages for each category
+      const solvingScores = motionScores.filter(
+        (s) => s.quizzes?.category?.toLowerCase() === "solving"
+      );
+      const problemSolvingScores = motionScores.filter(
+        (s) => s.quizzes?.category?.toLowerCase() === "problem solving"
       );
 
-      const bestProblemSolving = Math.max(
-        ...motionScores
-          .filter((s) => s.quizzes?.category === "Problem Solving" && s.score !== null)
-          .map((s) => s.score ?? 0),
-        0
-      );
+      const avgSolving =
+        solvingScores.length > 0
+          ? solvingScores.reduce((sum, s) => sum + (s.score ?? 0), 0) /
+            solvingScores.length
+          : 0;
 
-      const bestTime = Math.min(
-        ...motionScores
-          .filter((s) => s.time_taken !== null)
-          .map((s) => s.time_taken ?? MAX_TIME),
-        MAX_TIME
-      );
+      const avgProblemSolving =
+        problemSolvingScores.length > 0
+          ? problemSolvingScores.reduce((sum, s) => sum + (s.score ?? 0), 0) /
+            problemSolvingScores.length
+          : 0;
 
-      const timePercent = ((MAX_TIME - bestTime) / MAX_TIME) * 100;
+      const avgTime =
+        motionScores.length > 0
+          ? motionScores.reduce((sum, s) => sum + (s.time_taken ?? MAX_TIME), 0) /
+            motionScores.length
+          : MAX_TIME;
+
+      const solvingPercent = (avgSolving / MAX_SCORE) * 100;
+      const problemSolvingPercent = (avgProblemSolving / MAX_SCORE) * 100;
+      const timePercent = ((MAX_TIME - avgTime) / MAX_TIME) * 100;
 
       const newPerformance = {
         time: Math.max(0, Math.min(100, parseFloat(timePercent.toFixed(2)))),
-        solving: Math.floor((bestSolving / MAX_SCORE) * 100),
-        problemSolving: Math.floor((bestProblemSolving / MAX_SCORE) * 100),
+        solving: Math.max(0, Math.min(100, parseFloat(solvingPercent.toFixed(2)))),
+        problemSolving: Math.max(
+          0,
+          Math.min(100, parseFloat(problemSolvingPercent.toFixed(2)))
+        ),
       };
 
       animateRadarUpdate(newPerformance);
@@ -215,7 +223,7 @@ const Motion_Radar: React.FC = () => {
         labels: ["⏱ Time", "🧩 Problem Solving", "🧮 Solving"],
         datasets: [
           {
-            label: "🌟 Best Performance (Uniform Motion in Physics)",
+            label: "🌟 Performance (Uniform Motion in Physics)",
             data: [performance.time, performance.problemSolving, performance.solving],
             fill: true,
             backgroundColor: gradient,
@@ -299,7 +307,7 @@ const Motion_Radar: React.FC = () => {
                 transition={{ duration: 0.6, delay: 0.1 }}
                 style={{ fontSize: 22, fontWeight: 700, color: "#222", margin: 0 }}
               >
-                🌟 Best Performance Overview
+                🌟 Performance Overview
               </motion.h2>
 
               <div style={{ display: "flex", gap: 10, marginTop: 12 }}>

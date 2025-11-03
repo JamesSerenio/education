@@ -53,7 +53,7 @@ interface ScoreWithQuizzes {
   quizzes: QuizRef | null;
 }
 
-const Arithmetic_Radar: React.FC = () => {
+const Motion_Radar: React.FC = () => {
   const radarRef = useRef<HTMLCanvasElement | null>(null);
   const chartInstance = useRef<ChartJS | null>(null);
 
@@ -62,11 +62,12 @@ const Arithmetic_Radar: React.FC = () => {
     solving: 0,
     problemSolving: 0,
   });
+
   const [attempts, setAttempts] = useState<ScoreWithQuizzes[][]>([]);
   const [selectedAttemptIndex, setSelectedAttemptIndex] = useState<number>(0);
   const [loading, setLoading] = useState(false);
 
-  // Animate radar transitions smoothly
+  // 🔹 Animate radar values smoothly
   const animateRadarUpdate = (
     newData: { time: number; solving: number; problemSolving: number },
     duration = 800
@@ -91,6 +92,7 @@ const Arithmetic_Radar: React.FC = () => {
     }, interval);
   };
 
+  // 🔹 Safe map Supabase data
   const safeMapScore = (r: Record<string, unknown>): ScoreWithQuizzes => {
     const rawQuizzes = r["quizzes"];
     let quizObj: QuizRef | null = null;
@@ -129,6 +131,7 @@ const Arithmetic_Radar: React.FC = () => {
     };
   };
 
+  // 🔹 Fetch Supabase data
   const fetchRadarData = async () => {
     setLoading(true);
     try {
@@ -154,12 +157,14 @@ const Arithmetic_Radar: React.FC = () => {
       const raw = (data || []) as Record<string, unknown>[];
       const typed: ScoreWithQuizzes[] = raw.map(safeMapScore);
 
-      const arithmeticScores = typed.filter(
-        (s) => s.quizzes?.subject === "Arithmetic Sequence"
+      // Filter for Uniform Motion in Physics
+      const motionScores = typed.filter(
+        (s) => s.quizzes?.subject === "Uniform Motion in Physics"
       );
 
+      // Group attempts (2 entries each)
       const grouped: ScoreWithQuizzes[][] = [];
-      const sorted = arithmeticScores.sort(
+      const sorted = motionScores.sort(
         (a, b) =>
           new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
       );
@@ -185,6 +190,7 @@ const Arithmetic_Radar: React.FC = () => {
     }
   };
 
+  // 🔹 Compute radar values per attempt
   const updateRadarForAttempt = (index: number, data = attempts) => {
     const target = data[index];
     if (!target || target.length === 0) {
@@ -197,7 +203,7 @@ const Arithmetic_Radar: React.FC = () => {
       target.length;
     const timePercent = Math.max(
       0,
-      Math.min(100, ((MAX_TIME - avgTime) / MAX_TIME) * 100)
+      Math.min(100, parseFloat((((MAX_TIME - avgTime) / MAX_TIME) * 100).toFixed(2)))
     );
 
     const solvingScores = target.filter(
@@ -248,7 +254,7 @@ const Arithmetic_Radar: React.FC = () => {
         labels: ["⏱ Time", "🧮 Solving", "🧩 Problem Solving"],
         datasets: [
           {
-            label: "My Performance (Arithmetic Sequence)",
+            label: "My Performance (Uniform Motion in Physics)",
             data: [
               performance.time,
               performance.solving,
@@ -291,68 +297,54 @@ const Arithmetic_Radar: React.FC = () => {
     <IonPage>
       <IonHeader />
       <IonContent fullscreen>
-        <AnimatePresence mode="wait">
+        <AnimatePresence>
           <motion.div
-            key={selectedAttemptIndex}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.4 }}
-            style={{
-              padding: 16,
-              textAlign: "center",
-              minHeight: "100vh",
-              display: "flex",
-              flexDirection: "column",
-              justifyContent: "flex-start",
-              alignItems: "center",
-            }}
+            key="radar-motion"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.35 }}
+            style={{ padding: 16, textAlign: "center" }}
           >
-            <h2 style={{ margin: "10px 0 4px" }}>
-              📊 Arithmetic Sequence Progress Overview
+            <h2 style={{ margin: 0 }}>
+              📊 Uniform Motion in Physics Progress Overview
             </h2>
 
-            {attempts.length > 0 ? (
-              <IonItem
-                style={{
-                  margin: "10px auto",
-                  width: "90%",
-                  maxWidth: 400,
-                  borderRadius: 12,
-                }}
-              >
-                <IonLabel>Attempt</IonLabel>
-                <IonSelect
-                  value={selectedAttemptIndex}
-                  onIonChange={(e) => {
-                    const idx = Number(e.detail.value);
-                    setSelectedAttemptIndex(idx);
-                    updateRadarForAttempt(idx);
-                  }}
+            <div style={{ marginTop: 12 }}>
+              {attempts.length > 0 ? (
+                <IonItem
+                  style={{ margin: "10px auto", width: "90%", maxWidth: 400 }}
                 >
-                  {attempts.map((_, idx) => (
-                    <IonSelectOption key={idx} value={idx}>
-                      {idx + 1}ᵗʰ Take
-                    </IonSelectOption>
-                  ))}
-                </IonSelect>
-              </IonItem>
-            ) : (
-              <p style={{ marginTop: 12 }}>No attempts found yet.</p>
-            )}
+                  <IonLabel>Attempt</IonLabel>
+                  <IonSelect
+                    value={selectedAttemptIndex}
+                    onIonChange={(e) => {
+                      const idx = Number(e.detail.value);
+                      setSelectedAttemptIndex(idx);
+                      updateRadarForAttempt(idx);
+                    }}
+                  >
+                    {attempts.map((_, idx) => (
+                      <IonSelectOption key={idx} value={idx}>
+                        {idx + 1}ᵗʰ Take
+                      </IonSelectOption>
+                    ))}
+                  </IonSelect>
+                </IonItem>
+              ) : (
+                <p style={{ marginTop: 12 }}>No attempts found yet.</p>
+              )}
+            </div>
 
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ duration: 0.5 }}
+            <div
               style={{
                 width: "100%",
                 maxWidth: 560,
                 height: 420,
                 margin: "20px auto",
                 background: "#fff",
-                borderRadius: 16,
-                boxShadow: "0 8px 24px rgba(0,0,0,0.08)",
+                borderRadius: 12,
+                boxShadow: "0 8px 24px rgba(0,0,0,0.06)",
                 padding: 12,
                 display: "flex",
                 alignItems: "center",
@@ -360,14 +352,12 @@ const Arithmetic_Radar: React.FC = () => {
               }}
             >
               <canvas ref={radarRef} style={{ width: "100%", height: "100%" }} />
-            </motion.div>
+            </div>
 
             <motion.button
               onClick={fetchRadarData}
               disabled={loading}
               whileTap={{ scale: 0.97 }}
-              whileHover={{ scale: 1.05 }}
-              transition={{ duration: 0.2 }}
               style={{
                 marginTop: 8,
                 background: loading
@@ -379,7 +369,6 @@ const Arithmetic_Radar: React.FC = () => {
                 border: "none",
                 cursor: loading ? "default" : "pointer",
                 fontWeight: 700,
-                boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
               }}
             >
               {loading ? "Refreshing..." : "🔄 Refresh Data"}
@@ -391,4 +380,4 @@ const Arithmetic_Radar: React.FC = () => {
   );
 };
 
-export default Arithmetic_Radar;
+export default Motion_Radar;

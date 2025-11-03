@@ -32,8 +32,8 @@ ChartJS.register(
 );
 
 // 🧮 Performance constants
-const MAX_SCORE = 15; // highest possible quiz score
-const MAX_TIME = 525; // total max time based on difficulty (15s×5 + 30s×5 + 60s×5)
+const MAX_SCORE = 15; // 15 questions total
+const MAX_TIME = 525; // total 15s×5 + 30s×5 + 60s×5
 
 interface ScoreWithQuizzes {
   id: string;
@@ -56,7 +56,7 @@ const Arithmetic_Radar: React.FC = () => {
   const [visible, setVisible] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // 🔍 Convert Supabase data safely
+  // 🔍 Safely map Supabase data
   const mapToScoreWithQuizzes = (rawData: Record<string, unknown>): ScoreWithQuizzes => {
     const quizzesRaw = rawData["quizzes"] as Record<string, unknown> | undefined;
     return {
@@ -113,7 +113,7 @@ const Arithmetic_Radar: React.FC = () => {
     }, interval);
   };
 
-  // 📊 Fetch and compute radar data
+  // 📊 Fetch radar data
   const fetchRadarData = async () => {
     setLoading(true);
     try {
@@ -160,7 +160,6 @@ const Arithmetic_Radar: React.FC = () => {
         return;
       }
 
-      // Case-insensitive category check
       const normalize = (txt: string | undefined) => txt?.trim().toLowerCase() ?? "";
 
       const solvingScores = arithmeticScores.filter(
@@ -191,8 +190,8 @@ const Arithmetic_Radar: React.FC = () => {
 
       const newPerformance = {
         time: Math.max(0, Math.min(100, parseFloat(timePercent.toFixed(2)))),
-        solving: Math.floor((bestSolving / MAX_SCORE) * 100),
-        problemSolving: Math.floor((bestProblemSolving / MAX_SCORE) * 100),
+        solving: (bestSolving / MAX_SCORE) * 100,
+        problemSolving: (bestProblemSolving / MAX_SCORE) * 100,
       };
 
       console.log("✅ Computed performance:", newPerformance);
@@ -263,8 +262,10 @@ const Arithmetic_Radar: React.FC = () => {
           datalabels: {
             color: "#000",
             font: { weight: "bold", size: 11 },
-            formatter: (val: number) =>
-              val % 1 !== 0 ? `${val.toFixed(2)}%` : `${Math.round(val)}%`,
+            formatter: (val: number) => {
+              const isWhole = Number.isInteger(val);
+              return isWhole ? `${val}%` : `${val.toFixed(2)}%`;
+            },
           },
         },
         scales: {

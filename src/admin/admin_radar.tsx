@@ -31,8 +31,9 @@ ChartJS.register(
   ChartDataLabels
 );
 
-const MAX_SCORE = 5;
-const MAX_TIME = 300;
+// 🧮 Performance constants
+const MAX_SCORE = 15; // 15 questions total
+const MAX_TIME = 525; // total 15s×5 + 30s×5 + 60s×5
 
 interface UserScore {
   time: number;
@@ -105,7 +106,7 @@ const AdminRadar: React.FC = () => {
     };
   };
 
-  // ✅ Fetch average score per subject
+  // ✅ Fetch average score per subject (focused per subject only)
   const fetchSubjectData = async (subject: string): Promise<UserScore> => {
     try {
       const { data, error } = await supabase
@@ -122,7 +123,7 @@ const AdminRadar: React.FC = () => {
       const scores: ScoreWithQuizzes[] = (data || []).map(mapToScoreWithQuizzes);
       if (scores.length === 0) return { time: 0, solving: 0, problemSolving: 0 };
 
-      // ✅ Compute average time
+      // ✅ Compute average time (subject-specific)
       const avgTime =
         scores.reduce((sum, s) => sum + (s.time_taken ?? 0), 0) / scores.length;
       const timePercent = Math.max(0, Math.min(100, ((MAX_TIME - avgTime) / MAX_TIME) * 100));
@@ -293,7 +294,7 @@ const AdminRadar: React.FC = () => {
         labels: ["⏱ Time", "🧩 Word Problem", "🧮 Problem Solving"],
         datasets: [
           {
-            label: `${title} Average`,
+            label: `${title} (All Students)`,
             data: [data.time, data.solving, data.problemSolving],
             fill: true,
             backgroundColor: gradient,
@@ -314,7 +315,7 @@ const AdminRadar: React.FC = () => {
           },
           title: {
             display: true,
-            text: `📊 (All Students) ${title}`,
+            text: `📊 ${title} (All Students)`,
             color: "#111",
             font: { size: 18, weight: "bold" },
           },

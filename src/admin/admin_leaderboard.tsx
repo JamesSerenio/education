@@ -1,11 +1,11 @@
-// admin_leaderboard.tsx
+// src/pages/AdminLeaderboard.tsx
 import React, { useEffect, useState } from "react";
 import {
   IonPage,
   IonHeader,
-  IonContent,
-  IonTitle,
   IonToolbar,
+  IonTitle,
+  IonContent,
 } from "@ionic/react";
 import { Trophy } from "lucide-react";
 import { supabase } from "../utils/supabaseClient";
@@ -16,112 +16,127 @@ interface Profile {
 
 interface Quiz {
   category: string;
-  subject?: string;
+  subject: string;
+}
+
+interface RawScoreRow {
+  score: number;
+  time_taken: number;
+  profiles: Profile | Profile[];
+  quizzes: Quiz | Quiz[];
 }
 
 interface LeaderboardRow {
   score: number;
   time_taken: number;
-  profiles: Profile;
-  quizzes: Quiz;
+  profiles: { lastname: string };
+  quizzes: { category: string; subject: string };
 }
 
 const AdminLeaderboard: React.FC = () => {
-  const [solvingData, setSolvingData] = useState<LeaderboardRow[]>([]);
-  const [problemSolvingData, setProblemSolvingData] = useState<LeaderboardRow[]>([]);
-  const [motionSolvingData, setMotionSolvingData] = useState<LeaderboardRow[]>([]);
+  // Arithmetic
+  const [arithWordData, setArithWordData] = useState<LeaderboardRow[]>([]);
+  const [arithProblemData, setArithProblemData] = useState<LeaderboardRow[]>([]);
+
+  // Motion
+  const [motionWordData, setMotionWordData] = useState<LeaderboardRow[]>([]);
   const [motionProblemData, setMotionProblemData] = useState<LeaderboardRow[]>([]);
+
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchLeaderboards();
   }, []);
 
-  const normalizeRow = (r: Record<string, unknown>): LeaderboardRow => {
-    const profile = r.profiles as Profile | Profile[] | null;
-    const quiz = r.quizzes as Quiz | Quiz[] | null;
+  const normalizeRow = (r: RawScoreRow): LeaderboardRow => {
+    const lastname = Array.isArray(r.profiles)
+      ? r.profiles[0]?.lastname ?? ""
+      : r.profiles?.lastname ?? "";
 
-    const lastname =
-      Array.isArray(profile) ? profile[0]?.lastname ?? "" : profile?.lastname ?? "";
+    const category = Array.isArray(r.quizzes)
+      ? r.quizzes[0]?.category ?? ""
+      : r.quizzes?.category ?? "";
 
-    const category =
-      Array.isArray(quiz) ? quiz[0]?.category ?? "" : quiz?.category ?? "";
-
-    const subject =
-      Array.isArray(quiz) ? quiz[0]?.subject ?? undefined : quiz?.subject ?? undefined;
+    const subject = Array.isArray(r.quizzes)
+      ? r.quizzes[0]?.subject ?? ""
+      : r.quizzes?.subject ?? "";
 
     return {
-      score: Number(r?.score ?? 0),
-      time_taken: Number(r?.time_taken ?? 0),
+      score: Number(r.score ?? 0),
+      time_taken: Number(r.time_taken ?? 0),
       profiles: { lastname },
       quizzes: { category, subject },
     };
   };
 
+  const filterHighestPerUser = (data: LeaderboardRow[]) => {
+    const map = new Map<string, LeaderboardRow>();
+
+    data.forEach((row) => {
+      const key = row.profiles.lastname;
+      const existing = map.get(key);
+      if (!existing) {
+        map.set(key, row);
+      } else if (
+        row.score > existing.score ||
+        (row.score === existing.score && row.time_taken < existing.time_taken)
+      ) {
+        map.set(key, row);
+      }
+    });
+
+    return Array.from(map.values()).sort((a, b) => {
+      if (b.score !== a.score) return b.score - a.score;
+      return a.time_taken - b.time_taken;
+    });
+  };
+
   const fetchLeaderboards = async () => {
     setLoading(true);
     try {
-      // ✅ Arithmetic - Solving (IGNORE Motion)
-      const { data: solvingRaw, error: err1 } = await supabase
-        .from("scores")
-        .select(
-          `score,time_taken,profiles!inner(lastname),quizzes!inner(category,subject)`
-        )
-        .eq("quizzes.category", "Solving")
-        .eq("quizzes.subject", "Arithmetic Sequence") // ✅ only arithmetic
-        .order("score", { ascending: false })
-        .order("time_taken", { ascending: true });
+      const fetchCategory = async (subject: string, category: string) => {
+        const { data, error } = await supabase
+          .from("scores")
+          .select(
+            `score,time_taken,profiles!inner(lastname),quizzes!inner(category,subject)`
+          )
+          .eq("quizzes.subject", subject)
+          .eq("quizzes.category", category);
 
-      if (!err1 && solvingRaw)
-        setSolvingData(solvingRaw.map((r) => normalizeRow(r)));
+        if (error) {
+          console.error(`${subject} - ${category} error:`, error);
+          return [];
+        }
+        return (data as RawScoreRow[]).map(normalizeRow);
+      };
 
-      // ✅ Arithmetic - Problem Solving (IGNORE Motion)
-      const { data: problemRaw, error: err2 } = await supabase
-        .from("scores")
-        .select(
-          `score,time_taken,profiles!inner(lastname),quizzes!inner(category,subject)`
-        )
-        .eq("quizzes.category", "Problem Solving")
-        .eq("quizzes.subject", "Arithmetic Sequence") // ✅ only arithmetic
-        .order("score", { ascending: false })
-        .order("time_taken", { ascending: true });
+      // 🧮 Arithmetic
+      const arithWordRaw = await fetchCategory(
+        "Arithmetic Sequence",
+        "Word Problem"
+      );
+      const arithProblemRaw = await fetchCategory(
+        "Arithmetic Sequence",
+        "Problem Solving"
+      );
 
-      if (!err2 && problemRaw)
-        setProblemSolvingData(problemRaw.map((r) => normalizeRow(r)));
+      setArithWordData(filterHighestPerUser(arithWordRaw));
+      setArithProblemData(filterHighestPerUser(arithProblemRaw));
 
-      // ✅ Motion - Solving (IGNORE Arithmetic)
-      const { data: motionSolvingRaw, error: err3 } = await supabase
-        .from("scores")
-        .select(
-          `score,time_taken,profiles!inner(lastname),quizzes!inner(category,subject)`
-        )
-        .eq("quizzes.category", "Solving")
-        .eq("quizzes.subject", "Uniform Motion in Physics") // ✅ only motion
-        .order("score", { ascending: false })
-        .order("time_taken", { ascending: true });
+      // ⚙️ Uniform Motion
+      const motionWordRaw = await fetchCategory(
+        "Uniform Motion in Physics",
+        "Word Problem"
+      );
+      const motionProblemRaw = await fetchCategory(
+        "Uniform Motion in Physics",
+        "Problem Solving"
+      );
 
-      if (!err3 && motionSolvingRaw)
-        setMotionSolvingData(motionSolvingRaw.map((r) => normalizeRow(r)));
-
-      // ✅ Motion - Problem Solving (IGNORE Arithmetic)
-      const { data: motionProblemRaw, error: err4 } = await supabase
-        .from("scores")
-        .select(
-          `score,time_taken,profiles!inner(lastname),quizzes!inner(category,subject)`
-        )
-        .eq("quizzes.category", "Problem Solving")
-        .eq("quizzes.subject", "Uniform Motion in Physics") // ✅ only motion
-        .order("score", { ascending: false })
-        .order("time_taken", { ascending: true });
-
-      if (!err4 && motionProblemRaw)
-        setMotionProblemData(motionProblemRaw.map((r) => normalizeRow(r)));
+      setMotionWordData(filterHighestPerUser(motionWordRaw));
+      setMotionProblemData(filterHighestPerUser(motionProblemRaw));
     } catch (e) {
       console.error("Unexpected fetch error", e);
-      setSolvingData([]);
-      setProblemSolvingData([]);
-      setMotionSolvingData([]);
-      setMotionProblemData([]);
     } finally {
       setLoading(false);
     }
@@ -146,11 +161,11 @@ const AdminLeaderboard: React.FC = () => {
       </thead>
       <tbody>
         {data.length > 0 ? (
-          data.map((row, index) => (
-            <tr key={index} style={{ borderBottom: "1px solid #e5e7eb" }}>
-              <td style={tdStyle}>{index + 1}</td>
-              <td style={tdStyle}>{row.profiles?.lastname || "-"}</td>
-              <td style={tdStyle}>{row.score}</td>
+          data.map((row, i) => (
+            <tr key={i} style={{ borderBottom: "1px solid #e5e7eb" }}>
+              <td style={tdStyle}>{i + 1}</td>
+              <td style={tdStyle}>{row.profiles.lastname || "-"}</td>
+              <td style={tdStyle}>{Math.round(row.score)}</td>
               <td style={tdStyle}>{formatTime(row.time_taken)}</td>
             </tr>
           ))
@@ -174,15 +189,15 @@ const AdminLeaderboard: React.FC = () => {
       </IonHeader>
 
       <IonContent className="ion-padding">
-        {/* ✅ Arithmetic Leaderboard (only Arithmetic Sequence) */}
-        <h1 style={mainTitle}>Arithmetic Leaderboard</h1>
+        {/* 🧮 Arithmetic Leaderboard */}
+        <h1 style={mainTitle}>Arithmetic Sequence Leaderboard</h1>
 
         <div style={cardStyle}>
-          <h2 style={blackTitle}>Solving</h2>
+          <h2 style={blackTitle}>Word Problem</h2>
           <div style={iconWrapper}>
             <Trophy size={20} color="#f59e0b" />
           </div>
-          {loading ? <p>Loading...</p> : renderTable(solvingData)}
+          {loading ? <p>Loading...</p> : renderTable(arithWordData)}
         </div>
 
         <div style={{ ...cardStyle, marginTop: 18 }}>
@@ -190,20 +205,20 @@ const AdminLeaderboard: React.FC = () => {
           <div style={iconWrapper}>
             <Trophy size={20} color="#3b82f6" />
           </div>
-          {loading ? <p>Loading...</p> : renderTable(problemSolvingData)}
+          {loading ? <p>Loading...</p> : renderTable(arithProblemData)}
         </div>
 
-        {/* ✅ Motion Leaderboard (only Uniform Motion in Physics) */}
-        <h1 style={{ ...mainTitle, marginTop: 30 }}>
-          Uniform Motion Leaderboard
+        {/* ⚙️ Uniform Motion Leaderboard */}
+        <h1 style={{ ...mainTitle, marginTop: 40 }}>
+          Uniform Motion in Physics Leaderboard
         </h1>
 
         <div style={cardStyle}>
-          <h2 style={blackTitle}>Solving</h2>
+          <h2 style={blackTitle}>Word Problem</h2>
           <div style={iconWrapper}>
             <Trophy size={20} color="#f59e0b" />
           </div>
-          {loading ? <p>Loading...</p> : renderTable(motionSolvingData)}
+          {loading ? <p>Loading...</p> : renderTable(motionWordData)}
         </div>
 
         <div style={{ ...cardStyle, marginTop: 18 }}>
@@ -218,7 +233,7 @@ const AdminLeaderboard: React.FC = () => {
   );
 };
 
-/* Styles */
+/* 🎨 Styles */
 const mainTitle: React.CSSProperties = {
   textAlign: "center",
   fontSize: 24,

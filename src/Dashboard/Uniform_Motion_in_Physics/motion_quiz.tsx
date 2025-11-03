@@ -45,7 +45,9 @@ const MotionQuiz: React.FC = () => {
   >([]);
   const [showResultModal, setShowResultModal] = useState(false);
   const [timeLeft, setTimeLeft] = useState<number>(0);
+  const [totalTimeTaken, setTotalTimeTaken] = useState<number>(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const startTimeRef = useRef<number>(0);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
   // 🔹 Fetch quizzes for Uniform Motion
@@ -84,13 +86,21 @@ const MotionQuiz: React.FC = () => {
     setScore(0);
     setUserSolutions([]);
     setUserAnswer("");
-    if (buildQueue[0]) setTimeLeft(DIFFICULTY_TIMERS[buildQueue[0].difficulty]);
+    setTotalTimeTaken(0);
+
+    if (buildQueue[0]) {
+      const duration = DIFFICULTY_TIMERS[buildQueue[0].difficulty];
+      setTimeLeft(duration);
+      startTimeRef.current = Date.now();
+    }
   };
 
   // 🔹 Timer per question
   useEffect(() => {
     if (!currentQuiz) return;
     if (timerRef.current) clearInterval(timerRef.current);
+
+    startTimeRef.current = Date.now();
 
     timerRef.current = setInterval(() => {
       setTimeLeft((prev) => {
@@ -125,6 +135,13 @@ const MotionQuiz: React.FC = () => {
       const alternates = (currentQuiz.accepted_answers || []).map((a) => a.trim().toLowerCase());
       const isCorrect = normalizedAnswer === correctAnswer || alternates.includes(normalizedAnswer);
 
+      // 🔹 Calculate time spent on this question
+      const timeSpent = (Date.now() - startTimeRef.current) / 1000;
+      const maxTime = DIFFICULTY_TIMERS[currentQuiz.difficulty];
+      const usedTime = isCorrect ? Math.min(timeSpent, maxTime) : maxTime;
+
+      setTotalTimeTaken((prev) => prev + usedTime);
+
       setScore((prev) => (isCorrect ? prev + 1 : prev));
       setUserSolutions((prev) => [
         ...prev,
@@ -143,18 +160,20 @@ const MotionQuiz: React.FC = () => {
         setCurrentQuizIndex(nextIndex);
         setCurrentQuiz(quizQueue[nextIndex]);
         setUserAnswer("");
-        setTimeLeft(DIFFICULTY_TIMERS[quizQueue[nextIndex].difficulty]);
+        const duration = DIFFICULTY_TIMERS[quizQueue[nextIndex].difficulty];
+        setTimeLeft(duration);
+        startTimeRef.current = Date.now();
       } else {
         clearInterval(timerRef.current!);
         setShowResultModal(true);
-        saveResult(score + (isCorrect ? 1 : 0));
+        saveResult(score + (isCorrect ? 1 : 0), totalTimeTaken + usedTime);
       }
     },
-    [currentQuiz, currentQuizIndex, quizQueue, userAnswer, score]
+    [currentQuiz, currentQuizIndex, quizQueue, userAnswer, score, totalTimeTaken]
   );
 
   // 🔹 Save score to Supabase
-  const saveResult = async (finalScore: number) => {
+  const saveResult = async (finalScore: number, totalTime: number) => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
@@ -165,7 +184,7 @@ const MotionQuiz: React.FC = () => {
           user_id: userId,
           quiz_id: quizQueue[0]?.id || null,
           score: finalScore,
-          time_taken: quizQueue.reduce((sum, q) => sum + DIFFICULTY_TIMERS[q.difficulty], 0),
+          time_taken: Math.round(totalTime),
         },
       ]);
     } catch (err) {
@@ -262,6 +281,7 @@ const MotionQuiz: React.FC = () => {
             <h3>
               Score: {score}/{userSolutions.length}
             </h3>
+            <h4>Total Time Taken: {Math.round(totalTimeTaken)}s</h4>
             <ul style={{ textAlign: "left" }}>
               {userSolutions.map((res, i) => (
                 <li

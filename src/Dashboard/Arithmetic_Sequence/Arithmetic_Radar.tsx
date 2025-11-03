@@ -285,7 +285,7 @@ const Arithmetic_Radar: React.FC = () => {
     };
   }, [performance]);
 
-  const labels = ["⏱ Time", "🧩 Problem Solving", "🧮 Solving"];
+  const labels = ["⏱ Time", "📘 Word Problem", "🧩 Problem Solving"];
 
   return (
     <IonPage>

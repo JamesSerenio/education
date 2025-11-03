@@ -2,10 +2,6 @@ import {
   IonPage,
   IonHeader,
   IonContent,
-  IonToolbar,
-  IonTitle,
-  IonButton,
-  IonAlert,
 } from "@ionic/react";
 import { useEffect, useRef, useState } from "react";
 import {
@@ -36,7 +32,7 @@ ChartJS.register(
 );
 
 const MAX_SCORE = 5;
-const MAX_TIME = 300;
+const MAX_TIME = 300; // seconds
 
 interface QuizRef {
   id: string;
@@ -57,28 +53,32 @@ const Motion_Radar: React.FC = () => {
   const radarRef = useRef<HTMLCanvasElement | null>(null);
   const chartInstance = useRef<ChartJS | null>(null);
 
-  const [attempts, setAttempts] = useState<ScoreWithQuizzes[][]>([]);
-  const [currentAttempt, setCurrentAttempt] = useState(0);
   const [performance, setPerformance] = useState({
     time: 0,
     solving: 0,
     problemSolving: 0,
   });
   const [loading, setLoading] = useState(false);
-  const [showAlert, setShowAlert] = useState(false);
+  const [visible, setVisible] = useState(false);
 
+  // 🔹 Animate radar values gradually
   const animateRadarUpdate = (
     newScore: { time: number; solving: number; problemSolving: number },
     duration = 1000
   ) => {
     const steps = 30;
     const interval = duration / steps;
-    let step = 0;
-    const start = { ...performance };
 
-    const anim = setInterval(() => {
-      step++;
-      const progress = step / steps;
+    // reset to zero muna
+    setPerformance({ time: 0, solving: 0, problemSolving: 0 });
+
+    let currentStep = 0;
+    const start = { time: 0, solving: 0, problemSolving: 0 };
+
+    const animate = setInterval(() => {
+      currentStep++;
+      const progress = currentStep / steps;
+
       setPerformance({
         time: start.time + (newScore.time - start.time) * progress,
         solving: start.solving + (newScore.solving - start.solving) * progress,
@@ -86,7 +86,8 @@ const Motion_Radar: React.FC = () => {
           start.problemSolving +
           (newScore.problemSolving - start.problemSolving) * progress,
       });
-      if (step >= steps) clearInterval(anim);
+
+      if (currentStep >= steps) clearInterval(animate);
     }, interval);
   };
 
@@ -96,8 +97,14 @@ const Motion_Radar: React.FC = () => {
     const quizzesRaw = rawData["quizzes"] as Record<string, unknown> | undefined;
     return {
       id: String(rawData["id"] ?? ""),
-      score: rawData["score"] ? Number(rawData["score"]) : null,
-      time_taken: rawData["time_taken"] ? Number(rawData["time_taken"]) : null,
+      score:
+        rawData["score"] === undefined || rawData["score"] === null
+          ? null
+          : Number(rawData["score"]),
+      time_taken:
+        rawData["time_taken"] === undefined || rawData["time_taken"] === null
+          ? null
+          : Number(rawData["time_taken"]),
       created_at: String(rawData["created_at"] ?? new Date().toISOString()),
       quiz_id: String(rawData["quiz_id"] ?? ""),
       quizzes: quizzesRaw
@@ -112,105 +119,91 @@ const Motion_Radar: React.FC = () => {
     };
   };
 
-  const groupAttempts = (scores: ScoreWithQuizzes[]): ScoreWithQuizzes[][] => {
-    const grouped: ScoreWithQuizzes[][] = [];
-    let currentGroup: ScoreWithQuizzes[] = [];
-    let lastDate = "";
-
-    scores.forEach((score) => {
-      const date = new Date(score.created_at).toDateString();
-      if (date !== lastDate && currentGroup.length > 0) {
-        grouped.push(currentGroup);
-        currentGroup = [];
-      }
-      currentGroup.push(score);
-      lastDate = date;
-    });
-    if (currentGroup.length > 0) grouped.push(currentGroup);
-    return grouped;
-  };
-
-  const updateRadarForAttempt = (index: number, data = attempts) => {
-    const target = data[index];
-    if (!target || target.length === 0) {
-      animateRadarUpdate({ time: 0, solving: 0, problemSolving: 0 });
-      return;
-    }
-
-    // 🧩 Average time
-    const avgTime =
-      target.reduce((sum, s) => sum + (s.time_taken || 0), 0) / target.length;
-    const timePercent = Math.max(
-      0,
-      Math.min(100, ((MAX_TIME - avgTime) / MAX_TIME) * 100)
-    );
-
-    // 🔹 Solving (case-insensitive match, excludes problem solving)
-    const solvingScores = target.filter(
-      (s) =>
-        s.quizzes?.category?.toLowerCase().includes("solving") &&
-        !s.quizzes?.category?.toLowerCase().includes("problem")
-    );
-    const avgSolving =
-      solvingScores.length > 0
-        ? (solvingScores.reduce((sum, s) => sum + (s.score || 0), 0) /
-            (solvingScores.length * MAX_SCORE)) *
-          100
-        : 0;
-
-    // 🔸 Problem Solving (case-insensitive match)
-    const problemScores = target.filter((s) =>
-      s.quizzes?.category?.toLowerCase().includes("problem")
-    );
-    const avgProblemSolving =
-      problemScores.length > 0
-        ? (problemScores.reduce((sum, s) => sum + (s.score || 0), 0) /
-            (problemScores.length * MAX_SCORE)) *
-          100
-        : 0;
-
-    animateRadarUpdate({
-      time: Number(timePercent.toFixed(2)),
-      solving: Number(avgSolving.toFixed(2)),
-      problemSolving: Number(avgProblemSolving.toFixed(2)),
-    });
-  };
-
-  const fetchRadarData = async () => {
+  // 🔹 Fetch data with loading + animation
+  const fetchRadarData = async (): Promise<void> => {
     setLoading(true);
     try {
       const {
         data: { user },
+        error: userError,
       } = await supabase.auth.getUser();
-      if (!user) return;
 
-      const { data, error } = await supabase
+      if (userError || !user) {
+        console.error("No user logged in:", userError);
+        animateRadarUpdate({ time: 0, solving: 0, problemSolving: 0 });
+        return;
+      }
+
+      const userId = user.id;
+      const { data: allScores, error: scoresError } = await supabase
         .from("scores")
         .select(
           `id, score, time_taken, created_at, quiz_id, quizzes!quiz_id(id, category, subject)`
         )
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: true });
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false })
+        .limit(50);
 
-      if (error) throw error;
+      if (scoresError) {
+        console.error("Error fetching scores:", scoresError);
+        animateRadarUpdate({ time: 0, solving: 0, problemSolving: 0 });
+        return;
+      }
 
-      const motionScores = (data ?? [])
-        .map(mapToScoreWithQuizzes)
-        .filter((s) => s.quizzes?.subject === "Uniform Motion in Physics");
+      const rawArray = (allScores ?? []) as Record<string, unknown>[];
+      const typedScores: ScoreWithQuizzes[] = rawArray.map(mapToScoreWithQuizzes);
 
-      const grouped = groupAttempts(motionScores);
-      setAttempts(grouped);
+      const motionScores = typedScores.filter(
+        (s) => s.quizzes?.subject === "Uniform Motion in Physics"
+      );
+      if (!motionScores.length) {
+        animateRadarUpdate({ time: 0, solving: 0, problemSolving: 0 });
+        return;
+      }
 
-      if (grouped.length > 0) updateRadarForAttempt(grouped.length - 1, grouped);
-    } catch (e) {
-      console.error(e);
+      const avgTime =
+        motionScores.reduce((sum, s) => sum + (s.time_taken || 0), 0) /
+        motionScores.length;
+
+      const timeRaw = ((MAX_TIME - avgTime) / MAX_TIME) * 100;
+      const timePercent = Math.max(
+        0,
+        Math.min(100, parseFloat(timeRaw.toFixed(2)))
+      );
+
+      const solvingScores = motionScores.filter(
+        (s) => s.quizzes?.category === "Solving" && s.score !== null
+      );
+      const problemSolvingScores = motionScores.filter(
+        (s) => s.quizzes?.category === "Problem Solving" && s.score !== null
+      );
+
+      const avgSolving =
+        solvingScores.reduce((sum, s) => sum + (s.score || 0), 0) /
+        (solvingScores.length || 1);
+      const avgProblemSolving =
+        problemSolvingScores.reduce((sum, s) => sum + (s.score || 0), 0) /
+        (problemSolvingScores.length || 1);
+
+      const newScore = {
+        time: timePercent,
+        solving: Math.floor((avgSolving / MAX_SCORE) * 100),
+        problemSolving: Math.floor((avgProblemSolving / MAX_SCORE) * 100),
+      };
+
+      animateRadarUpdate(newScore); // 🌟 animate new data
+    } catch (err) {
+      console.error("Error in fetchRadarData:", err);
+      animateRadarUpdate({ time: 0, solving: 0, problemSolving: 0 });
     } finally {
-      setLoading(false);
+      setTimeout(() => setLoading(false), 700); // smooth fade
     }
   };
 
   useEffect(() => {
-    fetchRadarData();
+    setVisible(true);
+    void fetchRadarData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -223,53 +216,59 @@ const Motion_Radar: React.FC = () => {
       chartInstance.current = null;
     }
 
-    const gradient = ctx.createLinearGradient(0, 0, 0, 400);
-    gradient.addColorStop(0, "rgba(54, 162, 235, 0.3)");
-    gradient.addColorStop(1, "rgba(236, 72, 153, 0.3)");
+    const gradient = ctx.createLinearGradient(0, 0, 0, 500);
+    gradient.addColorStop(0, "rgba(54, 162, 235, 0.32)");
+    gradient.addColorStop(1, "rgba(236, 72, 153, 0.32)");
 
     chartInstance.current = new ChartJS(ctx, {
       type: "radar",
       data: {
-        labels: ["⏱ Time", "🧮 Solving", "🧩 Problem Solving"],
+        labels: ["⏱ Time", "🧩 Problem Solving", "🧮 Solving"],
         datasets: [
           {
-            label: "Uniform Motion in Physics",
-            data: [
-              performance.time,
-              performance.solving,
-              performance.problemSolving,
-            ],
+            label: "✨ My Performance (Uniform Motion in Physics)",
+            data: [performance.time, performance.problemSolving, performance.solving],
             fill: true,
             backgroundColor: gradient,
             borderColor: "rgb(54, 162, 235)",
             borderWidth: 3,
             pointBackgroundColor: "rgb(236, 72, 153)",
             pointBorderColor: "#fff",
+            pointHoverBackgroundColor: "#fff",
+            pointHoverBorderColor: "rgb(236, 72, 153)",
           },
         ],
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
+        animation: { duration: 800, easing: "easeOutCirc" },
         plugins: {
-          datalabels: {
-            color: "#000",
-            font: { size: 11, weight: "bold" },
-            formatter: (v) => `${v.toFixed(0)}%`,
+          legend: {
+            display: true,
+            labels: { color: "#111", font: { size: 13, weight: "bold" } },
           },
-          legend: { display: false },
           title: {
             display: true,
-            text: "📘 Uniform Motion in Physics Progress Overview",
+            text: "📊 Uniform Motion in Physics",
+            color: "#111",
             font: { size: 18, weight: "bold" },
+          },
+          datalabels: {
+            color: "#000",
+            font: { weight: "bold", size: 11 },
+            formatter: (val: number) =>
+              val % 1 !== 0 ? `${val.toFixed(2)}%` : `${Math.round(val)}%`,
           },
         },
         scales: {
           r: {
+            angleLines: { color: "rgba(156, 163, 175, 0.3)" },
+            grid: { color: "rgba(209, 213, 219, 0.3)" },
+            pointLabels: { color: "#111", font: { size: 12, weight: "bold" } },
             suggestedMin: 0,
             suggestedMax: 100,
             ticks: { display: false },
-            pointLabels: { font: { size: 12, weight: "bold" } },
           },
         },
       },
@@ -282,93 +281,124 @@ const Motion_Radar: React.FC = () => {
     };
   }, [performance]);
 
+  const labels = ["⏱ Time", "🧩 Problem Solving", "🧮 Solving"];
+
   return (
     <IonPage>
-      <IonHeader>
-        <IonToolbar>
-          <IonTitle>Radar</IonTitle>
-        </IonToolbar>
-      </IonHeader>
+      <IonHeader />
       <IonContent fullscreen>
         <AnimatePresence>
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              padding: 20,
-            }}
-          >
-            <h2 style={{ fontWeight: "bold", fontSize: 22 }}>
-              ⚙️ Uniform Motion in Physics Progress Overview
-            </h2>
-
-            <div style={{ marginTop: 10 }}>
-              <IonButton onClick={() => setShowAlert(true)}>
-                Attempt {currentAttempt + 1}ᵗʰ Take
-              </IonButton>
-            </div>
-
-            <IonAlert
-              isOpen={showAlert}
-              onDidDismiss={() => setShowAlert(false)}
-              header={"Select Attempt"}
-              inputs={attempts.map((_, i) => ({
-                label: `${i + 1}ᵗʰ Take`,
-                type: "radio",
-                value: i,
-                checked: i === currentAttempt,
-              }))}
-              buttons={[
-                { text: "Cancel", role: "cancel" },
-                {
-                  text: "OK",
-                  handler: (value) => {
-                    setCurrentAttempt(value);
-                    updateRadarForAttempt(value);
-                  },
-                },
-              ]}
-            />
-
-            <div
+          {visible && (
+            <motion.div
+              key="motion-radar-root"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.5 }}
               style={{
-                width: "100%",
-                maxWidth: 480,
-                height: 420,
-                marginTop: 20,
-                background: "#fff",
-                borderRadius: 16,
-                boxShadow: "0 6px 15px rgba(0,0,0,0.1)",
+                padding: 16,
                 display: "flex",
+                flexDirection: "column",
                 alignItems: "center",
                 justifyContent: "center",
-                padding: 12,
+                minHeight: "90vh",
               }}
             >
-              <canvas ref={radarRef}></canvas>
-            </div>
+              <motion.h2
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.08 }}
+                style={{ fontSize: 22, fontWeight: 700, color: "#222", margin: 0 }}
+              >
+                📈 Performance Overview
+              </motion.h2>
 
-            <motion.button
-              onClick={fetchRadarData}
-              whileTap={{ scale: 0.95 }}
-              style={{
-                marginTop: 20,
-                background: "linear-gradient(90deg,#36A2EB,#EC4899)",
-                color: "#fff",
-                fontWeight: "bold",
-                padding: "10px 20px",
-                border: "none",
-                borderRadius: 10,
-                cursor: "pointer",
-              }}
-            >
-              🔄 {loading ? "Refreshing..." : "Refresh Data"}
-            </motion.button>
-          </motion.div>
+              <div style={{ display: "flex", gap: 10, marginTop: 12 }}>
+                {labels.map((label, idx) => (
+                  <motion.div
+                    key={label}
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.55, delay: 0.2 + idx * 0.12 }}
+                    style={{
+                      background: "linear-gradient(90deg, #36A2EB, #EC4899)",
+                      padding: "6px 12px",
+                      borderRadius: 8,
+                      color: "white",
+                      fontWeight: 700,
+                      fontSize: 14,
+                    }}
+                  >
+                    {label}
+                  </motion.div>
+                ))}
+              </div>
+
+              <motion.div
+                initial={{ opacity: 0, scale: 0.96, y: 12 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                transition={{ duration: 0.8, delay: 0.6, ease: "easeOut" }}
+                style={{
+                  width: "100%",
+                  maxWidth: 500,
+                  height: 450,
+                  background: "white",
+                  borderRadius: 16,
+                  boxShadow: "0px 8px 20px rgba(0,0,0,0.08)",
+                  marginTop: 24,
+                  padding: 16,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <canvas ref={radarRef} style={{ width: "100%", height: "100%" }} />
+              </motion.div>
+
+              {/* 🔹 Refresh button with spinner + animation */}
+              <motion.button
+                onClick={fetchRadarData}
+                disabled={loading}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 1.05 }}
+                whileTap={{ scale: 0.96 }}
+                whileHover={{ scale: loading ? 1 : 1.03 }}
+                style={{
+                  padding: "10px 20px",
+                  background: loading
+                    ? "linear-gradient(90deg, #9CA3AF, #D1D5DB)"
+                    : "linear-gradient(90deg, #36A2EB, #EC4899)",
+                  color: "white",
+                  fontSize: 15,
+                  fontWeight: 700,
+                  borderRadius: 10,
+                  border: "none",
+                  cursor: loading ? "default" : "pointer",
+                  marginTop: 24,
+                  width: "100%",
+                  maxWidth: 200,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 8,
+                }}
+              >
+                {loading ? (
+                  <motion.span
+                    animate={{ rotate: 360 }}
+                    transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+                    style={{ display: "inline-block" }}
+                  >
+                    🔄
+                  </motion.span>
+                ) : (
+                  "🔄"
+                )}
+                {loading ? "Refreshing..." : "Refresh"}
+              </motion.button>
+            </motion.div>
+          )}
         </AnimatePresence>
       </IonContent>
     </IonPage>

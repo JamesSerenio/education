@@ -63,7 +63,7 @@ const Motion_Radar: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [visible, setVisible] = useState(false);
 
-  // 🔹 Animate radar update
+  // 🔹 Smooth radar animation
   const animateRadarUpdate = (
     newScore: { time: number; solving: number; problemSolving: number },
     duration = 1000
@@ -87,6 +87,7 @@ const Motion_Radar: React.FC = () => {
     }, interval);
   };
 
+  // 🔹 Map Supabase data
   const mapToScoreWithQuizzes = (
     rawData: Record<string, unknown>
   ): ScoreWithQuizzes => {
@@ -109,7 +110,7 @@ const Motion_Radar: React.FC = () => {
     };
   };
 
-  // 🔹 Group data by attempts (based on created_at date batches)
+  // 🔹 Group attempts (based on date)
   const groupAttempts = (scores: ScoreWithQuizzes[]): ScoreWithQuizzes[][] => {
     const grouped: ScoreWithQuizzes[][] = [];
     let currentGroup: ScoreWithQuizzes[] = [];
@@ -128,7 +129,7 @@ const Motion_Radar: React.FC = () => {
     return grouped;
   };
 
-  // 🔹 Calculate radar data for a given attempt
+  // 🔹 Compute radar data per attempt
   const updateRadarForAttempt = (index: number, data = attempts) => {
     const target = data[index];
     if (!target || target.length === 0) {
@@ -136,6 +137,7 @@ const Motion_Radar: React.FC = () => {
       return;
     }
 
+    // 🕒 TIME PERFORMANCE (inverse of time_taken)
     const avgTime =
       target.reduce((sum, s) => sum + (s.time_taken || 0), 0) / target.length;
     const timePercent = Math.max(
@@ -143,13 +145,10 @@ const Motion_Radar: React.FC = () => {
       Math.min(100, ((MAX_TIME - avgTime) / MAX_TIME) * 100)
     );
 
+    // 🧮 SOLVING
     const solvingScores = target.filter(
       (s) => s.quizzes?.category === "Solving"
     );
-    const problemScores = target.filter(
-      (s) => s.quizzes?.category === "Problem Solving"
-    );
-
     const avgSolving =
       solvingScores.length > 0
         ? (solvingScores.reduce((sum, s) => sum + (s.score || 0), 0) /
@@ -157,6 +156,10 @@ const Motion_Radar: React.FC = () => {
           100
         : 0;
 
+    // 🧩 PROBLEM SOLVING
+    const problemScores = target.filter(
+      (s) => s.quizzes?.category === "Problem Solving"
+    );
     const avgProblemSolving =
       problemScores.length > 0
         ? (problemScores.reduce((sum, s) => sum + (s.score || 0), 0) /
@@ -171,6 +174,7 @@ const Motion_Radar: React.FC = () => {
     });
   };
 
+  // 🔹 Fetch scores from Supabase
   const fetchRadarData = async () => {
     setLoading(true);
     try {
@@ -219,6 +223,7 @@ const Motion_Radar: React.FC = () => {
       chartInstance.current = null;
     }
 
+    // 🎨 Gradient like Arithmetic style
     const gradient = ctx.createLinearGradient(0, 0, 0, 400);
     gradient.addColorStop(0, "rgba(54, 162, 235, 0.3)");
     gradient.addColorStop(1, "rgba(236, 72, 153, 0.3)");
@@ -285,8 +290,8 @@ const Motion_Radar: React.FC = () => {
         <AnimatePresence>
           {visible && (
             <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6 }}
               style={{
                 display: "flex",
@@ -296,7 +301,7 @@ const Motion_Radar: React.FC = () => {
               }}
             >
               <h2 style={{ fontWeight: "bold", fontSize: 22 }}>
-                📈 Motion Radar Progress
+                ⚙️ Uniform Motion in Physics Radar
               </h2>
 
               {/* Attempt Selector */}
@@ -317,13 +322,13 @@ const Motion_Radar: React.FC = () => {
                 >
                   {attempts.map((_, i) => (
                     <option key={i} value={i}>
-                      {i + 1}ᵗʰ Attempt
+                      Attempt {i + 1}
                     </option>
                   ))}
                 </select>
               </div>
 
-              {/* Radar */}
+              {/* Radar Chart Container */}
               <div
                 style={{
                   width: "100%",

@@ -181,7 +181,7 @@ const UniformMotionLeaderboard: React.FC = () => {
   );
 };
 
-/* Styles */
+/* Styles a */
 const cardStyle: React.CSSProperties = {
   maxWidth: 720,
   margin: "0 auto",

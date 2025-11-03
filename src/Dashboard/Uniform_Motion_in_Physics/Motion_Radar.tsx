@@ -32,13 +32,7 @@ ChartJS.register(
 );
 
 const MAX_SCORE = 5;
-const MAX_TIME = 300; // seconds
-
-interface QuizRef {
-  id: string;
-  category: string;
-  subject?: string;
-}
+const MAX_TIME = 300;
 
 interface ScoreWithQuizzes {
   id: string;
@@ -46,7 +40,7 @@ interface ScoreWithQuizzes {
   time_taken: number | null;
   created_at: string;
   quiz_id: string;
-  quizzes: QuizRef | null;
+  quizzes: { id: string; category: string; subject?: string } | null;
 }
 
 const Motion_Radar: React.FC = () => {
@@ -58,42 +52,12 @@ const Motion_Radar: React.FC = () => {
     solving: 0,
     problemSolving: 0,
   });
-  const [loading, setLoading] = useState(false);
+
   const [visible, setVisible] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  // 🔹 Animate radar values gradually
-  const animateRadarUpdate = (
-    newScore: { time: number; solving: number; problemSolving: number },
-    duration = 1000
-  ) => {
-    const steps = 30;
-    const interval = duration / steps;
-
-    // reset to zero muna
-    setPerformance({ time: 0, solving: 0, problemSolving: 0 });
-
-    let currentStep = 0;
-    const start = { time: 0, solving: 0, problemSolving: 0 };
-
-    const animate = setInterval(() => {
-      currentStep++;
-      const progress = currentStep / steps;
-
-      setPerformance({
-        time: start.time + (newScore.time - start.time) * progress,
-        solving: start.solving + (newScore.solving - start.solving) * progress,
-        problemSolving:
-          start.problemSolving +
-          (newScore.problemSolving - start.problemSolving) * progress,
-      });
-
-      if (currentStep >= steps) clearInterval(animate);
-    }, interval);
-  };
-
-  const mapToScoreWithQuizzes = (
-    rawData: Record<string, unknown>
-  ): ScoreWithQuizzes => {
+  // helper mapper for Supabase data
+  const mapToScoreWithQuizzes = (rawData: Record<string, unknown>): ScoreWithQuizzes => {
     const quizzesRaw = rawData["quizzes"] as Record<string, unknown> | undefined;
     return {
       id: String(rawData["id"] ?? ""),
@@ -111,16 +75,37 @@ const Motion_Radar: React.FC = () => {
         ? {
             id: String(quizzesRaw["id"] ?? ""),
             category: String(quizzesRaw["category"] ?? ""),
-            subject: quizzesRaw["subject"]
-              ? String(quizzesRaw["subject"])
-              : undefined,
+            subject: quizzesRaw["subject"] ? String(quizzesRaw["subject"]) : undefined,
           }
         : null,
     };
   };
 
-  // 🔹 Fetch data with loading + animation
-  const fetchRadarData = async (): Promise<void> => {
+  const animateRadarUpdate = (
+    newData: { time: number; solving: number; problemSolving: number },
+    duration = 800
+  ) => {
+    const steps = 30;
+    const interval = duration / steps;
+
+    setPerformance({ time: 0, solving: 0, problemSolving: 0 }); // reset
+    let currentStep = 0;
+
+    const animate = setInterval(() => {
+      currentStep++;
+      const progress = currentStep / steps;
+
+      setPerformance({
+        time: newData.time * progress,
+        solving: newData.solving * progress,
+        problemSolving: newData.problemSolving * progress,
+      });
+
+      if (currentStep >= steps) clearInterval(animate);
+    }, interval);
+  };
+
+  const fetchRadarData = async () => {
     setLoading(true);
     try {
       const {
@@ -130,80 +115,84 @@ const Motion_Radar: React.FC = () => {
 
       if (userError || !user) {
         console.error("No user logged in:", userError);
-        animateRadarUpdate({ time: 0, solving: 0, problemSolving: 0 });
+        setPerformance({ time: 0, solving: 0, problemSolving: 0 });
         return;
       }
 
-      const userId = user.id;
       const { data: allScores, error: scoresError } = await supabase
         .from("scores")
         .select(
           `id, score, time_taken, created_at, quiz_id, quizzes!quiz_id(id, category, subject)`
         )
-        .eq("user_id", userId)
+        .eq("user_id", user.id)
         .order("created_at", { ascending: false })
-        .limit(50);
+        .limit(100);
 
       if (scoresError) {
         console.error("Error fetching scores:", scoresError);
-        animateRadarUpdate({ time: 0, solving: 0, problemSolving: 0 });
+        setPerformance({ time: 0, solving: 0, problemSolving: 0 });
         return;
       }
 
       const rawArray = (allScores ?? []) as Record<string, unknown>[];
       const typedScores: ScoreWithQuizzes[] = rawArray.map(mapToScoreWithQuizzes);
 
-      const motionScores = typedScores.filter(
-        (s) => s.quizzes?.subject === "Uniform Motion in Physics"
-      );
-      if (!motionScores.length) {
-        animateRadarUpdate({ time: 0, solving: 0, problemSolving: 0 });
+      if (!typedScores.length) {
+        setPerformance({ time: 0, solving: 0, problemSolving: 0 });
         return;
       }
 
-      const avgTime =
-        motionScores.reduce((sum, s) => sum + (s.time_taken || 0), 0) /
-        motionScores.length;
-
-      const timeRaw = ((MAX_TIME - avgTime) / MAX_TIME) * 100;
-      const timePercent = Math.max(
-        0,
-        Math.min(100, parseFloat(timeRaw.toFixed(2)))
+      const motionScores = typedScores.filter(
+        (s) => s.quizzes?.subject === "Uniform Motion in Physics"
       );
 
-      const solvingScores = motionScores.filter(
-        (s) => s.quizzes?.category === "Solving" && s.score !== null
-      );
-      const problemSolvingScores = motionScores.filter(
-        (s) => s.quizzes?.category === "Problem Solving" && s.score !== null
+      if (!motionScores.length) {
+        setPerformance({ time: 0, solving: 0, problemSolving: 0 });
+        return;
+      }
+
+      // Get the best (highest) scores and fastest (lowest) time
+      const bestSolving = Math.max(
+        ...motionScores
+          .filter((s) => s.quizzes?.category === "Solving" && s.score !== null)
+          .map((s) => s.score ?? 0),
+        0
       );
 
-      const avgSolving =
-        solvingScores.reduce((sum, s) => sum + (s.score || 0), 0) /
-        (solvingScores.length || 1);
-      const avgProblemSolving =
-        problemSolvingScores.reduce((sum, s) => sum + (s.score || 0), 0) /
-        (problemSolvingScores.length || 1);
+      const bestProblemSolving = Math.max(
+        ...motionScores
+          .filter((s) => s.quizzes?.category === "Problem Solving" && s.score !== null)
+          .map((s) => s.score ?? 0),
+        0
+      );
 
-      const newScore = {
-        time: timePercent,
-        solving: Math.floor((avgSolving / MAX_SCORE) * 100),
-        problemSolving: Math.floor((avgProblemSolving / MAX_SCORE) * 100),
+      const bestTime = Math.min(
+        ...motionScores
+          .filter((s) => s.time_taken !== null)
+          .map((s) => s.time_taken ?? MAX_TIME),
+        MAX_TIME
+      );
+
+      const timePercent = ((MAX_TIME - bestTime) / MAX_TIME) * 100;
+
+      const newPerformance = {
+        time: Math.max(0, Math.min(100, parseFloat(timePercent.toFixed(2)))),
+        solving: Math.floor((bestSolving / MAX_SCORE) * 100),
+        problemSolving: Math.floor((bestProblemSolving / MAX_SCORE) * 100),
       };
 
-      animateRadarUpdate(newScore); // 🌟 animate new data
+      animateRadarUpdate(newPerformance);
     } catch (err) {
-      console.error("Error in fetchRadarData:", err);
-      animateRadarUpdate({ time: 0, solving: 0, problemSolving: 0 });
+      console.error("Error fetching radar data:", err);
+      setPerformance({ time: 0, solving: 0, problemSolving: 0 });
     } finally {
-      setTimeout(() => setLoading(false), 700); // smooth fade
+      setTimeout(() => setLoading(false), 600);
     }
   };
 
   useEffect(() => {
     setVisible(true);
     void fetchRadarData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -226,7 +215,7 @@ const Motion_Radar: React.FC = () => {
         labels: ["⏱ Time", "🧩 Problem Solving", "🧮 Solving"],
         datasets: [
           {
-            label: "✨ My Performance (Uniform Motion in Physics)",
+            label: "🌟 Best Performance (Uniform Motion in Physics)",
             data: [performance.time, performance.problemSolving, performance.solving],
             fill: true,
             backgroundColor: gradient,
@@ -290,7 +279,7 @@ const Motion_Radar: React.FC = () => {
         <AnimatePresence>
           {visible && (
             <motion.div
-              key="motion-radar-root"
+              key="radar-root"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -307,10 +296,10 @@ const Motion_Radar: React.FC = () => {
               <motion.h2
                 initial={{ opacity: 0, y: -8 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: 0.08 }}
+                transition={{ duration: 0.6, delay: 0.1 }}
                 style={{ fontSize: 22, fontWeight: 700, color: "#222", margin: 0 }}
               >
-                📈 Performance Overview
+                🌟 Best Performance Overview
               </motion.h2>
 
               <div style={{ display: "flex", gap: 10, marginTop: 12 }}>
@@ -319,7 +308,7 @@ const Motion_Radar: React.FC = () => {
                     key={label}
                     initial={{ opacity: 0, y: 12 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.55, delay: 0.2 + idx * 0.12 }}
+                    transition={{ duration: 0.55, delay: 0.25 + idx * 0.14 }}
                     style={{
                       background: "linear-gradient(90deg, #36A2EB, #EC4899)",
                       padding: "6px 12px",
@@ -337,7 +326,7 @@ const Motion_Radar: React.FC = () => {
               <motion.div
                 initial={{ opacity: 0, scale: 0.96, y: 12 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
-                transition={{ duration: 0.8, delay: 0.6, ease: "easeOut" }}
+                transition={{ duration: 0.8, delay: 0.7, ease: "easeOut" }}
                 style={{
                   width: "100%",
                   maxWidth: 500,
@@ -355,13 +344,12 @@ const Motion_Radar: React.FC = () => {
                 <canvas ref={radarRef} style={{ width: "100%", height: "100%" }} />
               </motion.div>
 
-              {/* 🔹 Refresh button with spinner + animation */}
               <motion.button
                 onClick={fetchRadarData}
                 disabled={loading}
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 1.05 }}
+                transition={{ duration: 0.5, delay: 1.2 }}
                 whileTap={{ scale: 0.96 }}
                 whileHover={{ scale: loading ? 1 : 1.03 }}
                 style={{

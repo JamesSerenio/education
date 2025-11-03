@@ -137,6 +137,7 @@ const Motion_Radar: React.FC = () => {
       return;
     }
 
+    // 🧩 Average time
     const avgTime =
       target.reduce((sum, s) => sum + (s.time_taken || 0), 0) / target.length;
     const timePercent = Math.max(
@@ -144,8 +145,11 @@ const Motion_Radar: React.FC = () => {
       Math.min(100, ((MAX_TIME - avgTime) / MAX_TIME) * 100)
     );
 
+    // 🔹 Solving (case-insensitive match, excludes problem solving)
     const solvingScores = target.filter(
-      (s) => s.quizzes?.category === "Solving"
+      (s) =>
+        s.quizzes?.category?.toLowerCase().includes("solving") &&
+        !s.quizzes?.category?.toLowerCase().includes("problem")
     );
     const avgSolving =
       solvingScores.length > 0
@@ -154,8 +158,9 @@ const Motion_Radar: React.FC = () => {
           100
         : 0;
 
-    const problemScores = target.filter(
-      (s) => s.quizzes?.category === "Problem Solving"
+    // 🔸 Problem Solving (case-insensitive match)
+    const problemScores = target.filter((s) =>
+      s.quizzes?.category?.toLowerCase().includes("problem")
     );
     const avgProblemSolving =
       problemScores.length > 0

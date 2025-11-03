@@ -126,7 +126,7 @@ const Arithmetic_Radar: React.FC = () => {
         )
         .eq("user_id", user.id)
         .order("created_at", { ascending: false })
-        .limit(50);
+        .limit(100);
 
       if (scoresError) {
         console.error("Error fetching scores:", scoresError);
@@ -151,34 +151,36 @@ const Arithmetic_Radar: React.FC = () => {
         return;
       }
 
-      const avgTime =
-        arithmeticScores.reduce((sum, s) => sum + (s.time_taken || 0), 0) /
-        arithmeticScores.length;
-
-      const timeRaw = ((MAX_TIME - avgTime) / MAX_TIME) * 100;
-      const timePercent = Math.max(0, Math.min(100, parseFloat(timeRaw.toFixed(2))));
-
-      const solvingScores = arithmeticScores.filter(
-        (s) => s.quizzes?.category === "Solving" && s.score !== null
-      );
-      const problemSolvingScores = arithmeticScores.filter(
-        (s) => s.quizzes?.category === "Problem Solving" && s.score !== null
+      // Get the best (highest) scores and fastest (lowest) time
+      const bestSolving = Math.max(
+        ...arithmeticScores
+          .filter((s) => s.quizzes?.category === "Solving" && s.score !== null)
+          .map((s) => s.score ?? 0),
+        0
       );
 
-      const avgSolving =
-        solvingScores.reduce((sum, s) => sum + (s.score || 0), 0) /
-        (solvingScores.length || 1);
-      const avgProblemSolving =
-        problemSolvingScores.reduce((sum, s) => sum + (s.score || 0), 0) /
-        (problemSolvingScores.length || 1);
+      const bestProblemSolving = Math.max(
+        ...arithmeticScores
+          .filter((s) => s.quizzes?.category === "Problem Solving" && s.score !== null)
+          .map((s) => s.score ?? 0),
+        0
+      );
+
+      const bestTime = Math.min(
+        ...arithmeticScores
+          .filter((s) => s.time_taken !== null)
+          .map((s) => s.time_taken ?? MAX_TIME),
+        MAX_TIME
+      );
+
+      const timePercent = ((MAX_TIME - bestTime) / MAX_TIME) * 100;
 
       const newPerformance = {
-        time: timePercent,
-        solving: Math.floor((avgSolving / MAX_SCORE) * 100),
-        problemSolving: Math.floor((avgProblemSolving / MAX_SCORE) * 100),
+        time: Math.max(0, Math.min(100, parseFloat(timePercent.toFixed(2)))),
+        solving: Math.floor((bestSolving / MAX_SCORE) * 100),
+        problemSolving: Math.floor((bestProblemSolving / MAX_SCORE) * 100),
       };
 
-      // animate the radar chart
       animateRadarUpdate(newPerformance);
     } catch (err) {
       console.error("Error fetching radar data:", err);
@@ -188,13 +190,11 @@ const Arithmetic_Radar: React.FC = () => {
     }
   };
 
-  // mount
   useEffect(() => {
     setVisible(true);
     void fetchRadarData();
   }, []);
 
-  // redraw chart when data changes
   useEffect(() => {
     if (!radarRef.current) return;
     const ctx = radarRef.current.getContext("2d");
@@ -215,7 +215,7 @@ const Arithmetic_Radar: React.FC = () => {
         labels: ["⏱ Time", "🧩 Problem Solving", "🧮 Solving"],
         datasets: [
           {
-            label: "✨ My Performance (Arithmetic Sequence)",
+            label: "🏆 Best Performance (Arithmetic Sequence)",
             data: [performance.time, performance.problemSolving, performance.solving],
             fill: true,
             backgroundColor: gradient,
@@ -299,7 +299,7 @@ const Arithmetic_Radar: React.FC = () => {
                 transition={{ duration: 0.6, delay: 0.1 }}
                 style={{ fontSize: 22, fontWeight: 700, color: "#222", margin: 0 }}
               >
-                📈 Performance Overview
+                🏅 Best Performance Overview
               </motion.h2>
 
               <div style={{ display: "flex", gap: 10, marginTop: 12 }}>

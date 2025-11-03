@@ -31,9 +31,15 @@ ChartJS.register(
   ChartDataLabels
 );
 
-// 🧮 Constants for Uniform Motion quiz
-const MAX_SCORE = 15; // 15 total questions
-const MAX_TIME = 525; // 15s×5 + 30s×5 + 60s×5
+// 🧮 Constants
+const MAX_SCORE = 15; // 15 questions (5 Easy + 5 Average + 5 Difficult)
+const MAX_TIME = 525; // 15*5 + 30*5 + 60*5 = 525 seconds total
+
+interface QuizRef {
+  id: string;
+  subject: string;
+  category: string;
+}
 
 interface ScoreWithQuizzes {
   id: string;
@@ -41,7 +47,7 @@ interface ScoreWithQuizzes {
   time_taken: number | null;
   created_at: string;
   quiz_id: string;
-  quizzes: { id: string; category: string; subject?: string } | null;
+  quizzes: QuizRef | null;
 }
 
 const Motion_Radar: React.FC = () => {
@@ -50,13 +56,13 @@ const Motion_Radar: React.FC = () => {
 
   const [performance, setPerformance] = useState({
     time: 0,
-    solving: 0,
+    wordProblem: 0,
     problemSolving: 0,
   });
   const [visible, setVisible] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // ✅ Safely map Supabase data
+  // 🔍 Safely map Supabase data
   const mapToScoreWithQuizzes = (rawData: Record<string, unknown>): ScoreWithQuizzes => {
     const quizzesRaw = rawData["quizzes"] as Record<string, unknown> | undefined;
     return {
@@ -75,45 +81,36 @@ const Motion_Radar: React.FC = () => {
         ? {
             id: String(quizzesRaw["id"] ?? ""),
             category: String(quizzesRaw["category"] ?? ""),
-            subject: quizzesRaw["subject"]
-              ? String(quizzesRaw["subject"])
-              : undefined,
+            subject: String(quizzesRaw["subject"] ?? ""),
           }
         : null,
     };
   };
 
-  // ✨ Smoothly animate radar chart updates
+  // ✨ Smooth radar animation
   const animateRadarUpdate = (
-    newData: { time: number; solving: number; problemSolving: number },
+    newData: { time: number; wordProblem: number; problemSolving: number },
     duration = 800
   ) => {
     const steps = 30;
     const interval = duration / steps;
     let currentStep = 0;
-    const startValues = { ...performance };
+    const start = { ...performance };
 
     const animate = setInterval(() => {
       currentStep++;
       const progress = currentStep / steps;
-
       setPerformance({
-        time:
-          startValues.time +
-          (newData.time - startValues.time) * progress,
-        solving:
-          startValues.solving +
-          (newData.solving - startValues.solving) * progress,
+        time: start.time + (newData.time - start.time) * progress,
+        wordProblem: start.wordProblem + (newData.wordProblem - start.wordProblem) * progress,
         problemSolving:
-          startValues.problemSolving +
-          (newData.problemSolving - startValues.problemSolving) * progress,
+          start.problemSolving + (newData.problemSolving - start.problemSolving) * progress,
       });
-
       if (currentStep >= steps) clearInterval(animate);
     }, interval);
   };
 
-  // 📊 Fetch radar data
+  // 📊 Fetch Radar Data
   const fetchRadarData = async () => {
     setLoading(true);
     try {
@@ -124,14 +121,14 @@ const Motion_Radar: React.FC = () => {
 
       if (userError || !user) {
         console.error("No user logged in:", userError);
-        setPerformance({ time: 0, solving: 0, problemSolving: 0 });
+        setPerformance({ time: 0, wordProblem: 0, problemSolving: 0 });
         return;
       }
 
       const { data: allScores, error: scoresError } = await supabase
         .from("scores")
         .select(
-          `id, score, time_taken, created_at, quiz_id, quizzes!quiz_id(id, category, subject)`
+          `id, score, time_taken, created_at, quiz_id, quizzes!quiz_id(id, subject, category)`
         )
         .eq("user_id", user.id)
         .order("created_at", { ascending: false })
@@ -139,40 +136,37 @@ const Motion_Radar: React.FC = () => {
 
       if (scoresError) {
         console.error("Error fetching scores:", scoresError);
-        setPerformance({ time: 0, solving: 0, problemSolving: 0 });
+        setPerformance({ time: 0, wordProblem: 0, problemSolving: 0 });
         return;
       }
 
       const rawArray = (allScores ?? []) as Record<string, unknown>[];
       const typedScores: ScoreWithQuizzes[] = rawArray.map(mapToScoreWithQuizzes);
 
-      if (!typedScores.length) {
-        setPerformance({ time: 0, solving: 0, problemSolving: 0 });
-        return;
-      }
-
-      // 🎯 Filter only Uniform Motion in Physics
+      // 🎯 Filter: Uniform Motion in Physics
       const motionScores = typedScores.filter(
-        (s) => s.quizzes?.subject?.toLowerCase() === "uniform motion in physics"
+        (s) => s.quizzes?.subject === "Uniform Motion in Physics"
       );
 
       if (!motionScores.length) {
-        setPerformance({ time: 0, solving: 0, problemSolving: 0 });
+        setPerformance({ time: 0, wordProblem: 0, problemSolving: 0 });
         return;
       }
 
       const normalize = (txt: string | undefined) => txt?.trim().toLowerCase() ?? "";
 
-      const solvingScores = motionScores.filter(
-        (s) => normalize(s.quizzes?.category) === "solving" && s.score !== null
+      // Filter each category
+      const wordProblemScores = motionScores.filter(
+        (s) => normalize(s.quizzes?.category) === "word problem" && s.score !== null
       );
       const problemSolvingScores = motionScores.filter(
         (s) => normalize(s.quizzes?.category) === "problem solving" && s.score !== null
       );
 
-      const bestSolving =
-        solvingScores.length > 0
-          ? Math.max(...solvingScores.map((s) => s.score ?? 0))
+      // 🧠 Get the highest score for each
+      const bestWordProblem =
+        wordProblemScores.length > 0
+          ? Math.max(...wordProblemScores.map((s) => s.score ?? 0))
           : 0;
 
       const bestProblemSolving =
@@ -180,26 +174,26 @@ const Motion_Radar: React.FC = () => {
           ? Math.max(...problemSolvingScores.map((s) => s.score ?? 0))
           : 0;
 
+      // ⏱ Find fastest time
       const validTimes = motionScores.filter((s) => s.time_taken !== null);
       const bestTime =
         validTimes.length > 0
           ? Math.min(...validTimes.map((s) => s.time_taken ?? MAX_TIME))
           : MAX_TIME;
 
-      // ⏱ Compute percent values
+      // 💯 Convert to percentage
       const timePercent = ((MAX_TIME - bestTime) / MAX_TIME) * 100;
-
       const newPerformance = {
         time: Math.max(0, Math.min(100, parseFloat(timePercent.toFixed(2)))),
-        solving: (bestSolving / MAX_SCORE) * 100,
+        wordProblem: (bestWordProblem / MAX_SCORE) * 100,
         problemSolving: (bestProblemSolving / MAX_SCORE) * 100,
       };
 
-      console.log("✅ Computed performance:", newPerformance);
+      console.log("✅ Computed performance (Motion):", newPerformance);
       animateRadarUpdate(newPerformance);
     } catch (err) {
       console.error("Error fetching radar data:", err);
-      setPerformance({ time: 0, solving: 0, problemSolving: 0 });
+      setPerformance({ time: 0, wordProblem: 0, problemSolving: 0 });
     } finally {
       setTimeout(() => setLoading(false), 600);
     }
@@ -228,14 +222,14 @@ const Motion_Radar: React.FC = () => {
     chartInstance.current = new ChartJS(ctx, {
       type: "radar",
       data: {
-        labels: ["⏱ Time", "🧩 Problem Solving", "🧮 Solving"],
+        labels: ["⏱ Time", "📘 Word Problem", "🧩 Problem Solving"],
         datasets: [
           {
-            label: "🏆 Best Performance (Uniform Motion in Physics)",
+            label: "🚀 Best Performance (Uniform Motion in Physics)",
             data: [
               performance.time,
+              performance.wordProblem,
               performance.problemSolving,
-              performance.solving,
             ],
             fill: true,
             backgroundColor: gradient,
@@ -263,10 +257,8 @@ const Motion_Radar: React.FC = () => {
           datalabels: {
             color: "#000",
             font: { weight: "bold", size: 11 },
-            formatter: (val: number) => {
-              const isWhole = Number.isInteger(val);
-              return isWhole ? `${val}%` : `${val.toFixed(2)}%`;
-            },
+            formatter: (val: number) =>
+              Number.isInteger(val) ? `${val}%` : `${val.toFixed(2)}%`,
           },
         },
         scales: {
@@ -286,7 +278,7 @@ const Motion_Radar: React.FC = () => {
     };
   }, [performance]);
 
-  const labels = ["⏱ Time", "🧩 Problem Solving", "🧮 Solving"];
+  const labels = ["⏱ Time", "📘 Word Problem", "🧩 Problem Solving"];
 
   return (
     <IonPage>
@@ -295,7 +287,7 @@ const Motion_Radar: React.FC = () => {
         <AnimatePresence>
           {visible && (
             <motion.div
-              key="radar-motion-root"
+              key="motion-radar"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -315,7 +307,7 @@ const Motion_Radar: React.FC = () => {
                 transition={{ duration: 0.6 }}
                 style={{ fontSize: 22, fontWeight: 700, color: "#222" }}
               >
-                🏅 Best Performance Overview
+                🌟 Best Performance Overview
               </motion.h2>
 
               <div style={{ display: "flex", gap: 10, marginTop: 12 }}>

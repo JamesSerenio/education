@@ -16,6 +16,7 @@ import {
   Title,
 } from "chart.js";
 import ChartDataLabels from "chartjs-plugin-datalabels";
+import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "../utils/supabaseClient";
 
 ChartJS.register(
@@ -30,14 +31,13 @@ ChartJS.register(
   ChartDataLabels
 );
 
-// 🧮 Performance constants
-const MAX_SCORE = 15;
-const MAX_TIME = 525;
+const MAX_SCORE = 5;
+const MAX_TIME = 300;
 
 interface UserScore {
   time: number;
-  solving: number; // Word Problem
-  problemSolving: number; // Problem Solving
+  solving: number;
+  problemSolving: number;
 }
 
 interface Quiz {
@@ -53,11 +53,6 @@ interface ScoreWithQuizzes {
   created_at: string;
   quiz_id: string;
   quizzes: Quiz | null;
-  profiles?: {
-    firstname?: string;
-    lastname?: string;
-    email?: string;
-  };
 }
 
 const AdminRadar: React.FC = () => {
@@ -71,182 +66,144 @@ const AdminRadar: React.FC = () => {
     solving: 0,
     problemSolving: 0,
   });
+
   const [physicsScore, setPhysicsScore] = useState<UserScore>({
     time: 0,
     solving: 0,
     problemSolving: 0,
   });
 
-  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [visible, setVisible] = useState(false);
 
-  const mapToScoreWithQuizzes = (rawData: Record<string, unknown>): ScoreWithQuizzes => {
-    const quiz = rawData.quizzes as Record<string, unknown> | null;
-    const profiles = rawData.profiles as Record<string, unknown> | undefined;
+  // 🔹 Helper
+  const mapToScoreWithQuizzes = (raw: Record<string, unknown>): ScoreWithQuizzes => {
+    const quiz = raw.quizzes as Record<string, unknown> | null;
     return {
-      id: (rawData.id as string) || "",
-      score: (rawData.score as number) ?? null,
-      time_taken: (rawData.time_taken as number) ?? null,
-      created_at: (rawData.created_at as string) || new Date().toISOString(),
-      quiz_id: (rawData.quiz_id as string) || "",
+      id: String(raw.id ?? ""),
+      score: raw.score === null ? null : Number(raw.score),
+      time_taken: raw.time_taken === null ? null : Number(raw.time_taken),
+      created_at: String(raw.created_at ?? new Date().toISOString()),
+      quiz_id: String(raw.quiz_id ?? ""),
       quizzes: quiz
         ? {
-            id: (quiz.id as string) || "",
-            category: (quiz.category as string) || "",
-            subject: (quiz.subject as string) || "",
+            id: String(quiz.id ?? ""),
+            category: String(quiz.category ?? ""),
+            subject: String(quiz.subject ?? ""),
           }
         : null,
-      profiles: profiles
-        ? {
-            firstname: (profiles.firstname as string) || "",
-            lastname: (profiles.lastname as string) || "",
-            email: (profiles.email as string) || "",
-          }
-        : undefined,
     };
   };
 
-  // ✅ Fetch average score per subject (fixed subject-based filtering)
+  // 📊 Fetch per subject
   const fetchSubjectData = async (subject: string): Promise<UserScore> => {
     try {
       const { data, error } = await supabase
         .from("scores")
-        .select(`
-          id, score, time_taken, created_at, quiz_id,
-          quizzes!quiz_id (id, category, subject)
-        `)
-        .eq("quizzes.subject", subject)
-        .order("created_at", { ascending: false });
+        .select(`id, score, time_taken, created_at, quiz_id, quizzes!quiz_id (id, category, subject)`)
+        .eq("quizzes.subject", subject);
 
       if (error) throw error;
 
-      const scores: ScoreWithQuizzes[] = (data || []).map(mapToScoreWithQuizzes);
-      if (scores.length === 0) return { time: 0, solving: 0, problemSolving: 0 };
-
-      // ✅ Average time per subject
-      const subjectTimes = scores
-        .filter((s) => s.quizzes?.subject === subject && s.time_taken !== null)
-        .map((s) => s.time_taken as number);
+      const mapped: ScoreWithQuizzes[] = (data || []).map(mapToScoreWithQuizzes);
+      if (!mapped.length) return { time: 0, solving: 0, problemSolving: 0 };
 
       const avgTime =
-        subjectTimes.length > 0
-          ? subjectTimes.reduce((sum, t) => sum + t, 0) / subjectTimes.length
-          : 0;
+        mapped.reduce((sum, s) => sum + (s.time_taken ?? 0), 0) / mapped.length;
+      const timePercent = Math.max(0, Math.min(100, ((MAX_TIME - avgTime) / MAX_TIME) * 100));
 
-      const timePercent =
-        subjectTimes.length > 0
-          ? Math.max(0, Math.min(100, ((MAX_TIME - avgTime) / MAX_TIME) * 100))
-          : 0;
-
-      // ✅ Word Problem (filtered by subject)
-      const wordProblems = scores.filter(
-        (s) =>
-          s.quizzes?.category === "Word Problem" &&
-          s.quizzes?.subject === subject &&
-          s.score !== null
+      const solvingScores = mapped.filter(
+        (s) => s.quizzes?.category.toLowerCase() === "solving" && s.score !== null
       );
-      const wordProblemPercent =
-        wordProblems.length > 0
-          ? (wordProblems.reduce((sum, s) => sum + (s.score ?? 0), 0) /
-              wordProblems.length /
+      const problemScores = mapped.filter(
+        (s) => s.quizzes?.category.toLowerCase() === "problem solving" && s.score !== null
+      );
+
+      const solvingPercent =
+        solvingScores.length > 0
+          ? (solvingScores.reduce((sum, s) => sum + (s.score ?? 0), 0) /
+              solvingScores.length /
               MAX_SCORE) *
             100
           : 0;
 
-      // ✅ Problem Solving (filtered by subject)
-      const problemSolving = scores.filter(
-        (s) =>
-          s.quizzes?.category === "Problem Solving" &&
-          s.quizzes?.subject === subject &&
-          s.score !== null
-      );
       const problemSolvingPercent =
-        problemSolving.length > 0
-          ? (problemSolving.reduce((sum, s) => sum + (s.score ?? 0), 0) /
-              problemSolving.length /
+        problemScores.length > 0
+          ? (problemScores.reduce((sum, s) => sum + (s.score ?? 0), 0) /
+              problemScores.length /
               MAX_SCORE) *
             100
           : 0;
 
       return {
         time: parseFloat(timePercent.toFixed(2)),
-        solving: parseFloat(wordProblemPercent.toFixed(2)),
+        solving: parseFloat(solvingPercent.toFixed(2)),
         problemSolving: parseFloat(problemSolvingPercent.toFixed(2)),
       };
     } catch (err) {
-      console.error(`Error fetching ${subject} data:`, err);
+      console.error(`Error fetching ${subject}:`, err);
       return { time: 0, solving: 0, problemSolving: 0 };
     }
   };
 
+  // 🌀 Animate radar updates
   const animateRadarUpdate = (
-    setScore: React.Dispatch<React.SetStateAction<UserScore>>,
+    setter: React.Dispatch<React.SetStateAction<UserScore>>,
     newScore: UserScore,
-    duration = 1000
+    duration = 800
   ) => {
     const steps = 30;
     const interval = duration / steps;
-
-    setScore({ time: 0, solving: 0, problemSolving: 0 });
     let currentStep = 0;
-
     const start = { time: 0, solving: 0, problemSolving: 0 };
 
     const animate = setInterval(() => {
       currentStep++;
       const progress = currentStep / steps;
-
-      setScore({
+      setter({
         time: start.time + (newScore.time - start.time) * progress,
         solving: start.solving + (newScore.solving - start.solving) * progress,
         problemSolving:
           start.problemSolving +
           (newScore.problemSolving - start.problemSolving) * progress,
       });
-
       if (currentStep >= steps) clearInterval(animate);
     }, interval);
   };
 
+  // 🔁 Load both
   const fetchAllData = async () => {
+    setLoading(true);
     const arithmetic = await fetchSubjectData("Arithmetic Sequence");
     const physics = await fetchSubjectData("Uniform Motion in Physics");
-
     animateRadarUpdate(setArithmeticScore, arithmetic);
     animateRadarUpdate(setPhysicsScore, physics);
+    setTimeout(() => setLoading(false), 600);
   };
 
-  const handleRefresh = async () => {
-    setIsRefreshing(true);
-    await fetchAllData();
-    setTimeout(() => setIsRefreshing(false), 1200);
-  };
-
-  const formatValue = (value: number): string => {
-    return Number.isInteger(value) ? `${value}%` : `${value.toFixed(2)}%`;
-  };
-
+  // 🧭 Chart creation
   const createRadarChart = (
     ctx: CanvasRenderingContext2D,
     data: UserScore,
     title: string
   ): ChartJS => {
     const gradient = ctx.createLinearGradient(0, 0, 0, 400);
-    gradient.addColorStop(0, "rgba(54, 162, 235, 0.3)");
-    gradient.addColorStop(1, "rgba(236, 72, 153, 0.3)");
+    gradient.addColorStop(0, "rgba(54, 162, 235, 0.32)");
+    gradient.addColorStop(1, "rgba(236, 72, 153, 0.32)");
 
     return new ChartJS(ctx, {
       type: "radar",
       data: {
-        labels: ["⏱ Time", "🧩 Word Problem", "🧮 Problem Solving"],
+        labels: ["⏱ Time", "🧩 Problem Solving", "🧮 Solving"],
         datasets: [
           {
-            label: `${title} Average`,
-            data: [data.time, data.solving, data.problemSolving],
+            label: `${title} (All Students)`,
+            data: [data.time, data.problemSolving, data.solving],
             fill: true,
             backgroundColor: gradient,
-            borderColor: "rgb(54, 162, 235)",
+            borderColor: "rgb(54,162,235)",
             borderWidth: 3,
-            pointBackgroundColor: "rgb(236, 72, 153)",
+            pointBackgroundColor: "rgb(236,72,153)",
             pointBorderColor: "#fff",
           },
         ],
@@ -257,26 +214,22 @@ const AdminRadar: React.FC = () => {
         plugins: {
           legend: {
             display: true,
-            labels: { color: "#111", font: { size: 14, weight: "bold" } },
+            labels: { color: "#111", font: { size: 13, weight: "bold" } },
           },
           title: {
             display: true,
-            text: `📊 (All Students) ${title}`,
+            text: title,
             color: "#111",
             font: { size: 18, weight: "bold" },
           },
           datalabels: {
             color: "#000",
-            font: { weight: "bold", size: 12 },
-            formatter: (val: number) => formatValue(val),
+            font: { size: 12, weight: "bold" },
+            formatter: (v: number) => `${v.toFixed(1)}%`,
           },
         },
         scales: {
-          r: {
-            suggestedMin: 0,
-            suggestedMax: 100,
-            ticks: { display: false },
-          },
+          r: { suggestedMin: 0, suggestedMax: 100, ticks: { display: false } },
         },
       },
       plugins: [ChartDataLabels],
@@ -292,8 +245,16 @@ const AdminRadar: React.FC = () => {
     chartArithmetic.current?.destroy();
     chartPhysics.current?.destroy();
 
-    chartArithmetic.current = createRadarChart(ctxA, arithmeticScore, "Arithmetic Sequence");
-    chartPhysics.current = createRadarChart(ctxP, physicsScore, "Uniform Motion in Physics");
+    chartArithmetic.current = createRadarChart(
+      ctxA,
+      arithmeticScore,
+      "📘 Arithmetic Sequence"
+    );
+    chartPhysics.current = createRadarChart(
+      ctxP,
+      physicsScore,
+      "⚛️ Uniform Motion in Physics"
+    );
 
     return () => {
       chartArithmetic.current?.destroy();
@@ -302,45 +263,106 @@ const AdminRadar: React.FC = () => {
   }, [arithmeticScore, physicsScore]);
 
   useEffect(() => {
-    fetchAllData();
+    setVisible(true);
+    void fetchAllData();
   }, []);
 
   return (
     <IonPage>
       <IonHeader />
       <IonContent fullscreen>
-        <div style={{ padding: "20px", display: "flex", flexDirection: "column", alignItems: "center", gap: "20px" }}>
-          <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: "20px", width: "100%" }}>
-            <div style={{ width: "100%", maxWidth: "500px", height: "60vh", background: "white", borderRadius: "16px", boxShadow: "0px 6px 18px rgba(0,0,0,0.08)", padding: "16px" }}>
-              <canvas ref={radarRefArithmetic} />
-            </div>
+        <AnimatePresence>
+          {visible && (
+            <motion.div
+              key="admin-radar"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.6 }}
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                gap: 30,
+                padding: 20,
+              }}
+            >
+              <motion.h2
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6 }}
+                style={{ fontSize: 22, fontWeight: 700, color: "#222" }}
+              >
+                📊 All Students Performance Overview
+              </motion.h2>
 
-            <div style={{ width: "100%", maxWidth: "500px", height: "60vh", background: "white", borderRadius: "16px", boxShadow: "0px 6px 18px rgba(0,0,0,0.08)", padding: "16px" }}>
-              <canvas ref={radarRefPhysics} />
-            </div>
-          </div>
+              <div
+                style={{
+                  display: "flex",
+                  flexWrap: "wrap",
+                  justifyContent: "center",
+                  gap: 20,
+                  width: "100%",
+                }}
+              >
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.6 }}
+                  style={{
+                    width: "100%",
+                    maxWidth: 480,
+                    height: 420,
+                    background: "white",
+                    borderRadius: 16,
+                    boxShadow: "0 6px 18px rgba(0,0,0,0.08)",
+                    padding: 16,
+                  }}
+                >
+                  <canvas ref={radarRefArithmetic} />
+                </motion.div>
 
-          <button
-            onClick={handleRefresh}
-            disabled={isRefreshing}
-            style={{
-              padding: "12px 24px",
-              background: "linear-gradient(90deg, #6366F1, #EC4899)",
-              color: "white",
-              fontSize: "16px",
-              fontWeight: "bold",
-              borderRadius: "12px",
-              border: "none",
-              cursor: isRefreshing ? "wait" : "pointer",
-              width: "100%",
-              maxWidth: "250px",
-              marginTop: "10px",
-              transition: "all 0.3s ease",
-            }}
-          >
-            {isRefreshing ? "Refreshing..." : "🔄 Refresh Both Subjects"}
-          </button>
-        </div>
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.7 }}
+                  style={{
+                    width: "100%",
+                    maxWidth: 480,
+                    height: 420,
+                    background: "white",
+                    borderRadius: 16,
+                    boxShadow: "0 6px 18px rgba(0,0,0,0.08)",
+                    padding: 16,
+                  }}
+                >
+                  <canvas ref={radarRefPhysics} />
+                </motion.div>
+              </div>
+
+              <motion.button
+                onClick={fetchAllData}
+                disabled={loading}
+                whileTap={{ scale: 0.96 }}
+                whileHover={{ scale: loading ? 1 : 1.03 }}
+                style={{
+                  padding: "10px 20px",
+                  background: loading
+                    ? "linear-gradient(90deg,#9CA3AF,#D1D5DB)"
+                    : "linear-gradient(90deg,#6366F1,#EC4899)",
+                  color: "white",
+                  fontSize: 15,
+                  fontWeight: 700,
+                  borderRadius: 10,
+                  border: "none",
+                  width: "100%",
+                  maxWidth: 200,
+                }}
+              >
+                {loading ? "🔄 Refreshing..." : "🔄 Refresh Charts"}
+              </motion.button>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </IonContent>
     </IonPage>
   );

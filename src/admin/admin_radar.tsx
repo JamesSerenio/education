@@ -106,7 +106,7 @@ const AdminRadar: React.FC = () => {
     };
   };
 
-  // ✅ Fetch average score per subject (focused per subject only)
+  // ✅ Fetch average score per subject
   const fetchSubjectData = async (subject: string): Promise<UserScore> => {
     try {
       const { data, error } = await supabase
@@ -123,10 +123,20 @@ const AdminRadar: React.FC = () => {
       const scores: ScoreWithQuizzes[] = (data || []).map(mapToScoreWithQuizzes);
       if (scores.length === 0) return { time: 0, solving: 0, problemSolving: 0 };
 
-      // ✅ Compute average time (subject-specific)
+      // ✅ Compute time strictly for this subject (average time taken)
+      const subjectTimes = scores
+        .filter((s) => s.quizzes?.subject === subject && s.time_taken !== null)
+        .map((s) => s.time_taken as number);
+
       const avgTime =
-        scores.reduce((sum, s) => sum + (s.time_taken ?? 0), 0) / scores.length;
-      const timePercent = Math.max(0, Math.min(100, ((MAX_TIME - avgTime) / MAX_TIME) * 100));
+        subjectTimes.length > 0
+          ? subjectTimes.reduce((sum, t) => sum + t, 0) / subjectTimes.length
+          : 0;
+
+      // ✅ Convert time into performance percentage (faster = higher)
+      const timePercent = subjectTimes.length > 0
+        ? Math.max(0, Math.min(100, ((MAX_TIME - avgTime) / MAX_TIME) * 100))
+        : 0;
 
       // ✅ Word Problem category
       const wordProblems = scores.filter(
@@ -134,7 +144,10 @@ const AdminRadar: React.FC = () => {
       );
       const wordProblemPercent =
         wordProblems.length > 0
-          ? (wordProblems.reduce((sum, s) => sum + (s.score ?? 0), 0) / wordProblems.length / MAX_SCORE) * 100
+          ? (wordProblems.reduce((sum, s) => sum + (s.score ?? 0), 0) /
+              wordProblems.length /
+              MAX_SCORE) *
+            100
           : 0;
 
       // ✅ Problem Solving category
@@ -143,13 +156,16 @@ const AdminRadar: React.FC = () => {
       );
       const problemSolvingPercent =
         problemSolving.length > 0
-          ? (problemSolving.reduce((sum, s) => sum + (s.score ?? 0), 0) / problemSolving.length / MAX_SCORE) * 100
+          ? (problemSolving.reduce((sum, s) => sum + (s.score ?? 0), 0) /
+              problemSolving.length /
+              MAX_SCORE) *
+            100
           : 0;
 
       return {
         time: parseFloat(timePercent.toFixed(2)),
-        solving: parseFloat(wordProblemPercent.toFixed(2)), // 🧩 Word Problem
-        problemSolving: parseFloat(problemSolvingPercent.toFixed(2)), // 🧮 Problem Solving
+        solving: parseFloat(wordProblemPercent.toFixed(2)),
+        problemSolving: parseFloat(problemSolvingPercent.toFixed(2)),
       };
     } catch (err) {
       console.error(`Error fetching ${subject} data:`, err);
@@ -294,7 +310,7 @@ const AdminRadar: React.FC = () => {
         labels: ["⏱ Time", "🧩 Word Problem", "🧮 Problem Solving"],
         datasets: [
           {
-            label: `${title} (All Students)`,
+            label: `${title} Average`,
             data: [data.time, data.solving, data.problemSolving],
             fill: true,
             backgroundColor: gradient,
@@ -315,7 +331,7 @@ const AdminRadar: React.FC = () => {
           },
           title: {
             display: true,
-            text: `📊 ${title} (All Students)`,
+            text: `📊 (All Students) ${title}`,
             color: "#111",
             font: { size: 18, weight: "bold" },
           },

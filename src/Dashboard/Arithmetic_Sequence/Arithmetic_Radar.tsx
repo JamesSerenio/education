@@ -67,7 +67,7 @@ const Arithmetic_Radar: React.FC = () => {
   const [selectedAttemptIndex, setSelectedAttemptIndex] = useState<number>(0);
   const [loading, setLoading] = useState(false);
 
-  // Animate Radar transitions
+  // Smooth radar animation
   const animateRadarUpdate = (
     newData: { time: number; solving: number; problemSolving: number },
     duration = 800
@@ -82,21 +82,22 @@ const Arithmetic_Radar: React.FC = () => {
       const progress = currentStep / steps;
       setPerformance({
         time: startData.time + (newData.time - startData.time) * progress,
-        solving: startData.solving + (newData.solving - startData.solving) * progress,
+        solving:
+          startData.solving + (newData.solving - startData.solving) * progress,
         problemSolving:
-          startData.problemSolving + (newData.problemSolving - startData.problemSolving) * progress,
+          startData.problemSolving +
+          (newData.problemSolving - startData.problemSolving) * progress,
       });
       if (currentStep >= steps) clearInterval(animate);
     }, interval);
   };
 
-  // Safe mapper: handles quizzes being null, object or array
+  // Safe mapper (handles null/array/object quizzes)
   const safeMapScore = (r: Record<string, unknown>): ScoreWithQuizzes => {
     const rawQuizzes = r["quizzes"];
     let quizObj: QuizRef | null = null;
 
     if (rawQuizzes) {
-      // quizzes might be an array (joined) or object
       if (Array.isArray(rawQuizzes) && rawQuizzes.length > 0) {
         const q = rawQuizzes[0] as Record<string, unknown>;
         quizObj = {
@@ -117,7 +118,9 @@ const Arithmetic_Radar: React.FC = () => {
     return {
       id: String(r["id"] ?? ""),
       score:
-        r["score"] === undefined || r["score"] === null ? null : Number(r["score"]),
+        r["score"] === undefined || r["score"] === null
+          ? null
+          : Number(r["score"]),
       time_taken:
         r["time_taken"] === undefined || r["time_taken"] === null
           ? null
@@ -142,7 +145,9 @@ const Arithmetic_Radar: React.FC = () => {
 
       const { data, error } = await supabase
         .from("scores")
-        .select(`id, score, time_taken, created_at, quiz_id, quizzes!quiz_id(id, category, subject)`)
+        .select(
+          `id, score, time_taken, created_at, quiz_id, quizzes!quiz_id(id, category, subject)`
+        )
         .eq("user_id", user.id)
         .order("created_at", { ascending: true });
 
@@ -152,19 +157,24 @@ const Arithmetic_Radar: React.FC = () => {
       const typed: ScoreWithQuizzes[] = raw.map(safeMapScore);
 
       // filter to subject = Arithmetic Sequence
-      const arithmeticScores = typed.filter((s) => s.quizzes?.subject === "Arithmetic Sequence");
+      const arithmeticScores = typed.filter(
+        (s) => s.quizzes?.subject === "Arithmetic Sequence"
+      );
 
-      // group into attempts: we consider each pair (Solving + Problem Solving) as one "take"
+      // group attempts by every 2 entries (Solving + Problem Solving)
       const grouped: ScoreWithQuizzes[][] = [];
-      // Sort by created_at just in case
-      const sorted = arithmeticScores.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+      const sorted = arithmeticScores.sort(
+        (a, b) =>
+          new Date(a.created_at).getTime() -
+          new Date(b.created_at).getTime()
+      );
+
       for (let i = 0; i < sorted.length; i += 2) {
         grouped.push(sorted.slice(i, i + 2));
       }
 
       setAttempts(grouped);
 
-      // initialise performance with first attempt if exists
       if (grouped.length > 0) {
         updateRadarForAttempt(0, grouped);
         setSelectedAttemptIndex(0);
@@ -180,6 +190,7 @@ const Arithmetic_Radar: React.FC = () => {
     }
   };
 
+  // ✅ FIXED VERSION: computes all three radar values properly
   const updateRadarForAttempt = (index: number, data = attempts) => {
     const target = data[index];
     if (!target || target.length === 0) {
@@ -187,30 +198,46 @@ const Arithmetic_Radar: React.FC = () => {
       return;
     }
 
-    // average time across the attempt items
-    const avgTime = (target.reduce((sum, s) => sum + (s.time_taken || 0), 0) || 0) / target.length;
-    const timeRaw = ((MAX_TIME - avgTime) / MAX_TIME) * 100;
-    const timePercent = Math.max(0, Math.min(100, parseFloat(timeRaw.toFixed(2))));
+    const avgTime =
+      (target.reduce((sum, s) => sum + (s.time_taken || 0), 0) || 0) /
+      target.length;
+    const timePercent = Math.max(
+      0,
+      Math.min(100, parseFloat((((MAX_TIME - avgTime) / MAX_TIME) * 100).toFixed(2)))
+    );
 
-    const solving = target.find((s) => s.quizzes?.category === "Solving");
-    const problem = target.find((s) => s.quizzes?.category === "Problem Solving");
+    const solvingScores = target.filter(
+      (s) => s.quizzes?.category === "Solving"
+    );
+    const problemScores = target.filter(
+      (s) => s.quizzes?.category === "Problem Solving"
+    );
 
-    const newPerf = {
+    const avgSolving =
+      solvingScores.length > 0
+        ? (solvingScores.reduce((sum, s) => sum + (s.score || 0), 0) /
+            (solvingScores.length * MAX_SCORE)) *
+          100
+        : 0;
+
+    const avgProblemSolving =
+      problemScores.length > 0
+        ? (problemScores.reduce((sum, s) => sum + (s.score || 0), 0) /
+            (problemScores.length * MAX_SCORE)) *
+          100
+        : 0;
+
+    animateRadarUpdate({
       time: timePercent,
-      solving: solving && solving.score != null ? (Number(solving.score) / MAX_SCORE) * 100 : 0,
-      problemSolving: problem && problem.score != null ? (Number(problem.score) / MAX_SCORE) * 100 : 0,
-    };
-
-    animateRadarUpdate(newPerf);
+      solving: Number(avgSolving.toFixed(2)),
+      problemSolving: Number(avgProblemSolving.toFixed(2)),
+    });
   };
 
   useEffect(() => {
-    // initial load
     void fetchRadarData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // redraw chart when performance changes
   useEffect(() => {
     if (!radarRef.current) return;
     const ctx = radarRef.current.getContext("2d");
@@ -224,11 +251,15 @@ const Arithmetic_Radar: React.FC = () => {
     chartInstance.current = new ChartJS(ctx, {
       type: "radar",
       data: {
-        labels: ["⏱ Time", "🧩 Problem Solving", "🧮 Solving"],
+        labels: ["⏱ Time", "🧮 Solving", "🧩 Problem Solving"],
         datasets: [
           {
             label: "My Performance (Arithmetic Sequence)",
-            data: [performance.time, performance.problemSolving, performance.solving],
+            data: [
+              performance.time,
+              performance.solving,
+              performance.problemSolving,
+            ],
             fill: true,
             backgroundColor: "rgba(54,162,235,0.28)",
             borderColor: "rgb(54,162,235)",
@@ -275,11 +306,15 @@ const Arithmetic_Radar: React.FC = () => {
             transition={{ duration: 0.35 }}
             style={{ padding: 16, textAlign: "center" }}
           >
-            <h2 style={{ margin: 0 }}>📊 Arithmetic Sequence Progress Overview</h2>
+            <h2 style={{ margin: 0 }}>
+              📊 Arithmetic Sequence Progress Overview
+            </h2>
 
             <div style={{ marginTop: 12 }}>
               {attempts.length > 0 ? (
-                <IonItem style={{ margin: "10px auto", width: "90%", maxWidth: 400 }}>
+                <IonItem
+                  style={{ margin: "10px auto", width: "90%", maxWidth: 400 }}
+                >
                   <IonLabel>Attempt</IonLabel>
                   <IonSelect
                     value={selectedAttemptIndex}
@@ -325,7 +360,9 @@ const Arithmetic_Radar: React.FC = () => {
               whileTap={{ scale: 0.97 }}
               style={{
                 marginTop: 8,
-                background: loading ? "#9CA3AF" : "linear-gradient(90deg,#36A2EB,#EC4899)",
+                background: loading
+                  ? "#9CA3AF"
+                  : "linear-gradient(90deg,#36A2EB,#EC4899)",
                 color: "#fff",
                 padding: "10px 18px",
                 borderRadius: 10,

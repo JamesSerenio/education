@@ -92,7 +92,7 @@ const Arithmetic_Radar: React.FC = () => {
     }, interval);
   };
 
-  // Safe mapper (handles null/array/object quizzes)
+  // Safe mapper
   const safeMapScore = (r: Record<string, unknown>): ScoreWithQuizzes => {
     const rawQuizzes = r["quizzes"];
     let quizObj: QuizRef | null = null;
@@ -156,21 +156,41 @@ const Arithmetic_Radar: React.FC = () => {
       const raw = (data || []) as Record<string, unknown>[];
       const typed: ScoreWithQuizzes[] = raw.map(safeMapScore);
 
-      // filter to subject = Arithmetic Sequence
+      // Filter only Arithmetic Sequence quizzes
       const arithmeticScores = typed.filter(
         (s) => s.quizzes?.subject === "Arithmetic Sequence"
       );
 
-      // group attempts by every 2 entries (Solving + Problem Solving)
-      const grouped: ScoreWithQuizzes[][] = [];
+      // Sort by date
       const sorted = arithmeticScores.sort(
         (a, b) =>
-          new Date(a.created_at).getTime() -
-          new Date(b.created_at).getTime()
+          new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
       );
 
-      for (let i = 0; i < sorted.length; i += 2) {
-        grouped.push(sorted.slice(i, i + 2));
+      // Group dynamically (each Solving + Problem Solving = one attempt)
+      const grouped: ScoreWithQuizzes[][] = [];
+      let currentGroup: ScoreWithQuizzes[] = [];
+
+      for (let i = 0; i < sorted.length; i++) {
+        const quiz = sorted[i];
+        currentGroup.push(quiz);
+
+        const hasSolving = currentGroup.some(
+          (s) => s.quizzes?.category === "Solving"
+        );
+        const hasProblemSolving = currentGroup.some(
+          (s) => s.quizzes?.category === "Problem Solving"
+        );
+
+        if (hasSolving && hasProblemSolving) {
+          grouped.push([...currentGroup]);
+          currentGroup = [];
+        }
+      }
+
+      // If there's a leftover quiz attempt (e.g., only Solving)
+      if (currentGroup.length > 0) {
+        grouped.push([...currentGroup]);
       }
 
       setAttempts(grouped);
@@ -190,7 +210,6 @@ const Arithmetic_Radar: React.FC = () => {
     }
   };
 
-  // ✅ FIXED VERSION: computes all three radar values properly
   const updateRadarForAttempt = (index: number, data = attempts) => {
     const target = data[index];
     if (!target || target.length === 0) {
@@ -324,11 +343,18 @@ const Arithmetic_Radar: React.FC = () => {
                       updateRadarForAttempt(idx);
                     }}
                   >
-                    {attempts.map((_, idx) => (
-                      <IonSelectOption key={idx} value={idx}>
-                        {idx + 1}ᵗʰ Take
-                      </IonSelectOption>
-                    ))}
+                    {attempts.map((group, idx) => {
+                      const date = new Date(group[0]?.created_at);
+                      const formattedDate = date.toLocaleDateString("en-US", {
+                        month: "short",
+                        day: "numeric",
+                      });
+                      return (
+                        <IonSelectOption key={idx} value={idx}>
+                          {idx + 1}ᵗʰ Take – {formattedDate}
+                        </IonSelectOption>
+                      );
+                    })}
                   </IonSelect>
                 </IonItem>
               ) : (

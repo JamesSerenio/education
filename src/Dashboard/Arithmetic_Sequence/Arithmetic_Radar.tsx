@@ -117,20 +117,15 @@ const Arithmetic_Radar: React.FC = () => {
 
     return {
       id: String(r["id"] ?? ""),
-      score:
-        r["score"] === undefined || r["score"] === null
-          ? null
-          : Number(r["score"]),
-      time_taken:
-        r["time_taken"] === undefined || r["time_taken"] === null
-          ? null
-          : Number(r["time_taken"]),
+      score: r["score"] == null ? null : Number(r["score"]),
+      time_taken: r["time_taken"] == null ? null : Number(r["time_taken"]),
       created_at: String(r["created_at"] ?? new Date().toISOString()),
       quiz_id: String(r["quiz_id"] ?? ""),
       quizzes: quizObj,
     };
   };
 
+  // ✅ Fixed grouping logic: handles unlimited attempts dynamically
   const fetchRadarData = async () => {
     setLoading(true);
     try {
@@ -156,22 +151,21 @@ const Arithmetic_Radar: React.FC = () => {
       const raw = (data || []) as Record<string, unknown>[];
       const typed: ScoreWithQuizzes[] = raw.map(safeMapScore);
 
-      // Filter by subject
+      // filter subject = Arithmetic Sequence
       const arithmeticScores = typed.filter(
         (s) => s.quizzes?.subject === "Arithmetic Sequence"
       );
 
-      // ✅ Dynamic grouping by each pair (Solving + Problem Solving)
-      const grouped: ScoreWithQuizzes[][] = [];
       const sorted = arithmeticScores.sort(
         (a, b) =>
           new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
       );
 
+      // Dynamic grouping
+      const grouped: ScoreWithQuizzes[][] = [];
       let currentGroup: ScoreWithQuizzes[] = [];
 
-      for (let i = 0; i < sorted.length; i++) {
-        const quiz = sorted[i];
+      for (const quiz of sorted) {
         currentGroup.push(quiz);
 
         const hasSolving = currentGroup.some(
@@ -181,17 +175,15 @@ const Arithmetic_Radar: React.FC = () => {
           (s) => s.quizzes?.category === "Problem Solving"
         );
 
-        // If both types exist, one full attempt done
+        // once both exist, finalize the attempt
         if (hasSolving && hasProblemSolving) {
           grouped.push([...currentGroup]);
           currentGroup = [];
         }
       }
 
-      // Handle remaining unpaired quiz
-      if (currentGroup.length > 0) {
-        grouped.push([...currentGroup]);
-      }
+      // if any remaining quiz without pair, still include
+      if (currentGroup.length > 0) grouped.push([...currentGroup]);
 
       setAttempts(grouped);
 
@@ -210,7 +202,6 @@ const Arithmetic_Radar: React.FC = () => {
     }
   };
 
-  // ✅ Compute radar data
   const updateRadarForAttempt = (index: number, data = attempts) => {
     const target = data[index];
     if (!target || target.length === 0) {
@@ -235,14 +226,16 @@ const Arithmetic_Radar: React.FC = () => {
 
     const avgSolving =
       solvingScores.length > 0
-        ? (solvingScores.reduce((sum, s) => sum + (s.score || 0), 0) / 
-            (solvingScores.length * MAX_SCORE)) * 100
+        ? (solvingScores.reduce((sum, s) => sum + (s.score || 0), 0) /
+            (solvingScores.length * MAX_SCORE)) *
+          100
         : 0;
 
     const avgProblemSolving =
       problemScores.length > 0
-        ? (problemScores.reduce((sum, s) => sum + (s.score || 0), 0) / 
-            (problemScores.length * MAX_SCORE)) * 100
+        ? (problemScores.reduce((sum, s) => sum + (s.score || 0), 0) /
+            (problemScores.length * MAX_SCORE)) *
+          100
         : 0;
 
     animateRadarUpdate({
@@ -311,13 +304,6 @@ const Arithmetic_Radar: React.FC = () => {
     return () => chartInstance.current?.destroy();
   }, [performance]);
 
-  // Helper for ordinal suffix (1st, 2nd, 3rd, 4th, etc.)
-  const getOrdinal = (n: number) => {
-    const s = ["th", "st", "nd", "rd"];
-    const v = n % 100;
-    return s[(v - 20) % 10] || s[v] || s[0];
-  };
-
   return (
     <IonPage>
       <IonHeader />
@@ -349,12 +335,16 @@ const Arithmetic_Radar: React.FC = () => {
                       updateRadarForAttempt(idx);
                     }}
                   >
-                    {attempts.map((_, idx) => (
-                      <IonSelectOption key={idx} value={idx}>
-                        {idx + 1}
-                        {getOrdinal(idx + 1)} Take
-                      </IonSelectOption>
-                    ))}
+                    {attempts.map((group, idx) => {
+                      const date = new Date(
+                        group[0]?.created_at || ""
+                      ).toLocaleString();
+                      return (
+                        <IonSelectOption key={idx} value={idx}>
+                          Attempt {idx + 1} — {date}
+                        </IonSelectOption>
+                      );
+                    })}
                   </IonSelect>
                 </IonItem>
               ) : (

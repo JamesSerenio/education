@@ -161,14 +161,14 @@ const Motion_Radar: React.FC = () => {
         return;
       }
 
+      // ✅ Compute all categories safely
       const avgTime =
         motionScores.reduce((sum, s) => sum + (s.time_taken || 0), 0) /
         motionScores.length;
 
-      const timeRaw = ((MAX_TIME - avgTime) / MAX_TIME) * 100;
       const timePercent = Math.max(
         0,
-        Math.min(100, parseFloat(timeRaw.toFixed(2)))
+        Math.min(100, parseFloat((((MAX_TIME - avgTime) / MAX_TIME) * 100).toFixed(2)))
       );
 
       const solvingScores = motionScores.filter(
@@ -179,16 +179,23 @@ const Motion_Radar: React.FC = () => {
       );
 
       const avgSolving =
-        solvingScores.reduce((sum, s) => sum + (s.score || 0), 0) /
-        (solvingScores.length || 1);
+        solvingScores.length > 0
+          ? (solvingScores.reduce((sum, s) => sum + (s.score || 0), 0) /
+              (solvingScores.length * MAX_SCORE)) *
+            100
+          : 0;
+
       const avgProblemSolving =
-        problemSolvingScores.reduce((sum, s) => sum + (s.score || 0), 0) /
-        (problemSolvingScores.length || 1);
+        problemSolvingScores.length > 0
+          ? (problemSolvingScores.reduce((sum, s) => sum + (s.score || 0), 0) /
+              (problemSolvingScores.length * MAX_SCORE)) *
+            100
+          : 0;
 
       const newScore = {
         time: timePercent,
-        solving: Math.floor((avgSolving / MAX_SCORE) * 100),
-        problemSolving: Math.floor((avgProblemSolving / MAX_SCORE) * 100),
+        solving: Number(avgSolving.toFixed(2)),
+        problemSolving: Number(avgProblemSolving.toFixed(2)),
       };
 
       animateRadarUpdate(newScore); // 🌟 animate new data
@@ -203,7 +210,6 @@ const Motion_Radar: React.FC = () => {
   useEffect(() => {
     setVisible(true);
     void fetchRadarData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -355,7 +361,6 @@ const Motion_Radar: React.FC = () => {
                 <canvas ref={radarRef} style={{ width: "100%", height: "100%" }} />
               </motion.div>
 
-              {/* 🔹 Refresh button with spinner + animation */}
               <motion.button
                 onClick={fetchRadarData}
                 disabled={loading}

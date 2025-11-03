@@ -31,8 +31,9 @@ ChartJS.register(
   ChartDataLabels
 );
 
-const MAX_SCORE = 15;
-const MAX_TIME = 525;
+// 🧮 Performance constants
+const MAX_SCORE = 15; // highest possible quiz score
+const MAX_TIME = 525; // total max time based on difficulty (15s×5 + 30s×5 + 60s×5)
 
 interface ScoreWithQuizzes {
   id: string;
@@ -52,11 +53,10 @@ const Arithmetic_Radar: React.FC = () => {
     solving: 0,
     problemSolving: 0,
   });
-
   const [visible, setVisible] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // helper mapper for Supabase data
+  // 🔍 Convert Supabase data safely
   const mapToScoreWithQuizzes = (rawData: Record<string, unknown>): ScoreWithQuizzes => {
     const quizzesRaw = rawData["quizzes"] as Record<string, unknown> | undefined;
     return {
@@ -75,36 +75,45 @@ const Arithmetic_Radar: React.FC = () => {
         ? {
             id: String(quizzesRaw["id"] ?? ""),
             category: String(quizzesRaw["category"] ?? ""),
-            subject: quizzesRaw["subject"] ? String(quizzesRaw["subject"]) : undefined,
+            subject: quizzesRaw["subject"]
+              ? String(quizzesRaw["subject"])
+              : undefined,
           }
         : null,
     };
   };
 
+  // ✨ Animate radar values smoothly
   const animateRadarUpdate = (
     newData: { time: number; solving: number; problemSolving: number },
     duration = 800
   ) => {
     const steps = 30;
     const interval = duration / steps;
-
-    setPerformance({ time: 0, solving: 0, problemSolving: 0 }); // reset
     let currentStep = 0;
+    const startValues = { ...performance };
 
     const animate = setInterval(() => {
       currentStep++;
       const progress = currentStep / steps;
 
       setPerformance({
-        time: newData.time * progress,
-        solving: newData.solving * progress,
-        problemSolving: newData.problemSolving * progress,
+        time:
+          startValues.time +
+          (newData.time - startValues.time) * progress,
+        solving:
+          startValues.solving +
+          (newData.solving - startValues.solving) * progress,
+        problemSolving:
+          startValues.problemSolving +
+          (newData.problemSolving - startValues.problemSolving) * progress,
       });
 
       if (currentStep >= steps) clearInterval(animate);
     }, interval);
   };
 
+  // 📊 Fetch and compute radar data
   const fetchRadarData = async () => {
     setLoading(true);
     try {
@@ -143,7 +152,7 @@ const Arithmetic_Radar: React.FC = () => {
       }
 
       const arithmeticScores = typedScores.filter(
-        (s) => s.quizzes?.subject === "Arithmetic Sequence"
+        (s) => s.quizzes?.subject?.toLowerCase() === "arithmetic sequence"
       );
 
       if (!arithmeticScores.length) {
@@ -151,28 +160,33 @@ const Arithmetic_Radar: React.FC = () => {
         return;
       }
 
-      // Get the best (highest) scores and fastest (lowest) time
-      const bestSolving = Math.max(
-        ...arithmeticScores
-          .filter((s) => s.quizzes?.category === "Solving" && s.score !== null)
-          .map((s) => s.score ?? 0),
-        0
+      // Case-insensitive category check
+      const normalize = (txt: string | undefined) => txt?.trim().toLowerCase() ?? "";
+
+      const solvingScores = arithmeticScores.filter(
+        (s) => normalize(s.quizzes?.category) === "solving" && s.score !== null
+      );
+      const problemSolvingScores = arithmeticScores.filter(
+        (s) => normalize(s.quizzes?.category) === "problem solving" && s.score !== null
       );
 
-      const bestProblemSolving = Math.max(
-        ...arithmeticScores
-          .filter((s) => s.quizzes?.category === "Problem Solving" && s.score !== null)
-          .map((s) => s.score ?? 0),
-        0
-      );
+      const bestSolving =
+        solvingScores.length > 0
+          ? Math.max(...solvingScores.map((s) => s.score ?? 0))
+          : 0;
 
-      const bestTime = Math.min(
-        ...arithmeticScores
-          .filter((s) => s.time_taken !== null)
-          .map((s) => s.time_taken ?? MAX_TIME),
-        MAX_TIME
-      );
+      const bestProblemSolving =
+        problemSolvingScores.length > 0
+          ? Math.max(...problemSolvingScores.map((s) => s.score ?? 0))
+          : 0;
 
+      const validTimes = arithmeticScores.filter((s) => s.time_taken !== null);
+      const bestTime =
+        validTimes.length > 0
+          ? Math.min(...validTimes.map((s) => s.time_taken ?? MAX_TIME))
+          : MAX_TIME;
+
+      // ⏱ Compute percent values
       const timePercent = ((MAX_TIME - bestTime) / MAX_TIME) * 100;
 
       const newPerformance = {
@@ -181,6 +195,7 @@ const Arithmetic_Radar: React.FC = () => {
         problemSolving: Math.floor((bestProblemSolving / MAX_SCORE) * 100),
       };
 
+      console.log("✅ Computed performance:", newPerformance);
       animateRadarUpdate(newPerformance);
     } catch (err) {
       console.error("Error fetching radar data:", err);
@@ -190,6 +205,7 @@ const Arithmetic_Radar: React.FC = () => {
     }
   };
 
+  // 🚀 Initialize chart
   useEffect(() => {
     setVisible(true);
     void fetchRadarData();
@@ -216,22 +232,23 @@ const Arithmetic_Radar: React.FC = () => {
         datasets: [
           {
             label: "🏆 Best Performance (Arithmetic Sequence)",
-            data: [performance.time, performance.problemSolving, performance.solving],
+            data: [
+              performance.time,
+              performance.problemSolving,
+              performance.solving,
+            ],
             fill: true,
             backgroundColor: gradient,
             borderColor: "rgb(54, 162, 235)",
             borderWidth: 3,
             pointBackgroundColor: "rgb(236, 72, 153)",
             pointBorderColor: "#fff",
-            pointHoverBackgroundColor: "#fff",
-            pointHoverBorderColor: "rgb(236, 72, 153)",
           },
         ],
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        animation: { duration: 800, easing: "easeOutCirc" },
         plugins: {
           legend: {
             display: true,
@@ -252,9 +269,6 @@ const Arithmetic_Radar: React.FC = () => {
         },
         scales: {
           r: {
-            angleLines: { color: "rgba(156, 163, 175, 0.3)" },
-            grid: { color: "rgba(209, 213, 219, 0.3)" },
-            pointLabels: { color: "#111", font: { size: 12, weight: "bold" } },
             suggestedMin: 0,
             suggestedMax: 100,
             ticks: { display: false },
@@ -296,8 +310,8 @@ const Arithmetic_Radar: React.FC = () => {
               <motion.h2
                 initial={{ opacity: 0, y: -8 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: 0.1 }}
-                style={{ fontSize: 22, fontWeight: 700, color: "#222", margin: 0 }}
+                transition={{ duration: 0.6 }}
+                style={{ fontSize: 22, fontWeight: 700, color: "#222" }}
               >
                 🏅 Best Performance Overview
               </motion.h2>
@@ -326,7 +340,7 @@ const Arithmetic_Radar: React.FC = () => {
               <motion.div
                 initial={{ opacity: 0, scale: 0.96, y: 12 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
-                transition={{ duration: 0.8, delay: 0.7, ease: "easeOut" }}
+                transition={{ duration: 0.8, delay: 0.7 }}
                 style={{
                   width: "100%",
                   maxWidth: 500,
@@ -336,9 +350,6 @@ const Arithmetic_Radar: React.FC = () => {
                   boxShadow: "0px 8px 20px rgba(0,0,0,0.08)",
                   marginTop: 24,
                   padding: 16,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
                 }}
               >
                 <canvas ref={radarRef} style={{ width: "100%", height: "100%" }} />
@@ -347,9 +358,6 @@ const Arithmetic_Radar: React.FC = () => {
               <motion.button
                 onClick={fetchRadarData}
                 disabled={loading}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 1.2 }}
                 whileTap={{ scale: 0.96 }}
                 whileHover={{ scale: loading ? 1 : 1.03 }}
                 style={{
@@ -362,28 +370,12 @@ const Arithmetic_Radar: React.FC = () => {
                   fontWeight: 700,
                   borderRadius: 10,
                   border: "none",
-                  cursor: loading ? "default" : "pointer",
                   marginTop: 24,
                   width: "100%",
                   maxWidth: 200,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: 8,
                 }}
               >
-                {loading ? (
-                  <motion.span
-                    animate={{ rotate: 360 }}
-                    transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
-                    style={{ display: "inline-block" }}
-                  >
-                    🔄
-                  </motion.span>
-                ) : (
-                  "🔄"
-                )}
-                {loading ? "Refreshing..." : "Refresh"}
+                {loading ? "🔄 Refreshing..." : "🔄 Refresh"}
               </motion.button>
             </motion.div>
           )}

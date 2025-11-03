@@ -67,7 +67,7 @@ const Motion_Radar: React.FC = () => {
   const [selectedAttemptIndex, setSelectedAttemptIndex] = useState<number>(0);
   const [loading, setLoading] = useState(false);
 
-  // 🔹 Animate radar values smoothly
+  // 🔹 Smooth radar animation
   const animateRadarUpdate = (
     newData: { time: number; solving: number; problemSolving: number },
     duration = 800
@@ -92,7 +92,7 @@ const Motion_Radar: React.FC = () => {
     }, interval);
   };
 
-  // 🔹 Safe map Supabase data
+  // 🔹 Safe Supabase mapping
   const safeMapScore = (r: Record<string, unknown>): ScoreWithQuizzes => {
     const rawQuizzes = r["quizzes"];
     let quizObj: QuizRef | null = null;
@@ -131,7 +131,7 @@ const Motion_Radar: React.FC = () => {
     };
   };
 
-  // 🔹 Fetch Supabase data
+  // 🔹 Fetch data from Supabase
   const fetchRadarData = async () => {
     setLoading(true);
     try {
@@ -157,12 +157,12 @@ const Motion_Radar: React.FC = () => {
       const raw = (data || []) as Record<string, unknown>[];
       const typed: ScoreWithQuizzes[] = raw.map(safeMapScore);
 
-      // Filter for Uniform Motion in Physics
+      // 🔹 Filter for "Uniform Motion in Physics"
       const motionScores = typed.filter(
         (s) => s.quizzes?.subject === "Uniform Motion in Physics"
       );
 
-      // Group attempts (2 entries each)
+      // 🔹 Group attempts (2 entries each: Solving + Problem Solving)
       const grouped: ScoreWithQuizzes[][] = [];
       const sorted = motionScores.sort(
         (a, b) =>
@@ -190,7 +190,7 @@ const Motion_Radar: React.FC = () => {
     }
   };
 
-  // 🔹 Compute radar values per attempt
+  // 🔹 Update radar data (with animation)
   const updateRadarForAttempt = (index: number, data = attempts) => {
     const target = data[index];
     if (!target || target.length === 0) {
@@ -203,7 +203,10 @@ const Motion_Radar: React.FC = () => {
       target.length;
     const timePercent = Math.max(
       0,
-      Math.min(100, parseFloat((((MAX_TIME - avgTime) / MAX_TIME) * 100).toFixed(2)))
+      Math.min(
+        100,
+        parseFloat((((MAX_TIME - avgTime) / MAX_TIME) * 100).toFixed(2))
+      )
     );
 
     const solvingScores = target.filter(
@@ -299,7 +302,7 @@ const Motion_Radar: React.FC = () => {
       <IonContent fullscreen>
         <AnimatePresence>
           <motion.div
-            key="radar-motion"
+            key="motion-radar"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}

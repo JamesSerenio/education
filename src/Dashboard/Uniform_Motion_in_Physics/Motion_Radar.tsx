@@ -67,7 +67,7 @@ const Motion_Radar: React.FC = () => {
   const [selectedAttemptIndex, setSelectedAttemptIndex] = useState<number>(0);
   const [loading, setLoading] = useState(false);
 
-  // 🔹 Smooth radar animation
+  // Smooth radar animation
   const animateRadarUpdate = (
     newData: { time: number; solving: number; problemSolving: number },
     duration = 800
@@ -92,7 +92,7 @@ const Motion_Radar: React.FC = () => {
     }, interval);
   };
 
-  // 🔹 Safe Supabase mapping
+  // Safe mapper
   const safeMapScore = (r: Record<string, unknown>): ScoreWithQuizzes => {
     const rawQuizzes = r["quizzes"];
     let quizObj: QuizRef | null = null;
@@ -131,7 +131,6 @@ const Motion_Radar: React.FC = () => {
     };
   };
 
-  // 🔹 Fetch data from Supabase
   const fetchRadarData = async () => {
     setLoading(true);
     try {
@@ -157,16 +156,17 @@ const Motion_Radar: React.FC = () => {
       const raw = (data || []) as Record<string, unknown>[];
       const typed: ScoreWithQuizzes[] = raw.map(safeMapScore);
 
-      // 🔹 Filter for "Uniform Motion in Physics"
+      // ✅ Filter for "Uniform Motion in Physics"
       const motionScores = typed.filter(
         (s) => s.quizzes?.subject === "Uniform Motion in Physics"
       );
 
-      // 🔹 Group attempts (2 entries each: Solving + Problem Solving)
+      // group attempts by every 2 entries (Solving + Problem Solving)
       const grouped: ScoreWithQuizzes[][] = [];
       const sorted = motionScores.sort(
         (a, b) =>
-          new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+          new Date(a.created_at).getTime() -
+          new Date(b.created_at).getTime()
       );
 
       for (let i = 0; i < sorted.length; i += 2) {
@@ -190,7 +190,7 @@ const Motion_Radar: React.FC = () => {
     }
   };
 
-  // 🔹 Update radar data (with animation)
+  // ✅ Compute radar values properly
   const updateRadarForAttempt = (index: number, data = attempts) => {
     const target = data[index];
     if (!target || target.length === 0) {
@@ -203,10 +203,7 @@ const Motion_Radar: React.FC = () => {
       target.length;
     const timePercent = Math.max(
       0,
-      Math.min(
-        100,
-        parseFloat((((MAX_TIME - avgTime) / MAX_TIME) * 100).toFixed(2))
-      )
+      Math.min(100, parseFloat((((MAX_TIME - avgTime) / MAX_TIME) * 100).toFixed(2)))
     );
 
     const solvingScores = target.filter(
@@ -302,7 +299,7 @@ const Motion_Radar: React.FC = () => {
       <IonContent fullscreen>
         <AnimatePresence>
           <motion.div
-            key="motion-radar"
+            key="radar-motion"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}

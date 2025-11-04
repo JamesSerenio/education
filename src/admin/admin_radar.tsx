@@ -106,68 +106,77 @@ const AdminRadar: React.FC = () => {
     };
   };
 
-  // 🔹 Fetch and calculate averages by subject and category filters
-  const fetchSubjectData = async (subject: string): Promise<UserScore> => {
-    try {
-      const { data, error } = await supabase
-        .from("scores")
-        .select(`
-          id, score, time_taken, created_at, quiz_id,
-          quizzes!quiz_id (id, category, subject)
-        `)
-        .eq("quizzes.subject", subject)
-        .order("created_at", { ascending: false });
+// 🔹 Fetch and calculate averages by subject and category filters
+const fetchSubjectData = async (subject: string): Promise<UserScore> => {
+  try {
+    const { data, error } = await supabase
+      .from("scores")
+      .select(`
+        id, score, time_taken, created_at, quiz_id,
+        quizzes!inner (id, category, subject)
+      `)
+      .order("created_at", { ascending: false });
 
-      if (error) throw error;
+    if (error) throw error;
 
-      const scores: ScoreWithQuizzes[] = (data || []).map(mapToScoreWithQuizzes);
-      if (scores.length === 0) return { time: 0, solving: 0, problemSolving: 0 };
+    // Map data correctly
+    const scores: ScoreWithQuizzes[] = (data || []).map(mapToScoreWithQuizzes);
 
-      // ✅ Filter based on subject + relevant categories
-      const relevantCategories = ["Problem Solving", "Word Problem"];
-      const subjectScores = scores.filter(
-        (s) => s.quizzes?.subject === subject && relevantCategories.includes(s.quizzes?.category || "")
-      );
+    // ✅ Filter only records for the specific subject
+    const subjectScores = scores.filter(
+      (s) => s.quizzes?.subject === subject
+    );
 
-      // ✅ Compute averages
-      const avgTime =
-        subjectScores.reduce((sum, s) => sum + (s.time_taken ?? 0), 0) /
-        subjectScores.length;
-      const timePercent = Math.max(0, Math.min(100, ((MAX_TIME - avgTime) / MAX_TIME) * 100));
-
-      const problemSolvingScores = subjectScores.filter(
-        (s) => s.quizzes?.category === "Problem Solving" && s.score !== null
-      );
-      const wordProblemScores = subjectScores.filter(
-        (s) => s.quizzes?.category === "Word Problem" && s.score !== null
-      );
-
-      const problemSolvingPercent =
-        problemSolvingScores.length > 0
-          ? (problemSolvingScores.reduce((sum, s) => sum + (s.score ?? 0), 0) /
-              problemSolvingScores.length /
-              MAX_SCORE) *
-            100
-          : 0;
-
-      const solvingPercent =
-        wordProblemScores.length > 0
-          ? (wordProblemScores.reduce((sum, s) => sum + (s.score ?? 0), 0) /
-              wordProblemScores.length /
-              MAX_SCORE) *
-            100
-          : 0;
-
-      return {
-        time: parseFloat(timePercent.toFixed(2)),
-        solving: parseFloat(solvingPercent.toFixed(2)),
-        problemSolving: parseFloat(problemSolvingPercent.toFixed(2)),
-      };
-    } catch (err) {
-      console.error(`Error fetching ${subject} data:`, err);
+    if (subjectScores.length === 0)
       return { time: 0, solving: 0, problemSolving: 0 };
-    }
-  };
+
+    // ✅ Compute average time
+    const avgTime =
+      subjectScores.reduce((sum, s) => sum + (s.time_taken ?? 0), 0) /
+      subjectScores.length;
+
+    const timePercent = Math.max(
+      0,
+      Math.min(100, ((MAX_TIME - avgTime) / MAX_TIME) * 100)
+    );
+
+    // ✅ Compute Problem Solving (category = "Problem Solving")
+    const problemSolvingScores = subjectScores.filter(
+      (s) => s.quizzes?.category === "Problem Solving" && s.score !== null
+    );
+
+    const problemSolvingPercent =
+      problemSolvingScores.length > 0
+        ? (problemSolvingScores.reduce((sum, s) => sum + (s.score ?? 0), 0) /
+            problemSolvingScores.length /
+            MAX_SCORE) *
+          100
+        : 0;
+
+    // ✅ Compute Word Problem (category = "Word Problem")
+    const wordProblemScores = subjectScores.filter(
+      (s) => s.quizzes?.category === "Word Problem" && s.score !== null
+    );
+
+    const solvingPercent =
+      wordProblemScores.length > 0
+        ? (wordProblemScores.reduce((sum, s) => sum + (s.score ?? 0), 0) /
+            wordProblemScores.length /
+            MAX_SCORE) *
+          100
+        : 0;
+
+    // ✅ Return isolated subject-specific averages
+    return {
+      time: parseFloat(timePercent.toFixed(2)),
+      solving: parseFloat(solvingPercent.toFixed(2)),
+      problemSolving: parseFloat(problemSolvingPercent.toFixed(2)),
+    };
+  } catch (err) {
+    console.error(`Error fetching ${subject} data:`, err);
+    return { time: 0, solving: 0, problemSolving: 0 };
+  }
+};
 
   const animateRadarUpdate = (
     setScore: React.Dispatch<React.SetStateAction<UserScore>>,

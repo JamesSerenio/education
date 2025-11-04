@@ -77,7 +77,7 @@ const AdminRadar: React.FC = () => {
     problemSolving: 0,
   });
 
-  const [isRefreshing, setIsRefreshing] = useState(false); // 🔄 loading state
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const mapToScoreWithQuizzes = (rawData: Record<string, unknown>): ScoreWithQuizzes => {
     const quiz = rawData.quizzes as Record<string, unknown> | null;
@@ -105,7 +105,6 @@ const AdminRadar: React.FC = () => {
     };
   };
 
-  // ✅ UPDATED: only include Word Problem + Problem Solving
   const fetchSubjectData = async (subject: string): Promise<UserScore> => {
     try {
       const { data, error } = await supabase
@@ -115,7 +114,6 @@ const AdminRadar: React.FC = () => {
           quizzes!quiz_id (id, category, subject)
         `)
         .eq("quizzes.subject", subject)
-        .in("quizzes.category", ["Word Problem", "Problem Solving"])
         .order("created_at", { ascending: false });
 
       if (error) throw error;
@@ -123,35 +121,32 @@ const AdminRadar: React.FC = () => {
       const scores: ScoreWithQuizzes[] = (data || []).map(mapToScoreWithQuizzes);
       if (scores.length === 0) return { time: 0, solving: 0, problemSolving: 0 };
 
+      const subjectScores = scores.filter((s) => s.quizzes?.subject === subject);
+
       const avgTime =
-        scores.reduce((sum, s) => sum + (s.time_taken ?? 0), 0) / scores.length;
+        subjectScores.reduce((sum, s) => sum + (s.time_taken ?? 0), 0) /
+        subjectScores.length;
       const timePercent = Math.max(0, Math.min(100, ((MAX_TIME - avgTime) / MAX_TIME) * 100));
 
-      const wordProblemScores = scores.filter(
-        (s) => s.quizzes?.category === "Word Problem" && s.score !== null
+      const solvingScores = subjectScores.filter(
+        (s) => s.quizzes?.category === "Word Problem" && s.score !== null // ✅ changed category name
       );
-      const wordProblemPercent =
-        wordProblemScores.length > 0
-          ? (wordProblemScores.reduce((sum, s) => sum + (s.score ?? 0), 0) /
-              wordProblemScores.length /
-              MAX_SCORE) *
-            100
+      const solvingPercent =
+        solvingScores.length > 0
+          ? (solvingScores.reduce((sum, s) => sum + (s.score ?? 0), 0) / solvingScores.length / MAX_SCORE) * 100
           : 0;
 
-      const problemSolvingScores = scores.filter(
+      const problemScores = subjectScores.filter(
         (s) => s.quizzes?.category === "Problem Solving" && s.score !== null
       );
       const problemSolvingPercent =
-        problemSolvingScores.length > 0
-          ? (problemSolvingScores.reduce((sum, s) => sum + (s.score ?? 0), 0) /
-              problemSolvingScores.length /
-              MAX_SCORE) *
-            100
+        problemScores.length > 0
+          ? (problemScores.reduce((sum, s) => sum + (s.score ?? 0), 0) / problemScores.length / MAX_SCORE) * 100
           : 0;
 
       return {
         time: parseFloat(timePercent.toFixed(2)),
-        solving: parseFloat(wordProblemPercent.toFixed(2)), // 🔹 label “solving” as Word Problem
+        solving: parseFloat(solvingPercent.toFixed(2)),
         problemSolving: parseFloat(problemSolvingPercent.toFixed(2)),
       };
     } catch (err) {
@@ -167,6 +162,7 @@ const AdminRadar: React.FC = () => {
   ) => {
     const steps = 30;
     const interval = duration / steps;
+
     setScore({ time: 0, solving: 0, problemSolving: 0 });
 
     let currentStep = 0;
@@ -245,13 +241,13 @@ const AdminRadar: React.FC = () => {
         Subject: "Arithmetic Sequence",
         "⏱ Time (%)": `${arithmeticScore.time}%`,
         "🧩 Problem Solving (%)": `${arithmeticScore.problemSolving}%`,
-        "🧮 Word Problem (%)": `${arithmeticScore.solving}%`,
+        "🧮 Word Problem (%)": `${arithmeticScore.solving}%`, // ✅ updated
       },
       {
         Subject: "Uniform Motion in Physics",
         "⏱ Time (%)": `${physicsScore.time}%`,
         "🧩 Problem Solving (%)": `${physicsScore.problemSolving}%`,
-        "🧮 Word Problem (%)": `${physicsScore.solving}%`,
+        "🧮 Solving (%)": `${physicsScore.solving}%`,
       },
       {},
       { "STUDENT QUIZ RESULTS": "" },
@@ -281,6 +277,7 @@ const AdminRadar: React.FC = () => {
     return Number.isInteger(value) ? `${value}%` : `${value.toFixed(2)}%`;
   };
 
+  // ✅ updated: arithmetic radar only shows Word Problem & Problem Solving
   const createRadarChart = (
     ctx: CanvasRenderingContext2D,
     data: UserScore,
@@ -290,14 +287,20 @@ const AdminRadar: React.FC = () => {
     gradient.addColorStop(0, "rgba(54, 162, 235, 0.3)");
     gradient.addColorStop(1, "rgba(236, 72, 153, 0.3)");
 
+    const isArithmetic = title.includes("Arithmetic");
+
     return new ChartJS(ctx, {
       type: "radar",
       data: {
-        labels: ["⏱ Time", "🧮 Word Problem", "🧩 Problem Solving"],
+        labels: isArithmetic
+          ? ["🧩 Word Problem", "🧮 Problem Solving"]
+          : ["⏱ Time", "🧩 Problem Solving", "🧮 Solving"],
         datasets: [
           {
             label: `${title} Average`,
-            data: [data.time, data.solving, data.problemSolving],
+            data: isArithmetic
+              ? [data.solving, data.problemSolving]
+              : [data.time, data.problemSolving, data.solving],
             fill: true,
             backgroundColor: gradient,
             borderColor: "rgb(54, 162, 235)",
@@ -421,7 +424,6 @@ const AdminRadar: React.FC = () => {
             </div>
           </div>
 
-          {/* 🔄 Refresh Button */}
           <button
             onClick={handleRefresh}
             disabled={isRefreshing}
@@ -457,7 +459,6 @@ const AdminRadar: React.FC = () => {
             {isRefreshing ? "Refreshing..." : "Refresh Both Subjects"}
           </button>
 
-          {/* 📘 Export Button */}
           <button
             onClick={exportAllToExcel}
             style={{

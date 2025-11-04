@@ -77,7 +77,7 @@ const AdminRadar: React.FC = () => {
     problemSolving: 0,
   });
 
-  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false); // 🔄 loading state
 
   const mapToScoreWithQuizzes = (rawData: Record<string, unknown>): ScoreWithQuizzes => {
     const quiz = rawData.quizzes as Record<string, unknown> | null;
@@ -129,7 +129,7 @@ const AdminRadar: React.FC = () => {
       const timePercent = Math.max(0, Math.min(100, ((MAX_TIME - avgTime) / MAX_TIME) * 100));
 
       const solvingScores = subjectScores.filter(
-        (s) => s.quizzes?.category === "Word Problem" && s.score !== null // ✅ changed category name
+        (s) => s.quizzes?.category === "Solving" && s.score !== null
       );
       const solvingPercent =
         solvingScores.length > 0
@@ -155,6 +155,7 @@ const AdminRadar: React.FC = () => {
     }
   };
 
+  // 🔹 Smooth animation function (babalik muna sa zero tapos bubukadkad)
   const animateRadarUpdate = (
     setScore: React.Dispatch<React.SetStateAction<UserScore>>,
     newScore: UserScore,
@@ -163,7 +164,7 @@ const AdminRadar: React.FC = () => {
     const steps = 30;
     const interval = duration / steps;
 
-    setScore({ time: 0, solving: 0, problemSolving: 0 });
+    setScore({ time: 0, solving: 0, problemSolving: 0 }); // reset to 0 first
 
     let currentStep = 0;
     const start = { time: 0, solving: 0, problemSolving: 0 };
@@ -241,7 +242,7 @@ const AdminRadar: React.FC = () => {
         Subject: "Arithmetic Sequence",
         "⏱ Time (%)": `${arithmeticScore.time}%`,
         "🧩 Problem Solving (%)": `${arithmeticScore.problemSolving}%`,
-        "🧮 Word Problem (%)": `${arithmeticScore.solving}%`, // ✅ updated
+        "🧮 Solving (%)": `${arithmeticScore.solving}%`,
       },
       {
         Subject: "Uniform Motion in Physics",
@@ -277,7 +278,6 @@ const AdminRadar: React.FC = () => {
     return Number.isInteger(value) ? `${value}%` : `${value.toFixed(2)}%`;
   };
 
-  // ✅ updated: arithmetic radar only shows Word Problem & Problem Solving
   const createRadarChart = (
     ctx: CanvasRenderingContext2D,
     data: UserScore,
@@ -287,20 +287,14 @@ const AdminRadar: React.FC = () => {
     gradient.addColorStop(0, "rgba(54, 162, 235, 0.3)");
     gradient.addColorStop(1, "rgba(236, 72, 153, 0.3)");
 
-    const isArithmetic = title.includes("Arithmetic");
-
     return new ChartJS(ctx, {
       type: "radar",
       data: {
-        labels: isArithmetic
-          ? ["🧩 Word Problem", "🧮 Problem Solving"]
-          : ["⏱ Time", "🧩 Problem Solving", "🧮 Solving"],
+        labels: ["⏱ Time", "🧩 Problem Solving", "🧮 Solving"],
         datasets: [
           {
             label: `${title} Average`,
-            data: isArithmetic
-              ? [data.solving, data.problemSolving]
-              : [data.time, data.problemSolving, data.solving],
+            data: [data.time, data.problemSolving, data.solving],
             fill: true,
             backgroundColor: gradient,
             borderColor: "rgb(54, 162, 235)",
@@ -424,6 +418,7 @@ const AdminRadar: React.FC = () => {
             </div>
           </div>
 
+          {/* 🔄 Refresh Button */}
           <button
             onClick={handleRefresh}
             disabled={isRefreshing}
@@ -459,6 +454,7 @@ const AdminRadar: React.FC = () => {
             {isRefreshing ? "Refreshing..." : "Refresh Both Subjects"}
           </button>
 
+          {/* 📘 Export Button */}
           <button
             onClick={exportAllToExcel}
             style={{

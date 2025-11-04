@@ -277,23 +277,14 @@ const fetchSubjectData = async (subject: string): Promise<UserScore> => {
 
     const ws = XLSX.utils.json_to_sheet([...summarySection, {}, ...formatted]);
     ws["!cols"] = [
-  { wch: 30 }, // Subject / Full Name
-  { wch: 18 }, // Time (%)
-  { wch: 20 }, // Problem Solving (%)
-  { wch: 20 }, // Word Problem (%)
-  { wch: 25 }, // Email
-  { wch: 25 }, // Category
-  { wch: 12 }, // Score
-  { wch: 15 }, // Time Taken (s)
-  { wch: 25 }, // Date Taken
-];
-
-// ✅ Enable wrap text and center align all cells
-Object.keys(ws).forEach((cell) => {
-  if (cell[0] === "!") return;
-  if (!ws[cell].s) ws[cell].s = {};
-  ws[cell].s.alignment = { wrapText: true, vertical: "center", horizontal: "center" };
-});
+      { wch: 30 },
+      { wch: 25 },
+      { wch: 25 },
+      { wch: 20 },
+      { wch: 10 },
+      { wch: 15 },
+      { wch: 25 },
+    ];
 
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "All Results");

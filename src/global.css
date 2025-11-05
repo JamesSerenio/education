@@ -624,14 +624,6 @@ ion-segment-button {
   }
 }
 
-/* --- Hide scrollbar globally --- */
-ion-content {
-  --overflow: hidden !important;
-}
-
-::-webkit-scrollbar {
-  display: none;
-}
 
 /* --- arithmetic Leaderboard  --- */
 .leaderboard-card {
@@ -724,7 +716,6 @@ ion-content {
   }
 }
 
-/* --- Arithmetic Radar Section --- */
 /* --- Arithmetic Radar Section --- */
 .arithmetic-radar-container {
   background: linear-gradient(135deg, #fafffa, #fffde7);

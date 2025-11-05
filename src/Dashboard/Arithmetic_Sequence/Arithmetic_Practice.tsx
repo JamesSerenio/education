@@ -19,7 +19,6 @@ import {
 import { useHistory } from "react-router-dom"; 
 import ArithmeticQuiz from "./arithmetic_quiz";
 
-
 const Arithmetic_Practice: React.FC = () => {
   const history = useHistory();
   const [category, setCategory] = useState<string>("an");
@@ -316,7 +315,7 @@ const Arithmetic_Practice: React.FC = () => {
     clearErrors();
   };
 
-    if (showQuiz) {
+  if (showQuiz) {
     return <ArithmeticQuiz />;
   }
 
@@ -328,153 +327,163 @@ const Arithmetic_Practice: React.FC = () => {
         </IonToolbar>
       </IonHeader>
       <IonContent className="ion-padding arithmetic-practice-content">
-        {/* Select Category */}
-        <IonItem className="arithmetic-practice-item">
-          <IonLabel className="arithmetic-practice-label">Choose Category</IonLabel>
-          <IonSelect
-            value={category}
-            onIonChange={(e) => {
-              setCategory(e.detail.value);
-              setResult("");
-              setSteps([]);
-              clearErrors();
-            }}
-            className="arithmetic-practice-select"
-          >
-            <IonSelectOption value="an">Find aₙ</IonSelectOption>
-            <IonSelectOption value="a1">Find a₁</IonSelectOption>
-            <IonSelectOption value="n">Find n</IonSelectOption>
-            <IonSelectOption value="d">Find d</IonSelectOption>
-          </IonSelect>
-        </IonItem>
+        {/* Main container for left-right layout */}
+        <div className="arithmetic-main-container">
+          {/* Left side: Select Category, Inputs, Buttons */}
+          <div className="arithmetic-left-side">
+            {/* Select Category */}
+            <IonItem className="arithmetic-practice-item">
+              <IonLabel className="arithmetic-practice-label">Choose Category</IonLabel>
+              <IonSelect
+                value={category}
+                onIonChange={(e) => {
+                  setCategory(e.detail.value);
+                  setResult("");
+                  setSteps([]);
+                  clearErrors();
+                }}
+                className="arithmetic-practice-select"
+              >
+                <IonSelectOption value="an">Find aₙ</IonSelectOption>
+                <IonSelectOption value="a1">Find a₁</IonSelectOption>
+                <IonSelectOption value="n">Find n</IonSelectOption>
+                <IonSelectOption value="d">Find d</IonSelectOption>
+              </IonSelect>
+            </IonItem>
 
-        {/* Inputs */}
-        {category !== "a1" && (
-          <IonItem lines="none" className="arithmetic-practice-input-item">
-            <div className="arithmetic-practice-input-container">
-              <IonLabel position="stacked" className="arithmetic-practice-input-label">a₁</IonLabel>
-              <IonInput
-                ref={a1Ref}
-                type="number"
-                inputMode="decimal"
-                value={a1}
-                onIonChange={(e) => setA1(e.detail.value ?? "")}
-                onKeyDown={blockInvalidKeys}
-                className="arithmetic-practice-input"
-              />
-              {a1Error && (
-                <IonText color="danger" className="arithmetic-practice-error-text">
-                  {a1Error}
-                </IonText>
-              )}
-            </div>
-          </IonItem>
-        )}
+            {/* Inputs */}
+            {category !== "a1" && (
+              <IonItem lines="none" className="arithmetic-practice-input-item">
+                <div className="arithmetic-practice-input-container">
+                  <IonLabel position="stacked" className="arithmetic-practice-input-label">a₁</IonLabel>
+                  <IonInput
+                    ref={a1Ref}
+                    type="number"
+                    inputMode="decimal"
+                    value={a1}
+                    onIonChange={(e) => setA1(e.detail.value ?? "")}
+                    onKeyDown={blockInvalidKeys}
+                    className="arithmetic-practice-input"
+                  />
+                  {a1Error && (
+                    <IonText color="danger" className="arithmetic-practice-error-text">
+                      {a1Error}
+                    </IonText>
+                  )}
+                </div>
+              </IonItem>
+            )}
 
-        {category !== "an" && (
-          <IonItem lines="none" className="arithmetic-practice-input-item">
-            <div className="arithmetic-practice-input-container">
-              <IonLabel position="stacked" className="arithmetic-practice-input-label">aₙ</IonLabel>
-              <IonInput
-                ref={anRef}
-                type="number"
-                inputMode="decimal"
-                value={an}
-                onIonChange={(e) => setAn(e.detail.value ?? "")}
-                onKeyDown={blockInvalidKeys}
-                className="arithmetic-practice-input"
-              />
-              {anError && (
-                <IonText color="danger" className="arithmetic-practice-error-text">
-                  {anError}
-                </IonText>
-              )}
-            </div>
-          </IonItem>
-        )}
+            {category !== "an" && (
+              <IonItem lines="none" className="arithmetic-practice-input-item">
+                <div className="arithmetic-practice-input-container">
+                  <IonLabel position="stacked" className="arithmetic-practice-input-label">aₙ</IonLabel>
+                  <IonInput
+                    ref={anRef}
+                    type="number"
+                    inputMode="decimal"
+                    value={an}
+                    onIonChange={(e) => setAn(e.detail.value ?? "")}
+                    onKeyDown={blockInvalidKeys}
+                    className="arithmetic-practice-input"
+                  />
+                  {anError && (
+                    <IonText color="danger" className="arithmetic-practice-error-text">
+                      {anError}
+                    </IonText>
+                  )}
+                </div>
+              </IonItem>
+            )}
 
-        {category !== "n" && (
-          <IonItem lines="none" className="arithmetic-practice-input-item">
-            <div className="arithmetic-practice-input-container">
-              <IonLabel position="stacked" className="arithmetic-practice-input-label">n</IonLabel>
-              <IonInput
-                ref={nRef}
-                type="number"
-                inputMode="numeric"
-                value={n}
-                onIonChange={(e) => setN(e.detail.value ?? "")}
-                onKeyDown={blockInvalidKeys}
-                className="arithmetic-practice-input"
-              />
-              {nError && (
-                <IonText color="danger" className="arithmetic-practice-error-text">
-                  {nError}
-                </IonText>
-              )}
-            </div>
-          </IonItem>
-        )}
-        {category !== "d" && (
-          <IonItem lines="none" className="arithmetic-practice-input-item">
-            <div className="arithmetic-practice-input-container">
-              <IonLabel position="stacked" className="arithmetic-practice-input-label">d</IonLabel>
-              <IonInput
-                ref={dRef}
-                type="number"
-                inputMode="decimal"
-                value={d}
-                onIonChange={(e) => setD(e.detail.value ?? "")}
-                onKeyDown={blockInvalidKeys}
-                className="arithmetic-practice-input"
-              />
-              {dError && (
-                <IonText color="danger" className="arithmetic-practice-error-text">
-                  {dError}
-                </IonText>
-              )}
-            </div>
-          </IonItem>
-        )}
+            {category !== "n" && (
+              <IonItem lines="none" className="arithmetic-practice-input-item">
+                <div className="arithmetic-practice-input-container">
+                  <IonLabel position="stacked" className="arithmetic-practice-input-label">n</IonLabel>
+                  <IonInput
+                    ref={nRef}
+                    type="number"
+                    inputMode="numeric"
+                    value={n}
+                    onIonChange={(e) => setN(e.detail.value ?? "")}
+                    onKeyDown={blockInvalidKeys}
+                    className="arithmetic-practice-input"
+                  />
+                                    {nError && (
+                    <IonText color="danger" className="arithmetic-practice-error-text">
+                      {nError}
+                    </IonText>
+                  )}
+                </div>
+              </IonItem>
+            )}
 
-        {/* Buttons (centered) */}
-        <div className="arithmetic-practice-buttons-container">
-          <IonButton color="primary" onClick={calculate} className="arithmetic-practice-button">
-            Solve
-          </IonButton>
-          <IonButton color="medium" onClick={resetAll} className="arithmetic-practice-button">
-            Reset
-          </IonButton>
-          <IonButton
-            color="success"
-            onClick={() => setShowQuiz(true)} // 👉 switch to quiz
-            className="arithmetic-practice-button"
-          >
-            Proceed to Quiz
-          </IonButton>
+            {category !== "d" && (
+              <IonItem lines="none" className="arithmetic-practice-input-item">
+                <div className="arithmetic-practice-input-container">
+                  <IonLabel position="stacked" className="arithmetic-practice-input-label">d</IonLabel>
+                  <IonInput
+                    ref={dRef}
+                    type="number"
+                    inputMode="decimal"
+                    value={d}
+                    onIonChange={(e) => setD(e.detail.value ?? "")}
+                    onKeyDown={blockInvalidKeys}
+                    className="arithmetic-practice-input"
+                  />
+                  {dError && (
+                    <IonText color="danger" className="arithmetic-practice-error-text">
+                      {dError}
+                    </IonText>
+                  )}
+                </div>
+              </IonItem>
+            )}
+
+            {/* Buttons (centered) */}
+            <div className="arithmetic-practice-buttons-container">
+              <IonButton color="primary" onClick={calculate} className="arithmetic-practice-button">
+                Solve
+              </IonButton>
+              <IonButton color="medium" onClick={resetAll} className="arithmetic-practice-button">
+                Reset
+              </IonButton>
+              <IonButton
+                color="success"
+                onClick={() => setShowQuiz(true)} // 👉 switch to quiz
+                className="arithmetic-practice-button"
+              >
+                Proceed to Quiz
+              </IonButton>
+            </div>
+          </div>
+
+          {/* Right side: Step-by-step and Final Answer */}
+          <div className="arithmetic-right-side">
+            {/* Step-by-step */}
+            {steps.length > 0 && (
+              <div className="arithmetic-practice-steps-container">
+                <h3 className="arithmetic-practice-steps-title">Solution:</h3>
+                <ol className="arithmetic-practice-steps-list">
+                  {steps.map((s, i) => (
+                    <li key={i} className="arithmetic-practice-step-item">
+                      <IonText color="dark">{s}</IonText>
+                    </li>
+                  ))}
+                </ol>
+              </div>
+            )}
+
+            {/* Final Answer box (black border, black text inside) */}
+            {result && (
+              <div className="arithmetic-practice-result-box">
+                <IonText color="dark" className="arithmetic-practice-result-text">
+                  <strong>{result}</strong>
+                </IonText>
+              </div>
+            )}
+          </div>
         </div>
-
-        {/* Step-by-step */}
-        {steps.length > 0 && (
-          <div className="arithmetic-practice-steps-container">
-            <h3 className="arithmetic-practice-steps-title">Solution:</h3>
-            <ol className="arithmetic-practice-steps-list">
-              {steps.map((s, i) => (
-                <li key={i} className="arithmetic-practice-step-item">
-                  <IonText color="dark">{s}</IonText>
-                </li>
-              ))}
-            </ol>
-          </div>
-        )}
-
-        {/* Final Answer box (black border, black text inside) */}
-        {result && (
-          <div className="arithmetic-practice-result-box">
-            <IonText color="dark" className="arithmetic-practice-result-text">
-              <strong>{result}</strong>
-            </IonText>
-          </div>
-        )}
       </IonContent>
     </IonPage>
   );

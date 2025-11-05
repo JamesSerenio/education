@@ -240,6 +240,111 @@ input:-webkit-autofill:focus {
   box-shadow: 0 0 20px rgba(0,0,0,0.2);
 }
 
+/* === HOME === */
+
+.dashboard-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  padding: 30px;
+  background: linear-gradient(to bottom right, #f7fff6, #eaffea);
+  font-family: 'Poppins', sans-serif;
+}
+
+.dashboard-container {
+  text-align: center;
+  max-width: 900px;
+  width: 100%;
+}
+
+.auth-title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #222;
+  margin-bottom: 8px;
+}
+
+.dashboard-subtitle {
+  font-size: 1.1rem;
+  color: #444;
+  margin-bottom: 25px;
+}
+
+/* === Grid Layout for Cards === */
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 25px;
+  justify-content: center;
+}
+
+/* === Card Base Style === */
+.dashboard-ion-card {
+  border-radius: 20px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  text-align: left;
+  color: #222;
+  overflow: hidden;
+}
+
+.dashboard-ion-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+}
+
+/* === Light Green Theme (Arithmetic Sequence) === */
+.dashboard-ion-card:nth-child(1) {
+  background: linear-gradient(to bottom right, #d7f9d4, #b8f7b0);
+  border: 2px solid #7ae17a;
+}
+
+.dashboard-ion-card:nth-child(1) ion-card-title {
+  color: #146c2e;
+}
+
+.dashboard-ion-card:nth-child(1) ion-button {
+  --background: #7ae17a;
+  --background-hover: #5fd65f;
+  --color: #fff;
+  border-radius: 10px;
+  font-weight: 600;
+}
+
+/* === Canary Yellow Theme (Uniform Motion in Physics) === */
+.dashboard-ion-card:nth-child(2) {
+  background: linear-gradient(to bottom right, #fff7c0, #ffe96b);
+  border: 2px solid #f5d742;
+}
+
+.dashboard-ion-card:nth-child(2) ion-card-title {
+  color: #8a6b00;
+}
+
+.dashboard-ion-card:nth-child(2) ion-button {
+  --background: #f5d742;
+  --background-hover: #eac130;
+  --color: #222;
+  border-radius: 10px;
+  font-weight: 600;
+}
+
+@media (max-width: 768px) {
+  .auth-title {
+    font-size: 1.6rem;
+  }
+
+  .dashboard-grid {
+    gap: 15px;
+  }
+
+  .dashboard-ion-card {
+    padding: 10px;
+  }
+}
+
+
 /* === ADMIN HOME === */
 
 /* --- Welcome Title --- */
@@ -835,3 +940,4 @@ input:-webkit-autofill:focus {
     transform: rotate(360deg);
   }
 }
+

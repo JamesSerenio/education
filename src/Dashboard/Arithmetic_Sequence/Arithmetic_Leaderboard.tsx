@@ -33,7 +33,7 @@ interface LeaderboardRow {
 }
 
 const ArithmeticLeaderboard: React.FC = () => {
-  const [solvingData, setSolvingData] = useState<LeaderboardRow[]>([]);
+  const [wordProblemData, setWordProblemData] = useState<LeaderboardRow[]>([]);
   const [problemSolvingData, setProblemSolvingData] = useState<LeaderboardRow[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -78,7 +78,7 @@ const ArithmeticLeaderboard: React.FC = () => {
       if (!existing) {
         map.set(key, row);
       } else {
-        // Keep the one with higher score or if tie, lower time_taken
+        // Keep higher score, or if tie → lower time wins
         if (row.score > existing.score) {
           map.set(key, row);
         } else if (row.score === existing.score && row.time_taken < existing.time_taken) {
@@ -87,7 +87,7 @@ const ArithmeticLeaderboard: React.FC = () => {
       }
     });
 
-    // Convert map back to array and sort
+    // Sort: higher score first, then faster time
     return Array.from(map.values()).sort((a, b) => {
       if (b.score !== a.score) return b.score - a.score;
       return a.time_taken - b.time_taken;
@@ -119,14 +119,15 @@ const ArithmeticLeaderboard: React.FC = () => {
         return (data as RawScoreRow[]).map(normalizeRow);
       };
 
-      const solvingRaw = await fetchCategory("Solving");
+      // ✅ Updated category names:
+      const wordProblemRaw = await fetchCategory("Word Problem");
       const problemRaw = await fetchCategory("Problem Solving");
 
-      setSolvingData(filterHighestPerUser(solvingRaw));
+      setWordProblemData(filterHighestPerUser(wordProblemRaw));
       setProblemSolvingData(filterHighestPerUser(problemRaw));
     } catch (e) {
       console.error("Unexpected fetch error", e);
-      setSolvingData([]);
+      setWordProblemData([]);
       setProblemSolvingData([]);
     } finally {
       setLoading(false);
@@ -185,7 +186,7 @@ const ArithmeticLeaderboard: React.FC = () => {
           <div style={{ display: "flex", justifyContent: "center", margin: "8px 0" }}>
             <Trophy size={20} color="#f59e0b" />
           </div>
-          {loading ? <p>Loading...</p> : renderTable(solvingData)}
+          {loading ? <p>Loading...</p> : renderTable(wordProblemData)}
         </div>
 
         <div style={{ ...cardStyle, marginTop: 18 }}>

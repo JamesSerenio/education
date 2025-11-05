@@ -283,7 +283,7 @@ const fetchSubjectData = async (subject: string): Promise<UserScore> => {
       { wch: 20 },
       { wch: 10 },
       { wch: 15 },
-      { wch: 25 },
+      { wch: 25 }
     ];
 
     const wb = XLSX.utils.book_new();

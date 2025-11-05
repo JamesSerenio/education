@@ -535,7 +535,7 @@ ion-content {
 /* --- Card container --- */
 .arithmetic-card {
   backdrop-filter: blur(15px);
-  background: rgba(255, 255, 255, 0.8);
+  background: rgba(255, 255, 255, 0.85);
   border: 2px solid rgba(255, 255, 255, 0.3);
   border-radius: 20px;
   padding: 20px;
@@ -545,6 +545,7 @@ ion-content {
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
   transition: transform 0.4s ease, box-shadow 0.4s ease;
   position: relative;
+  margin: 0 auto;
 }
 
 .arithmetic-card:hover {
@@ -578,11 +579,11 @@ ion-content {
 /* --- Scrollable images --- */
 .image-scroll-container {
   margin-top: 15px;
-  max-height: 60vh; /* ✅ fit better on mobile */
+  max-height: 65vh; /* ✅ slightly taller for comfortable viewing */
   overflow-y: auto;
   border-radius: 12px;
   scroll-behavior: smooth;
-  -webkit-overflow-scrolling: touch; /* ✅ mobile scroll fix */
+  -webkit-overflow-scrolling: touch; /* ✅ iOS mobile fix */
 }
 
 .image-scroll-container::-webkit-scrollbar {
@@ -601,6 +602,7 @@ ion-segment {
   border-radius: 30px;
   backdrop-filter: blur(8px);
   margin-bottom: 10px;
+  padding: 4px;
 }
 
 ion-segment-button {
@@ -612,6 +614,7 @@ ion-segment-button {
   border-radius: 25px;
   transition: all 0.3s ease-in-out;
   box-shadow: 0 4px 10px rgba(250, 204, 21, 0.25);
+  min-width: 80px;
 }
 
 /* --- Responsive layout --- */
@@ -619,29 +622,66 @@ ion-segment-button {
   .arithmetic-module-container {
     flex-direction: column;
     align-items: center;
-    padding: 20px;
+    padding: 20px 10px;
+    gap: 1.5rem;
   }
 
   .arithmetic-card {
     max-width: 95%;
+    padding: 16px;
+    border-radius: 16px;
   }
 
-  /* ✅ make scroll container taller for small screens */
+  .arithmetic-card h3 {
+    font-size: 1.2rem;
+  }
+
+  ion-segment {
+    width: 100%;
+    overflow-x: auto;
+  }
+
+  ion-segment-button {
+    font-size: 0.9rem;
+    padding: 8px;
+  }
+
   .image-scroll-container {
-    max-height: 70vh;
+    max-height: 70vh; /* ✅ fits screen height better */
+  }
+}
+
+@media (max-width: 480px) {
+  .arithmetic-card {
+    width: 100%;
+    padding: 12px;
+    margin: 0;
+  }
+
+  .arithmetic-card h3 {
+    font-size: 1.1rem;
+  }
+
+  ion-segment-button {
+    font-size: 0.85rem;
+    min-width: 70px;
+  }
+
+  .image-scroll-container {
+    max-height: 75vh;
   }
 }
 
 /* --- Allow IonContent scroll --- */
 ion-content {
-  --overflow: auto !important; /* ✅ allow scroll on mobile */
+  --overflow: auto !important; /* ✅ ensures vertical scrolling on mobile */
 }
 
 ::-webkit-scrollbar {
   display: none;
 }
 
-/* --- arithmetic Leaderboard  --- */
+/* --- Arithmetic Leaderboard --- */
 .leaderboard-card {
   backdrop-filter: blur(15px);
   background: rgba(255, 255, 255, 0.85);
@@ -677,9 +717,10 @@ ion-content {
   margin-bottom: 10px;
 }
 
-/* Table styles */
+/* --- Table styles --- */
 .leaderboard-table-wrapper {
   overflow-x: auto;
+  width: 100%;
 }
 
 .leaderboard-table {
@@ -689,6 +730,7 @@ ion-content {
   border-radius: 12px;
   overflow: hidden;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+  font-size: 1rem;
 }
 
 .leaderboard-table th {
@@ -721,16 +763,62 @@ ion-content {
   padding: 15px;
 }
 
-/* Responsive layout */
+/* --- Responsive layout --- */
 @media (max-width: 768px) {
   .leaderboard-card {
     width: 95%;
+    padding: 15px;
+    border-radius: 16px;
   }
 
   .leaderboard-title {
     font-size: 1.3rem;
+    text-align: center;
+  }
+
+  .leaderboard-table {
+    font-size: 0.9rem; /* ✅ smaller text for mobile */
+  }
+
+  .leaderboard-table th,
+  .leaderboard-table td {
+    padding: 8px 6px; /* ✅ tighter spacing */
+  }
+
+  .leaderboard-table-wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch; /* ✅ smooth scrolling on iOS */
+  }
+
+  /* Optional: make table horizontally scrollable with hint */
+  .leaderboard-table-wrapper::after {
+    content: "Swipe →";
+    display: block;
+    text-align: right;
+    font-size: 0.75rem;
+    color: #aaa;
+    margin-top: 4px;
   }
 }
+
+@media (max-width: 480px) {
+  .leaderboard-card {
+    width: 100%;
+    margin: 10px 0;
+    padding: 12px;
+  }
+
+  .leaderboard-title {
+    font-size: 1.1rem;
+  }
+
+  .leaderboard-table th,
+  .leaderboard-table td {
+    font-size: 0.8rem;
+    padding: 6px 4px;
+  }
+}
+
 
 /* --- Arithmetic Radar Section --- */
 .arithmetic-radar-container {
@@ -886,7 +974,6 @@ ion-content {
     max-width: 180px;
   }
 }
-
 
 
 /* === ADMIN HOME === */

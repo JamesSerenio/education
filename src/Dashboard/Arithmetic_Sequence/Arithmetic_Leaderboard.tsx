@@ -33,7 +33,7 @@ interface LeaderboardRow {
 }
 
 const ArithmeticLeaderboard: React.FC = () => {
-  const [solvingData, setSolvingData] = useState<LeaderboardRow[]>([]);
+  const [wordProblemData, setWordProblemData] = useState<LeaderboardRow[]>([]);
   const [problemSolvingData, setProblemSolvingData] = useState<LeaderboardRow[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -41,25 +41,19 @@ const ArithmeticLeaderboard: React.FC = () => {
     fetchLeaderboards();
   }, []);
 
+  /** Normalizes Supabase row structure */
   const normalizeRow = (r: RawScoreRow): LeaderboardRow => {
-    let lastname = "";
-    if (r?.profiles) {
-      lastname = Array.isArray(r.profiles)
-        ? r.profiles[0]?.lastname ?? ""
-        : r.profiles.lastname ?? "";
-    }
+    const lastname = Array.isArray(r.profiles)
+      ? r.profiles[0]?.lastname ?? ""
+      : r.profiles?.lastname ?? "";
 
-    let category = "";
-    let subject = "";
-    if (r?.quizzes) {
-      if (Array.isArray(r.quizzes)) {
-        category = r.quizzes[0]?.category ?? "";
-        subject = r.quizzes[0]?.subject ?? "";
-      } else {
-        category = r.quizzes.category ?? "";
-        subject = r.quizzes.subject ?? "";
-      }
-    }
+    const category = Array.isArray(r.quizzes)
+      ? r.quizzes[0]?.category ?? ""
+      : r.quizzes?.category ?? "";
+
+    const subject = Array.isArray(r.quizzes)
+      ? r.quizzes[0]?.subject ?? ""
+      : r.quizzes?.subject ?? "";
 
     return {
       score: Number(r?.score ?? 0),
@@ -69,6 +63,7 @@ const ArithmeticLeaderboard: React.FC = () => {
     };
   };
 
+  /** Keeps only the best score per user */
   const filterHighestPerUser = (data: LeaderboardRow[]) => {
     const map = new Map<string, LeaderboardRow>();
 
@@ -92,6 +87,7 @@ const ArithmeticLeaderboard: React.FC = () => {
     });
   };
 
+  /** Fetch data for each category from Supabase */
   const fetchLeaderboards = async () => {
     setLoading(true);
     try {
@@ -110,26 +106,28 @@ const ArithmeticLeaderboard: React.FC = () => {
           .eq("quizzes.category", category);
 
         if (error) {
-          console.error(`${category} Error:`, error);
+          console.error(`Error fetching ${category}:`, error);
           return [];
         }
         return (data as RawScoreRow[]).map(normalizeRow);
       };
 
-      const solvingRaw = await fetchCategory("Solving");
-      const problemRaw = await fetchCategory("Problem Solving");
+      // ✅ Use exact category names from your quizzes table
+      const wordProblemRaw = await fetchCategory("Word Problem");
+      const problemSolvingRaw = await fetchCategory("Problem Solving");
 
-      setSolvingData(filterHighestPerUser(solvingRaw));
-      setProblemSolvingData(filterHighestPerUser(problemRaw));
+      setWordProblemData(filterHighestPerUser(wordProblemRaw));
+      setProblemSolvingData(filterHighestPerUser(problemSolvingRaw));
     } catch (e) {
       console.error("Unexpected fetch error", e);
-      setSolvingData([]);
+      setWordProblemData([]);
       setProblemSolvingData([]);
     } finally {
       setLoading(false);
     }
   };
 
+  /** Format time from seconds → MM:SS */
   const formatTime = (seconds: number) => {
     if (!Number.isFinite(seconds)) return "0:00";
     const mins = Math.floor(seconds / 60);
@@ -137,6 +135,7 @@ const ArithmeticLeaderboard: React.FC = () => {
     return `${mins}:${secs < 10 ? "0" : ""}${secs}`;
   };
 
+  /** Render leaderboard table */
   const renderTable = (data: LeaderboardRow[]) => (
     <div className="leaderboard-table-wrapper">
       <table className="leaderboard-table">
@@ -182,7 +181,7 @@ const ArithmeticLeaderboard: React.FC = () => {
           <div className="trophy-icon">
             <Trophy size={20} color="#65a30d" />
           </div>
-          {loading ? <p>Loading...</p> : renderTable(solvingData)}
+          {loading ? <p>Loading...</p> : renderTable(wordProblemData)}
         </div>
 
         <div className="leaderboard-card">

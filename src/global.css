@@ -1210,21 +1210,20 @@ ion-content {
 
 /* Arithmetic_Practice.css */
 
-/* 🌿 Page background & layout */
+/* 🌿 Page base layout */
 .arithmetic-practice-page {
   background: linear-gradient(135deg, #65a30d, #eab308);
   min-height: 100vh;
   display: flex;
   flex-direction: column;
   font-family: "Poppins", sans-serif;
-  overflow-y: auto;
 }
 
 /* Header */
 .arithmetic-practice-header {
   background: rgba(255, 255, 255, 0.15);
   backdrop-filter: blur(8px);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .arithmetic-practice-title {
@@ -1234,67 +1233,76 @@ ion-content {
   font-size: 1.4rem;
 }
 
-/* --- Content Wrapper --- */
+/* --- Content Container --- */
 .arithmetic-practice-content {
   display: flex;
   flex-direction: column;
-  justify-content: flex-start;
-  padding: 16px;
-  gap: 14px;
+  align-items: center;
+  padding: 24px;
+  gap: 18px;
   width: 100%;
   max-width: 900px;
   margin: 0 auto;
-  box-sizing: border-box;
 }
 
-/* Category select + input fields */
+/* --- Category & Input Boxes --- */
 .arithmetic-practice-item,
 .arithmetic-practice-input-item {
-  background: rgba(255, 255, 255, 0.9);
-  border-radius: 14px;
-  padding: 10px 12px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+  background: #ffffff;
+  border-radius: 18px;
+  padding: 14px 16px;
+  width: 100%;
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.arithmetic-practice-item:hover,
+.arithmetic-practice-input-item:hover {
+  transform: scale(1.02);
+  box-shadow: 0 6px 14px rgba(101, 163, 13, 0.4);
 }
 
 .arithmetic-practice-label {
   font-weight: 600;
   color: #222;
+  margin-bottom: 6px;
 }
 
 .arithmetic-practice-input {
-  --background: #fff;
-  border: 2px solid #ccc;
-  border-radius: 10px;
-  padding: 6px 10px;
+  --background: #f9fafb;
+  border: 2px solid #d1d5db;
+  border-radius: 12px;
+  padding: 10px;
   font-size: 1rem;
-  transition: 0.2s ease;
+  width: 100%;
+  transition: all 0.3s ease;
 }
 
 .arithmetic-practice-input:focus-within {
   border-color: #65a30d;
-  box-shadow: 0 0 6px rgba(101, 163, 13, 0.4);
+  box-shadow: 0 0 8px rgba(101, 163, 13, 0.4);
 }
 
-/* --- Buttons --- */
+/* --- Buttons Section --- */
 .arithmetic-practice-buttons-container {
   display: flex;
-  flex-wrap: wrap;
   justify-content: center;
-  gap: 10px;
+  flex-wrap: wrap;
+  gap: 14px;
   margin-top: 10px;
 }
 
 .arithmetic-practice-button {
-  flex: 1 1 130px;
-  min-width: 120px;
+  flex: 1 1 150px;
   border-radius: 30px;
   font-weight: 600;
   font-size: 1rem;
   background: linear-gradient(90deg, #65a30d, #eab308);
   color: #fff;
   border: none;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
   box-shadow: 0 4px 10px rgba(234, 179, 8, 0.3);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  padding: 10px 20px;
 }
 
 .arithmetic-practice-button:hover {
@@ -1302,53 +1310,57 @@ ion-content {
   box-shadow: 0 5px 14px rgba(234, 179, 8, 0.5);
 }
 
-/* --- Steps & Solution box --- */
+/* --- Steps Section --- */
 .arithmetic-practice-steps-container {
-  background: rgba(255, 255, 255, 0.95);
-  border-radius: 12px;
-  padding: 16px;
-  margin-top: 12px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
-  overflow-x: auto;
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 18px;
+  width: 100%;
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.08);
+  margin-top: 14px;
+  border-left: 6px solid #65a30d;
 }
 
 .arithmetic-practice-steps-title {
   font-weight: 700;
   font-size: 1.1rem;
-  margin-bottom: 10px;
+  margin-bottom: 12px;
   color: #1a1a1a;
   text-align: left;
 }
 
 .arithmetic-practice-step-item {
-  margin-bottom: 6px;
-  line-height: 1.4;
-  font-weight: 500;
+  background: #f9fafb;
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  line-height: 1.5;
+  border-left: 4px solid #eab308;
+  transition: transform 0.2s ease;
 }
 
-/* Solution / Result section */
+.arithmetic-practice-step-item:hover {
+  transform: translateX(4px);
+  background: #fefce8;
+}
+
+/* --- Solution / Result Box --- */
 .arithmetic-practice-result-box {
   background: #ffffff;
-  border: 2px solid #65a30d;
-  border-radius: 12px;
-  padding: 12px 16px;
-  margin-top: 10px;
-  text-align: left;
-  box-shadow: 0 4px 10px rgba(101, 163, 13, 0.25);
-  word-wrap: break-word;
+  border-radius: 16px;
+  padding: 18px;
+  margin-top: 16px;
+  width: 100%;
+  border-left: 6px solid #65a30d;
+  box-shadow: 0 4px 12px rgba(101, 163, 13, 0.25);
 }
 
 .arithmetic-practice-result-text {
   font-weight: 600;
-  font-size: 1rem;
   color: #111;
-}
-
-/* --- Fix bottom cutoff --- */
-ion-content {
-  --offset-bottom: auto !important;
-  --padding-bottom: 100px !important;
-  overflow-y: auto;
+  font-size: 1rem;
+  line-height: 1.6;
+  word-wrap: break-word;
 }
 
 /* --- Responsive --- */
@@ -1358,11 +1370,18 @@ ion-content {
   }
 
   .arithmetic-practice-content {
-    padding: 12px;
+    padding: 16px;
+    gap: 14px;
+  }
+
+  .arithmetic-practice-input {
+    font-size: 0.95rem;
+    padding: 8px;
   }
 
   .arithmetic-practice-buttons-container {
     flex-direction: column;
+    gap: 10px;
   }
 
   .arithmetic-practice-button {
@@ -1370,26 +1389,27 @@ ion-content {
     font-size: 0.95rem;
   }
 
-  .arithmetic-practice-steps-container {
-    padding: 12px;
-  }
-
+  .arithmetic-practice-steps-container,
   .arithmetic-practice-result-box {
-    padding: 10px 12px;
+    padding: 14px;
   }
 }
 
 @media (max-width: 480px) {
-  .arithmetic-practice-page {
-    padding-bottom: 50px;
+  .arithmetic-practice-content {
+    padding: 12px;
   }
 
   .arithmetic-practice-title {
     font-size: 1rem;
   }
 
-  .arithmetic-practice-button {
+  .arithmetic-practice-input {
     font-size: 0.9rem;
+  }
+
+  .arithmetic-practice-step-item {
+    padding: 8px 10px;
   }
 }
 

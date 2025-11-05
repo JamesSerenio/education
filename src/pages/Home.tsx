@@ -24,10 +24,8 @@ const Home: React.FC = () => {
         <motion.div
           initial={{ opacity: 0, x: 20, y: -20 }}
           animate={{ opacity: 1, x: 0, y: 0 }}
-          transition={{ duration: 0.8, ease: "easeOut" }}
+          transition={{ duration: 0.6, ease: "easeOut" }}
           className="logout-btn"
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.9 }}
         >
           <IonButton fill="clear" onClick={handleLogout} className="logout-btn-inner">
             <img src={logoutGif} alt="Logout" className="logout-icon" />
@@ -36,26 +34,21 @@ const Home: React.FC = () => {
 
         {/* Main Content */}
         <div className="dashboard-wrapper">
-          <div className="dashboard-container">
-            <motion.h1
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, ease: "easeOut", delay: 0.2 }}
-              className="auth-title"
-            >
-              Welcome to Learning Dashboard
-            </motion.h1>
-
+          <motion.div
+            className="dashboard-container"
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.8, ease: "easeOut" }}
+          >
+            <h1 className="auth-title">Welcome to Learning Dashboard</h1>
             <p className="dashboard-subtitle">Choose a topic to get started!</p>
 
             {/* Cards Grid */}
             <div className="dashboard-grid">
-              {/* Arithmetic Sequence (Green Theme) */}
+              {/* Arithmetic Sequence (Light Green Theme) */}
               <motion.div
-                initial={{ opacity: 0, x: -50 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.3, duration: 0.6 }}
-                whileHover={{ scale: 1.05 }}
+                whileHover={{ y: -5 }}
+                transition={{ duration: 0.3 }}
               >
                 <IonCard className="dashboard-ion-card green-card">
                   <IonCardHeader>
@@ -63,8 +56,7 @@ const Home: React.FC = () => {
                   </IonCardHeader>
                   <IonCardContent>
                     <p>
-                      Explore the properties and problems of arithmetic
-                      sequences.
+                      Explore the properties and problems of arithmetic sequences.
                     </p>
                     <IonButton
                       expand="block"
@@ -77,12 +69,10 @@ const Home: React.FC = () => {
                 </IonCard>
               </motion.div>
 
-              {/* Uniform Motion in Physics (Yellow Theme) */}
+              {/* Uniform Motion in Physics (Canary Yellow Theme) */}
               <motion.div
-                initial={{ opacity: 0, x: 50 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.5, duration: 0.6 }}
-                whileHover={{ scale: 1.05 }}
+                whileHover={{ y: -5 }}
+                transition={{ duration: 0.3 }}
               >
                 <IonCard className="dashboard-ion-card yellow-card">
                   <IonCardHeader>
@@ -101,7 +91,7 @@ const Home: React.FC = () => {
                 </IonCard>
               </motion.div>
             </div>
-          </div>
+          </motion.div>
         </div>
       </IonContent>
     </IonPage>

@@ -247,14 +247,12 @@ input:-webkit-autofill:focus {
   justify-content: center;
   align-items: center;
   height: 100vh;
-  padding: 30px;
-  background: linear-gradient(to bottom right, #f7fff6, #eaffea);
-  font-family: 'Poppins', sans-serif;
+  padding: 20px;
 }
 
 .dashboard-container {
   text-align: center;
-  max-width: 900px;
+  max-width: 700px;
   width: 100%;
 }
 
@@ -266,82 +264,52 @@ input:-webkit-autofill:focus {
 }
 
 .dashboard-subtitle {
-  font-size: 1.1rem;
-  color: #444;
-  margin-bottom: 25px;
+  font-size: 1rem;
+  color: #555;
+  margin-bottom: 40px;
 }
 
-/* === Grid Layout for Cards === */
+/* Cards Layout */
 .dashboard-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 25px;
+  display: flex;
   justify-content: center;
+  gap: 20px;
+  flex-wrap: wrap;
 }
 
-/* === Card Base Style === */
 .dashboard-ion-card {
+  width: 300px;
   border-radius: 20px;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
   transition: transform 0.3s ease, box-shadow 0.3s ease;
-  text-align: left;
-  color: #222;
-  overflow: hidden;
 }
 
 .dashboard-ion-card:hover {
-  transform: translateY(-6px);
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
 }
 
-/* === Light Green Theme (Arithmetic Sequence) === */
-.dashboard-ion-card:nth-child(1) {
-  background: linear-gradient(to bottom right, #d7f9d4, #b8f7b0);
-  border: 2px solid #7ae17a;
+/* Green (Arithmetic Sequence) */
+.green-card {
+  background: linear-gradient(135deg, #a8e6cf, #dcedc1);
 }
 
-.dashboard-ion-card:nth-child(1) ion-card-title {
-  color: #146c2e;
+/* Canary Yellow (Uniform Motion) */
+.yellow-card {
+  background: linear-gradient(135deg, #fff9b0, #ffe27d);
 }
 
-.dashboard-ion-card:nth-child(1) ion-button {
-  --background: #7ae17a;
-  --background-hover: #5fd65f;
-  --color: #fff;
-  border-radius: 10px;
-  font-weight: 600;
+/* Logout Button */
+.logout-btn {
+  position: absolute;
+  top: 15px;
+  right: 20px;
+  z-index: 10;
 }
 
-/* === Canary Yellow Theme (Uniform Motion in Physics) === */
-.dashboard-ion-card:nth-child(2) {
-  background: linear-gradient(to bottom right, #fff7c0, #ffe96b);
-  border: 2px solid #f5d742;
-}
-
-.dashboard-ion-card:nth-child(2) ion-card-title {
-  color: #8a6b00;
-}
-
-.dashboard-ion-card:nth-child(2) ion-button {
-  --background: #f5d742;
-  --background-hover: #eac130;
-  --color: #222;
-  border-radius: 10px;
-  font-weight: 600;
-}
-
-@media (max-width: 768px) {
-  .auth-title {
-    font-size: 1.6rem;
-  }
-
-  .dashboard-grid {
-    gap: 15px;
-  }
-
-  .dashboard-ion-card {
-    padding: 10px;
-  }
+.logout-icon {
+  width: 45px;
+  height: 45px;
+  object-fit: contain;
 }
 
 

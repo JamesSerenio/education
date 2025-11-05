@@ -12,7 +12,8 @@ const Arithmetic_Home: React.FC = () => {
 
   return (
     <IonPage>
-      <IonContent fullscreen>
+      {/* ✅ Disable scrolling by setting scrollY={false} */}
+      <IonContent fullscreen scrollY={false}>
         <div className="home-center-wrapper">
           <AnimatePresence mode="wait">
             {!showPractice ? (

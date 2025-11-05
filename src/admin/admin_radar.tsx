@@ -285,7 +285,7 @@ const fetchSubjectData = async (subject: string): Promise<UserScore> => {
       { wch: 15 },
       { wch: 25 }
     ];
-
+  
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "All Results");
 

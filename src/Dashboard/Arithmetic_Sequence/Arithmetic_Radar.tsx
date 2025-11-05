@@ -53,6 +53,11 @@ const Arithmetic_Radar: React.FC = () => {
     wordProblem: 0,
     problemSolving: 0,
   });
+  const [categoryPercent, setCategoryPercent] = useState({
+    time: 0,
+    wordProblem: 0,
+    problemSolving: 0,
+  });
   const [visible, setVisible] = useState(false);
   const [loading, setLoading] = useState(false);
   const [scores, setScores] = useState<ScoreWithQuizzes[]>([]);
@@ -103,7 +108,6 @@ const Arithmetic_Radar: React.FC = () => {
     }, interval);
   };
 
-  // 📊 Fetch Radar Data
   const fetchRadarData = async () => {
     setLoading(true);
     try {
@@ -128,6 +132,7 @@ const Arithmetic_Radar: React.FC = () => {
       );
 
       const normalize = (txt: string | undefined) => txt?.trim().toLowerCase() ?? "";
+
       const wordProblemScores = arithmeticScores.filter(
         (s) => normalize(s.quizzes?.category) === "word problem" && s.score !== null
       );
@@ -154,6 +159,9 @@ const Arithmetic_Radar: React.FC = () => {
         wordProblem: (bestWordProblem / MAX_SCORE) * 100,
         problemSolving: (bestProblemSolving / MAX_SCORE) * 100,
       };
+
+      // Save total percentages for display
+      setCategoryPercent(newPerformance);
 
       animateRadarUpdate(newPerformance);
     } catch (err) {
@@ -225,11 +233,9 @@ const Arithmetic_Radar: React.FC = () => {
     return () => chartInstance.current?.destroy();
   }, [performance, selectedCategory]);
 
-  // 🔍 Get Records by Category
   const getCategoryRecords = () => {
     const normalize = (txt: string | undefined) => txt?.trim().toLowerCase() ?? "";
     if (selectedCategory === "time") {
-      // Return all arithmetic sequence records for time
       return scores.filter(
         (s) => s.quizzes?.subject?.toLowerCase() === "arithmetic sequence"
       );
@@ -239,6 +245,19 @@ const Arithmetic_Radar: React.FC = () => {
         s.quizzes?.subject?.toLowerCase() === "arithmetic sequence" &&
         normalize(s.quizzes?.category) === selectedCategory
     );
+  };
+
+  const recordPercent = (record: ScoreWithQuizzes) => {
+    if (selectedCategory === "time") {
+      return record.time_taken ? ((MAX_TIME - record.time_taken) / MAX_TIME) * 100 : 0;
+    }
+    if (selectedCategory === "word problem") {
+      return record.score ? (record.score / MAX_SCORE) * 100 : 0;
+    }
+    if (selectedCategory === "problem solving") {
+      return record.score ? (record.score / MAX_SCORE) * 100 : 0;
+    }
+    return 0;
   };
 
   const labels = ["⏱ Time", "📘 Word Problem", "🧩 Problem Solving"];
@@ -312,6 +331,16 @@ const Arithmetic_Radar: React.FC = () => {
                     📘 {selectedCategory.toUpperCase()} RECORDS
                   </motion.h2>
 
+                  <p style={{ fontWeight: "bold", marginBottom: "12px" }}>
+                    Total Percent:{" "}
+                    {selectedCategory === "time"
+                      ? categoryPercent.time.toFixed(1)
+                      : selectedCategory === "word problem"
+                      ? categoryPercent.wordProblem.toFixed(1)
+                      : categoryPercent.problemSolving.toFixed(1)}
+                    %
+                  </p>
+
                   <div style={{ textAlign: "left", marginTop: "15px" }}>
                     {getCategoryRecords().length > 0 ? (
                       getCategoryRecords().map((record) => (
@@ -324,9 +353,10 @@ const Arithmetic_Radar: React.FC = () => {
                             marginBottom: "8px",
                           }}
                         >
-                          <strong>Score:</strong> {record.score ?? "N/A"} / 15<br />
+                          <strong>Score:</strong> {record.score ?? "N/A"} / {MAX_SCORE}<br />
                           <strong>Time Taken:</strong>{" "}
                           {record.time_taken ? `${record.time_taken}s` : "N/A"}<br />
+                          <strong>Percent:</strong> {recordPercent(record).toFixed(1)}%<br />
                           <small>{new Date(record.created_at).toLocaleString()}</small>
                         </div>
                       ))

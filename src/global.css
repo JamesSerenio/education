@@ -624,6 +624,14 @@ ion-segment-button {
   }
 }
 
+/* --- Hide scrollbar globally --- */
+ion-content {
+  --overflow: hidden !important;
+}
+
+::-webkit-scrollbar {
+  display: none;
+}
 
 /* --- arithmetic Leaderboard  --- */
 .leaderboard-card {

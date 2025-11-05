@@ -517,7 +517,7 @@ ion-content {
   text-align: center;
 }
 
-/* --- Arithmetic Module Section --- */
+/* --- Arithmetic Module Section--- */
 .arithmetic-module-container {
   display: flex;
   justify-content: center;
@@ -526,15 +526,15 @@ ion-content {
   flex-wrap: wrap;
   padding: 40px 20px;
   min-height: 100vh;
-  background: radial-gradient(circle at top left, #f0f4ff, #ffffff);
+  background: linear-gradient(135deg, #fafffa, #fffde7); /* 💚💛 Same theme */
   overflow: hidden;
 }
 
-/* Card container shared design */
+/* --- Card container --- */
 .arithmetic-card {
   backdrop-filter: blur(15px);
-  background: rgba(255, 255, 255, 0.5);
-  border: 2px solid rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.8);
+  border: 2px solid rgba(255, 255, 255, 0.3);
   border-radius: 20px;
   padding: 20px;
   text-align: center;
@@ -546,23 +546,23 @@ ion-content {
 }
 
 .arithmetic-card:hover {
-  transform: translateY(-8px);
-  box-shadow: 0 15px 35px rgba(100, 100, 255, 0.25);
+  transform: translateY(-6px);
+  box-shadow: 0 15px 35px rgba(234, 179, 8, 0.3); /* Soft golden glow */
 }
 
-/* Card titles */
+/* --- Card titles --- */
 .arithmetic-card h3 {
   font-family: "Roboto", sans-serif;
   font-size: 1.4rem;
   font-weight: 700;
   margin-bottom: 15px;
   color: #333;
-  background: linear-gradient(90deg, #8a2be2, #ff69b4);
+  background: linear-gradient(90deg, #65a30d, #eab308); /* 💚💛 Gradient text */
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
-/* Card images */
+/* --- Card images --- */
 .arithmetic-card img {
   width: 100%;
   border-radius: 12px;
@@ -573,7 +573,7 @@ ion-content {
   transform: scale(1.02);
 }
 
-/* Scrollable images (no scrollbar visible) */
+/* --- Scrollable images (no scrollbar visible) --- */
 .image-scroll-container {
   margin-top: 15px;
   max-height: 420px;
@@ -583,7 +583,7 @@ ion-content {
 }
 
 .image-scroll-container::-webkit-scrollbar {
-  width: 0px;
+  width: 0;
   background: transparent;
 }
 
@@ -592,25 +592,26 @@ ion-content {
   scrollbar-width: none;
 }
 
-/* IonSegment customization */
+/* --- IonSegment customization --- */
 ion-segment {
-  --background: rgba(255, 255, 255, 0.3);
+  --background: rgba(255, 255, 255, 0.4);
   border-radius: 30px;
   backdrop-filter: blur(8px);
   margin-bottom: 10px;
 }
 
 ion-segment-button {
-  --color: #555;
-  --color-checked: #fff;
+  --color: #444;
+  --color-checked: #222;
   --background: transparent;
-  --background-checked: linear-gradient(90deg, #9b5de5, #f15bb5);
+  --background-checked: linear-gradient(135deg, #bbf7d0, #fef08a); /* 💚💛 Segment active */
   font-weight: 600;
   border-radius: 25px;
   transition: all 0.3s ease-in-out;
+  box-shadow: 0 4px 10px rgba(250, 204, 21, 0.25);
 }
 
-/* For responsive layout */
+/* --- Responsive layout --- */
 @media (max-width: 768px) {
   .arithmetic-module-container {
     flex-direction: column;
@@ -621,6 +622,15 @@ ion-segment-button {
   .arithmetic-card {
     max-width: 95%;
   }
+}
+
+/* --- Hide scrollbar globally --- */
+ion-content {
+  --overflow: hidden !important;
+}
+
+::-webkit-scrollbar {
+  display: none;
 }
 
 

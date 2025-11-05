@@ -9,14 +9,22 @@ import {
 import { Trophy } from "lucide-react";
 import { supabase } from "../../utils/supabaseClient";
 
-interface Profile { lastname: string; }
-interface Quiz { category: string; subject: string; }
+interface Profile {
+  lastname: string;
+}
+
+interface Quiz {
+  category: string;
+  subject: string;
+}
+
 interface RawScoreRow {
   score: number;
   time_taken: number;
   profiles: Profile | Profile[];
   quizzes: Quiz | Quiz[];
 }
+
 interface LeaderboardRow {
   score: number;
   time_taken: number;
@@ -25,64 +33,108 @@ interface LeaderboardRow {
 }
 
 const ArithmeticLeaderboard: React.FC = () => {
-  const [wordProblemData, setWordProblemData] = useState<LeaderboardRow[]>([]);
+  const [solvingData, setSolvingData] = useState<LeaderboardRow[]>([]);
   const [problemSolvingData, setProblemSolvingData] = useState<LeaderboardRow[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => { fetchLeaderboards(); }, []);
+  useEffect(() => {
+    fetchLeaderboards();
+  }, []);
 
   const normalizeRow = (r: RawScoreRow): LeaderboardRow => {
     let lastname = "";
     if (r?.profiles) {
-      lastname = Array.isArray(r.profiles) ? r.profiles[0]?.lastname ?? "" : r.profiles.lastname ?? "";
+      lastname = Array.isArray(r.profiles)
+        ? r.profiles[0]?.lastname ?? ""
+        : r.profiles.lastname ?? "";
     }
-    let category = ""; let subject = "";
+
+    let category = "";
+    let subject = "";
     if (r?.quizzes) {
-      if (Array.isArray(r.quizzes)) { category = r.quizzes[0]?.category ?? ""; subject = r.quizzes[0]?.subject ?? ""; }
-      else { category = r.quizzes.category ?? ""; subject = r.quizzes.subject ?? ""; }
+      if (Array.isArray(r.quizzes)) {
+        category = r.quizzes[0]?.category ?? "";
+        subject = r.quizzes[0]?.subject ?? "";
+      } else {
+        category = r.quizzes.category ?? "";
+        subject = r.quizzes.subject ?? "";
+      }
     }
-    return { score: Number(r?.score ?? 0), time_taken: Number(r?.time_taken ?? 0), profiles: { lastname }, quizzes: { category, subject } };
+
+    return {
+      score: Number(r?.score ?? 0),
+      time_taken: Number(r?.time_taken ?? 0),
+      profiles: { lastname },
+      quizzes: { category, subject },
+    };
   };
 
   const filterHighestPerUser = (data: LeaderboardRow[]) => {
     const map = new Map<string, LeaderboardRow>();
+
     data.forEach((row) => {
       const key = row.profiles.lastname;
       const existing = map.get(key);
-      if (!existing) map.set(key, row);
-      else {
-        if (row.score > existing.score) map.set(key, row);
-        else if (row.score === existing.score && row.time_taken < existing.time_taken) map.set(key, row);
+      if (!existing) {
+        map.set(key, row);
+      } else {
+        if (row.score > existing.score) {
+          map.set(key, row);
+        } else if (row.score === existing.score && row.time_taken < existing.time_taken) {
+          map.set(key, row);
+        }
       }
     });
-    return Array.from(map.values()).sort((a,b) => (b.score !== a.score ? b.score - a.score : a.time_taken - b.time_taken));
+
+    return Array.from(map.values()).sort((a, b) => {
+      if (b.score !== a.score) return b.score - a.score;
+      return a.time_taken - b.time_taken;
+    });
   };
 
   const fetchLeaderboards = async () => {
     setLoading(true);
+
     try {
       const fetchCategory = async (category: string) => {
         const { data, error } = await supabase
           .from("scores")
-          .select(`score, time_taken, profiles!inner(lastname), quizzes!inner(category, subject)`)
+          .select(
+            `
+            score,
+            time_taken,
+            profiles!inner(lastname),
+            quizzes!inner(category, subject)
+          `
+          )
           .eq("quizzes.subject", "Arithmetic Sequence")
           .eq("quizzes.category", category);
-        if (error) { console.error(`${category} Error:`, error); return []; }
+
+        if (error) {
+          console.error(`${category} Error:`, error);
+          return [];
+        }
         return (data as RawScoreRow[]).map(normalizeRow);
       };
-      const wordProblemRaw = await fetchCategory("Word Problem");
+
+      const solvingRaw = await fetchCategory("Solving");
       const problemRaw = await fetchCategory("Problem Solving");
-      setWordProblemData(filterHighestPerUser(wordProblemRaw));
+
+      setSolvingData(filterHighestPerUser(solvingRaw));
       setProblemSolvingData(filterHighestPerUser(problemRaw));
     } catch (e) {
       console.error("Unexpected fetch error", e);
-      setWordProblemData([]); setProblemSolvingData([]);
-    } finally { setLoading(false); }
+      setSolvingData([]);
+      setProblemSolvingData([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const formatTime = (seconds: number) => {
     if (!Number.isFinite(seconds)) return "0:00";
-    const mins = Math.floor(seconds / 60); const secs = Math.floor(seconds % 60);
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
     return `${mins}:${secs < 10 ? "0" : ""}${secs}`;
   };
 
@@ -97,18 +149,19 @@ const ArithmeticLeaderboard: React.FC = () => {
         </tr>
       </thead>
       <tbody>
-        {data.length > 0 ? data.map((row, index) => {
-          const topClass = index === 0 ? "leaderboard-row-top1" : index === 1 ? "leaderboard-row-top2" : index === 2 ? "leaderboard-row-top3" : "";
-          return (
-            <tr key={index} className={topClass}>
-              <td><span className="place-badge">{index + 1}</span></td>
+        {data.length > 0 ? (
+          data.map((row, index) => (
+            <tr key={index}>
+              <td>{index + 1}</td>
               <td>{row.profiles?.lastname || "-"}</td>
               <td>{Math.round(row.score)}</td>
               <td>{formatTime(row.time_taken)}</td>
             </tr>
-          );
-        }) : (
-          <tr><td colSpan={4}>No data found.</td></tr>
+          ))
+        ) : (
+          <tr>
+            <td colSpan={4}>No data found.</td>
+          </tr>
         )}
       </tbody>
     </table>
@@ -117,22 +170,26 @@ const ArithmeticLeaderboard: React.FC = () => {
   return (
     <IonPage>
       <IonHeader>
-        <IonToolbar>
+        <IonToolbar color="light">
           <IonTitle>Arithmetic Sequence Leaderboard</IonTitle>
         </IonToolbar>
       </IonHeader>
 
-      <IonContent className="leaderboard-page">
+      <IonContent className="arithmetic-leaderboard-container">
         <div className="leaderboard-card">
-          <h3 className="leaderboard-title">Word Problem Leaderboard</h3>
-          <div className="trophy-wrap"><Trophy size={20} color="#f59e0b" /></div>
-          {loading ? <p style={{textAlign:"center", color:"#6b7280"}}>Loading…</p> : renderTable(wordProblemData)}
+          <h2>Solving Leaderboard</h2>
+          <div className="trophy-icon">
+            <Trophy size={22} color="#eab308" />
+          </div>
+          {loading ? <p>Loading...</p> : renderTable(solvingData)}
         </div>
 
         <div className="leaderboard-card">
-          <h3 className="leaderboard-title">Problem Solving Leaderboard</h3>
-          <div className="trophy-wrap"><Trophy size={20} color="#3b82f6" /></div>
-          {loading ? <p style={{textAlign:"center", color:"#6b7280"}}>Loading…</p> : renderTable(problemSolvingData)}
+          <h2>Problem Solving Leaderboard</h2>
+          <div className="trophy-icon">
+            <Trophy size={22} color="#65a30d" />
+          </div>
+          {loading ? <p>Loading...</p> : renderTable(problemSolvingData)}
         </div>
       </IonContent>
     </IonPage>

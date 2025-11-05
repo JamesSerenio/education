@@ -78,6 +78,7 @@ const ArithmeticLeaderboard: React.FC = () => {
       if (!existing) {
         map.set(key, row);
       } else {
+        // Keep the one with higher score or if tie, lower time_taken
         if (row.score > existing.score) {
           map.set(key, row);
         } else if (row.score === existing.score && row.time_taken < existing.time_taken) {
@@ -86,6 +87,7 @@ const ArithmeticLeaderboard: React.FC = () => {
       }
     });
 
+    // Convert map back to array and sort
     return Array.from(map.values()).sort((a, b) => {
       if (b.score !== a.score) return b.score - a.score;
       return a.time_taken - b.time_taken;
@@ -94,16 +96,19 @@ const ArithmeticLeaderboard: React.FC = () => {
 
   const fetchLeaderboards = async () => {
     setLoading(true);
+
     try {
       const fetchCategory = async (category: string) => {
         const { data, error } = await supabase
           .from("scores")
-          .select(`
+          .select(
+            `
             score,
             time_taken,
             profiles!inner(lastname),
             quizzes!inner(category, subject)
-          `)
+          `
+          )
           .eq("quizzes.subject", "Arithmetic Sequence")
           .eq("quizzes.category", category);
 
@@ -136,28 +141,30 @@ const ArithmeticLeaderboard: React.FC = () => {
   };
 
   const renderTable = (data: LeaderboardRow[]) => (
-    <table className="leaderboard-table">
-      <thead>
+    <table style={{ width: "100%", borderCollapse: "collapse", marginTop: 12 }}>
+      <thead style={{ background: "#f3f4f6" }}>
         <tr>
-          <th>Place</th>
-          <th>Lastname</th>
-          <th>Score</th>
-          <th>Time</th>
+          <th style={thStyle}>Place</th>
+          <th style={thStyle}>Lastname</th>
+          <th style={thStyle}>Score</th>
+          <th style={thStyle}>Time</th>
         </tr>
       </thead>
       <tbody>
         {data.length > 0 ? (
           data.map((row, index) => (
-            <tr key={index}>
-              <td>{index + 1}</td>
-              <td>{row.profiles?.lastname || "-"}</td>
-              <td>{Math.round(row.score)}</td>
-              <td>{formatTime(row.time_taken)}</td>
+            <tr key={index} style={{ borderBottom: "1px solid #e5e7eb" }}>
+              <td style={tdStyle}>{index + 1}</td>
+              <td style={tdStyle}>{row.profiles?.lastname || "-"}</td>
+              <td style={tdStyle}>{Math.round(row.score)}</td>
+              <td style={tdStyle}>{formatTime(row.time_taken)}</td>
             </tr>
           ))
         ) : (
           <tr>
-            <td colSpan={4}>No data found.</td>
+            <td style={tdStyle} colSpan={4}>
+              No data found.
+            </td>
           </tr>
         )}
       </tbody>
@@ -172,25 +179,48 @@ const ArithmeticLeaderboard: React.FC = () => {
         </IonToolbar>
       </IonHeader>
 
-      <IonContent className="ion-padding arithmetic-leaderboard-container">
-        <div className="leaderboard-card">
-          <h2 className="leaderboard-title">Word Problem Leaderboard</h2>
-          <div className="trophy-container">
-            <Trophy size={24} color="#f59e0b" />
+      <IonContent className="ion-padding">
+        <div style={cardStyle}>
+          <h2 style={{ margin: 0, textAlign: "center" }}>Word Problem Leaderboard</h2>
+          <div style={{ display: "flex", justifyContent: "center", margin: "8px 0" }}>
+            <Trophy size={20} color="#f59e0b" />
           </div>
           {loading ? <p>Loading...</p> : renderTable(solvingData)}
         </div>
 
-        <div className="leaderboard-card">
-          <h2 className="leaderboard-title">Problem Solving Leaderboard</h2>
-          <div className="trophy-container">
-            <Trophy size={24} color="#3b82f6" />
+        <div style={{ ...cardStyle, marginTop: 18 }}>
+          <h2 style={{ margin: 0, textAlign: "center" }}>Problem Solving Leaderboard</h2>
+          <div style={{ display: "flex", justifyContent: "center", margin: "8px 0" }}>
+            <Trophy size={20} color="#3b82f6" />
           </div>
           {loading ? <p>Loading...</p> : renderTable(problemSolvingData)}
         </div>
       </IonContent>
     </IonPage>
   );
+};
+
+/* Inline styles */
+const cardStyle: React.CSSProperties = {
+  maxWidth: 720,
+  margin: "0 auto",
+  background: "#fff",
+  borderRadius: 16,
+  boxShadow: "0 6px 18px rgba(0,0,0,0.06)",
+  padding: 16,
+  border: "1px solid #e5e7eb",
+};
+
+const thStyle: React.CSSProperties = {
+  padding: "8px 10px",
+  border: "1px solid #e5e7eb",
+  textAlign: "center",
+};
+
+const tdStyle: React.CSSProperties = {
+  padding: "8px 10px",
+  border: "1px solid #eee",
+  textAlign: "center",
 };
 
 export default ArithmeticLeaderboard;

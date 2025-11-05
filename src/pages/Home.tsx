@@ -10,7 +10,6 @@ import {
 import { useHistory } from "react-router-dom";
 import { motion } from "framer-motion";
 import logoutGif from "../assets/logout.gif";
-import "./Home.css"; // 🟢 Import CSS file
 
 const Home: React.FC = () => {
   const history = useHistory();

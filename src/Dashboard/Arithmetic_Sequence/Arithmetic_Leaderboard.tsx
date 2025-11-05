@@ -8,7 +8,6 @@ import {
 } from "@ionic/react";
 import { Trophy } from "lucide-react";
 import { supabase } from "../../utils/supabaseClient";
-import "./leaderboard.css"; // <-- import the CSS (adjust path if needed)
 
 interface Profile { lastname: string; }
 interface Quiz { category: string; subject: string; }

@@ -54,9 +54,9 @@ const ArithmeticQuiz: React.FC = () => {
   const [timeLeft, setTimeLeft] = useState<number>(0);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [timeUsed, setTimeUsed] = useState<number>(0);
+  const [timeUsed, setTimeUsed] = useState<number>(0); // track per question
 
-  // ✅ Fetch quizzes with Word Problem and Problem Solving only
+  // Fetch quizzes
   useEffect(() => {
     const fetchQuizzes = async () => {
       const { data, error } = await supabase
@@ -71,7 +71,7 @@ const ArithmeticQuiz: React.FC = () => {
     fetchQuizzes();
   }, []);
 
-  // ✅ Start quiz by category
+  // Start quiz when category is selected
   const startQuiz = (category: string) => {
     setSelectedCategory(category);
 
@@ -95,7 +95,7 @@ const ArithmeticQuiz: React.FC = () => {
     if (buildQueue[0]) setTimeLeft(DIFFICULTY_TIMERS[buildQueue[0].difficulty]);
   };
 
-  // ✅ Timer per question
+  // Timer per question
   useEffect(() => {
     if (!currentQuiz) return;
     if (timerRef.current) clearInterval(timerRef.current);
@@ -158,6 +158,7 @@ const ArithmeticQuiz: React.FC = () => {
         },
       ]);
 
+      // Move to next question
       if (currentQuizIndex < quizQueue.length - 1) {
         const nextIndex = currentQuizIndex + 1;
         setCurrentQuizIndex(nextIndex);
@@ -208,7 +209,7 @@ const ArithmeticQuiz: React.FC = () => {
     <IonPage>
       <IonHeader>
         <IonToolbar>
-          <IonTitle>Arithmetic Sequence Quiz</IonTitle>
+          <IonTitle>Arithmetic Quiz</IonTitle>
         </IonToolbar>
       </IonHeader>
 
@@ -340,7 +341,9 @@ const ArithmeticQuiz: React.FC = () => {
                   <b>Time Used:</b> {res.timeUsed}s
                   <br />
                   <b>Solution:</b>
-                  <pre style={{ whiteSpace: "pre-wrap", margin: 0 }}>
+                  <pre
+                    style={{ whiteSpace: "pre-wrap", margin: 0 }}
+                  >
                     {res.solution || "No solution provided."}
                   </pre>
                 </li>

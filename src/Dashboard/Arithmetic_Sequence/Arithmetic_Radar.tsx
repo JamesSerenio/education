@@ -50,13 +50,12 @@ const Arithmetic_Radar: React.FC = () => {
 
   const [performance, setPerformance] = useState({
     time: 0,
-    solving: 0,
+    wordProblem: 0,
     problemSolving: 0,
   });
   const [visible, setVisible] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // 🔍 Safely map Supabase data
   const mapToScoreWithQuizzes = (rawData: Record<string, unknown>): ScoreWithQuizzes => {
     const quizzesRaw = rawData["quizzes"] as Record<string, unknown> | undefined;
     return {
@@ -83,9 +82,9 @@ const Arithmetic_Radar: React.FC = () => {
     };
   };
 
-  // ✨ Animate radar values smoothly
+  // ✨ Animate radar update
   const animateRadarUpdate = (
-    newData: { time: number; solving: number; problemSolving: number },
+    newData: { time: number; wordProblem: number; problemSolving: number },
     duration = 800
   ) => {
     const steps = 30;
@@ -101,9 +100,9 @@ const Arithmetic_Radar: React.FC = () => {
         time:
           startValues.time +
           (newData.time - startValues.time) * progress,
-        solving:
-          startValues.solving +
-          (newData.solving - startValues.solving) * progress,
+        wordProblem:
+          startValues.wordProblem +
+          (newData.wordProblem - startValues.wordProblem) * progress,
         problemSolving:
           startValues.problemSolving +
           (newData.problemSolving - startValues.problemSolving) * progress,
@@ -113,7 +112,7 @@ const Arithmetic_Radar: React.FC = () => {
     }, interval);
   };
 
-  // 📊 Fetch radar data
+  // 📊 Fetch data
   const fetchRadarData = async () => {
     setLoading(true);
     try {
@@ -123,8 +122,7 @@ const Arithmetic_Radar: React.FC = () => {
       } = await supabase.auth.getUser();
 
       if (userError || !user) {
-        console.error("No user logged in:", userError);
-        setPerformance({ time: 0, solving: 0, problemSolving: 0 });
+        setPerformance({ time: 0, wordProblem: 0, problemSolving: 0 });
         return;
       }
 
@@ -139,7 +137,7 @@ const Arithmetic_Radar: React.FC = () => {
 
       if (scoresError) {
         console.error("Error fetching scores:", scoresError);
-        setPerformance({ time: 0, solving: 0, problemSolving: 0 });
+        setPerformance({ time: 0, wordProblem: 0, problemSolving: 0 });
         return;
       }
 
@@ -147,7 +145,7 @@ const Arithmetic_Radar: React.FC = () => {
       const typedScores: ScoreWithQuizzes[] = rawArray.map(mapToScoreWithQuizzes);
 
       if (!typedScores.length) {
-        setPerformance({ time: 0, solving: 0, problemSolving: 0 });
+        setPerformance({ time: 0, wordProblem: 0, problemSolving: 0 });
         return;
       }
 
@@ -156,22 +154,24 @@ const Arithmetic_Radar: React.FC = () => {
       );
 
       if (!arithmeticScores.length) {
-        setPerformance({ time: 0, solving: 0, problemSolving: 0 });
+        setPerformance({ time: 0, wordProblem: 0, problemSolving: 0 });
         return;
       }
 
       const normalize = (txt: string | undefined) => txt?.trim().toLowerCase() ?? "";
 
-      const solvingScores = arithmeticScores.filter(
-        (s) => normalize(s.quizzes?.category) === "solving" && s.score !== null
+      // ✅ Updated category matching
+      const wordProblemScores = arithmeticScores.filter(
+        (s) => normalize(s.quizzes?.category) === "word problem" && s.score !== null
       );
+
       const problemSolvingScores = arithmeticScores.filter(
         (s) => normalize(s.quizzes?.category) === "problem solving" && s.score !== null
       );
 
-      const bestSolving =
-        solvingScores.length > 0
-          ? Math.max(...solvingScores.map((s) => s.score ?? 0))
+      const bestWordProblem =
+        wordProblemScores.length > 0
+          ? Math.max(...wordProblemScores.map((s) => s.score ?? 0))
           : 0;
 
       const bestProblemSolving =
@@ -185,12 +185,11 @@ const Arithmetic_Radar: React.FC = () => {
           ? Math.min(...validTimes.map((s) => s.time_taken ?? MAX_TIME))
           : MAX_TIME;
 
-      // ⏱ Compute percent values
       const timePercent = ((MAX_TIME - bestTime) / MAX_TIME) * 100;
 
       const newPerformance = {
         time: Math.max(0, Math.min(100, parseFloat(timePercent.toFixed(2)))),
-        solving: (bestSolving / MAX_SCORE) * 100,
+        wordProblem: (bestWordProblem / MAX_SCORE) * 100,
         problemSolving: (bestProblemSolving / MAX_SCORE) * 100,
       };
 
@@ -198,13 +197,12 @@ const Arithmetic_Radar: React.FC = () => {
       animateRadarUpdate(newPerformance);
     } catch (err) {
       console.error("Error fetching radar data:", err);
-      setPerformance({ time: 0, solving: 0, problemSolving: 0 });
+      setPerformance({ time: 0, wordProblem: 0, problemSolving: 0 });
     } finally {
       setTimeout(() => setLoading(false), 600);
     }
   };
 
-  // 🚀 Initialize chart
   useEffect(() => {
     setVisible(true);
     void fetchRadarData();
@@ -227,14 +225,14 @@ const Arithmetic_Radar: React.FC = () => {
     chartInstance.current = new ChartJS(ctx, {
       type: "radar",
       data: {
-        labels: ["⏱ Time", "🧩 Problem Solving", "🧮 Solving"],
+        labels: ["⏱ Time", "📘 Word Problem", "🧩 Problem Solving"],
         datasets: [
           {
             label: "🏆 Best Performance (Arithmetic Sequence)",
             data: [
               performance.time,
+              performance.wordProblem,
               performance.problemSolving,
-              performance.solving,
             ],
             fill: true,
             backgroundColor: gradient,

@@ -58,7 +58,7 @@ const AdminHome: React.FC = () => {
   const [activityData, setActivityData] = useState<ActivityDay[]>([]);
 
   const [currentWeekStart, setCurrentWeekStart] = useState<Date>(() => {
-    const d = new Date(2025, 11, 1);
+    const d = new Date(2025, 10, 1);
     const day = d.getDay();
     d.setDate(d.getDate() - day);
     return d;

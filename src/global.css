@@ -446,31 +446,32 @@ input:-webkit-autofill:focus {
 .arithmetic-home-container {
   background: linear-gradient(135deg, #fefce8, #ffffff);
   display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100%;
+  justify-content: center; 
+  align-items: center;       
+  min-height: 100vh;         
   overflow: hidden;
 }
 
-/* Start Quiz Screen */
+/* Start Quiz Screen Card */
 .start-quiz-screen {
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
-  background: rgba(255, 255, 255, 0.6);
-  padding: 3rem 2rem;
+  background: rgba(255, 255, 255, 0.7);
+  padding: 3rem 2.5rem;
   border-radius: 25px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
-  backdrop-filter: blur(10px);
+  backdrop-filter: blur(12px);
   transition: all 0.4s ease;
   max-width: 500px;
   width: 90%;
+  position: relative;
 }
 
 .start-quiz-screen:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 12px 35px rgba(101, 163, 13, 0.25);
+  transform: translateY(-5px);
+  box-shadow: 0 15px 40px rgba(101, 163, 13, 0.25);
 }
 
 /* Title & Subtitle */
@@ -508,7 +509,6 @@ input:-webkit-autofill:focus {
   box-shadow: 0 12px 25px rgba(250, 204, 21, 0.4);
 }
 
-/* Button Text Layout */
 .start-button-text {
   text-align: center;
   line-height: 1.2;

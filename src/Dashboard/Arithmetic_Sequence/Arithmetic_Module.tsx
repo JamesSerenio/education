@@ -29,6 +29,8 @@ import d1Img from "../../assets/d-1.png";
 import d2Img from "../../assets/d-2.png";
 import d3Img from "../../assets/d-3.png";
 
+import "../../global.css";
+
 const Arithmetic_Module: React.FC = () => {
   const [selected, setSelected] = useState<string>("a1");
 
@@ -51,7 +53,7 @@ const Arithmetic_Module: React.FC = () => {
   return (
     <IonPage>
       <IonHeader />
-      <IonContent fullscreen>
+      <IonContent fullscreen scrollY>
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -93,11 +95,9 @@ const Arithmetic_Module: React.FC = () => {
               <IonSegmentButton value="a1">
                 <IonLabel>a₁</IonLabel>
               </IonSegmentButton>
-
               <IonSegmentButton value="d">
                 <IonLabel>d</IonLabel>
               </IonSegmentButton>
-
               <IonSegmentButton value="an">
                 <IonLabel>aₙ</IonLabel>
               </IonSegmentButton>

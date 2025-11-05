@@ -517,7 +517,7 @@ ion-content {
   text-align: center;
 }
 
-/* --- Arithmetic Module Section (same palette as Home) --- */
+/* --- Arithmetic Module Section --- */
 .arithmetic-module-container {
   display: flex;
   justify-content: center;
@@ -526,8 +526,7 @@ ion-content {
   flex-wrap: wrap;
   padding: 40px 20px;
   min-height: 100vh;
-  background: linear-gradient(135deg, #fafffa, #fffde7); /* 💚💛 Same theme */
-  overflow: hidden;
+  background: linear-gradient(135deg, #fafffa, #fffde7);
 }
 
 /* --- Card container --- */
@@ -547,7 +546,7 @@ ion-content {
 
 .arithmetic-card:hover {
   transform: translateY(-6px);
-  box-shadow: 0 15px 35px rgba(234, 179, 8, 0.3); /* Soft golden glow */
+  box-shadow: 0 15px 35px rgba(234, 179, 8, 0.3);
 }
 
 /* --- Card titles --- */
@@ -557,7 +556,7 @@ ion-content {
   font-weight: 700;
   margin-bottom: 15px;
   color: #333;
-  background: linear-gradient(90deg, #65a30d, #eab308); /* 💚💛 Gradient text */
+  background: linear-gradient(90deg, #65a30d, #eab308);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
@@ -573,23 +572,14 @@ ion-content {
   transform: scale(1.02);
 }
 
-/* --- Scrollable images (no scrollbar visible) --- */
+/* --- Scrollable images --- */
 .image-scroll-container {
   margin-top: 15px;
-  max-height: 420px;
-  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
   border-radius: 12px;
   scroll-behavior: smooth;
-}
-
-.image-scroll-container::-webkit-scrollbar {
-  width: 0;
-  background: transparent;
-}
-
-.image-scroll-container {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
 }
 
 /* --- IonSegment customization --- */
@@ -604,7 +594,7 @@ ion-segment-button {
   --color: #444;
   --color-checked: #222;
   --background: transparent;
-  --background-checked: linear-gradient(135deg, #bbf7d0, #fef08a); /* 💚💛 Segment active */
+  --background-checked: linear-gradient(135deg, #bbf7d0, #fef08a);
   font-weight: 600;
   border-radius: 25px;
   transition: all 0.3s ease-in-out;
@@ -624,14 +614,6 @@ ion-segment-button {
   }
 }
 
-/* --- Hide scrollbar globally --- */
-ion-content {
-  --overflow: hidden !important;
-}
-
-::-webkit-scrollbar {
-  display: none;
-}
 
 /* --- arithmetic Leaderboard  --- */
 .leaderboard-card {

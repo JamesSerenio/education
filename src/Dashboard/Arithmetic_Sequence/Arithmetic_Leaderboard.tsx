@@ -8,7 +8,6 @@ import {
 } from "@ionic/react";
 import { Trophy } from "lucide-react";
 import { supabase } from "../../utils/supabaseClient";
-import "./global.css"; // ✅ Ensure this is imported
 
 interface Profile {
   lastname: string;

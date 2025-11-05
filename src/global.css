@@ -633,6 +633,97 @@ ion-content {
   display: none;
 }
 
+/* --- arithmetic Leaderboard  --- */
+.leaderboard-card {
+  backdrop-filter: blur(15px);
+  background: rgba(255, 255, 255, 0.85);
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-radius: 20px;
+  padding: 20px;
+  text-align: center;
+  width: 100%;
+  max-width: 700px;
+  box-shadow: 0 10px 25px rgba(234, 179, 8, 0.2);
+  transition: all 0.4s ease;
+  margin: 20px auto;
+}
+
+.leaderboard-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 15px 35px rgba(250, 204, 21, 0.35);
+}
+
+.leaderboard-title {
+  font-family: "Roboto", sans-serif;
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 12px;
+  background: linear-gradient(90deg, #65a30d, #eab308);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.trophy-icon {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 10px;
+}
+
+/* Table styles */
+.leaderboard-table-wrapper {
+  overflow-x: auto;
+}
+
+.leaderboard-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+}
+
+.leaderboard-table th {
+  background: linear-gradient(135deg, #bbf7d0, #fef08a);
+  color: #333;
+  font-weight: 700;
+  padding: 10px;
+  border: 1px solid #e5e7eb;
+}
+
+.leaderboard-table td {
+  padding: 10px;
+  text-align: center;
+  border: 1px solid #f3f4f6;
+  color: #333;
+}
+
+.leaderboard-table tr:nth-child(even) {
+  background: #f9fafb;
+}
+
+.leaderboard-table tr:hover {
+  background: #fefce8;
+  transition: 0.3s;
+}
+
+.leaderboard-table td[colspan="4"] {
+  color: #888;
+  font-style: italic;
+  padding: 15px;
+}
+
+/* Responsive layout */
+@media (max-width: 768px) {
+  .leaderboard-card {
+    width: 95%;
+  }
+
+  .leaderboard-title {
+    font-size: 1.3rem;
+  }
+}
+
 
 /* === ADMIN HOME === */
 /* --- Welcome Title --- */

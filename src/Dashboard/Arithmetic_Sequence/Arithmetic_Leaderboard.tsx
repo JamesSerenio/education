@@ -94,19 +94,16 @@ const ArithmeticLeaderboard: React.FC = () => {
 
   const fetchLeaderboards = async () => {
     setLoading(true);
-
     try {
       const fetchCategory = async (category: string) => {
         const { data, error } = await supabase
           .from("scores")
-          .select(
-            `
+          .select(`
             score,
             time_taken,
             profiles!inner(lastname),
             quizzes!inner(category, subject)
-          `
-          )
+          `)
           .eq("quizzes.subject", "Arithmetic Sequence")
           .eq("quizzes.category", category);
 
@@ -170,24 +167,24 @@ const ArithmeticLeaderboard: React.FC = () => {
   return (
     <IonPage>
       <IonHeader>
-        <IonToolbar color="light">
+        <IonToolbar>
           <IonTitle>Arithmetic Sequence Leaderboard</IonTitle>
         </IonToolbar>
       </IonHeader>
 
-      <IonContent className="arithmetic-leaderboard-container">
+      <IonContent className="ion-padding arithmetic-leaderboard-container">
         <div className="leaderboard-card">
-          <h2>Solving Leaderboard</h2>
-          <div className="trophy-icon">
-            <Trophy size={22} color="#eab308" />
+          <h2 className="leaderboard-title">Word Problem Leaderboard</h2>
+          <div className="trophy-container">
+            <Trophy size={24} color="#f59e0b" />
           </div>
           {loading ? <p>Loading...</p> : renderTable(solvingData)}
         </div>
 
         <div className="leaderboard-card">
-          <h2>Problem Solving Leaderboard</h2>
-          <div className="trophy-icon">
-            <Trophy size={22} color="#65a30d" />
+          <h2 className="leaderboard-title">Problem Solving Leaderboard</h2>
+          <div className="trophy-container">
+            <Trophy size={24} color="#3b82f6" />
           </div>
           {loading ? <p>Loading...</p> : renderTable(problemSolvingData)}
         </div>

@@ -633,85 +633,84 @@ ion-content {
   display: none;
 }
 
-/* 🌿💛 Arithmetic Leaderboard Page Theme */
+/* --- Arithmetic Leaderboard --- */
 .arithmetic-leaderboard-container {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: flex-start;
-  gap: 2rem;
+  justify-content: center;
+  background: linear-gradient(135deg, #f8fff1, #ffffff);
   min-height: 100vh;
   padding: 40px 20px;
-  background: linear-gradient(135deg, #fafffa, #fffde7);
-  overflow: hidden;
 }
 
-/* Card Styling */
+/* Card Container */
 .leaderboard-card {
-  backdrop-filter: blur(12px);
-  background: rgba(255, 255, 255, 0.8);
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  border-radius: 20px;
-  padding: 24px;
-  text-align: center;
   width: 100%;
-  max-width: 680px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  max-width: 720px;
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 18px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  padding: 24px;
+  border: 1px solid rgba(230, 230, 230, 0.6);
+  margin-bottom: 30px;
+  backdrop-filter: blur(10px);
+  text-align: center;
+  transition: all 0.3s ease;
 }
 
 .leaderboard-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 15px 40px rgba(234, 179, 8, 0.25);
+  transform: translateY(-6px);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.15);
 }
 
-.leaderboard-card h2 {
-  font-family: "Roboto", sans-serif;
+/* Title */
+.leaderboard-title {
   font-size: 1.5rem;
   font-weight: 700;
-  margin-bottom: 12px;
-  background: linear-gradient(90deg, #65a30d, #eab308);
+  background: linear-gradient(90deg, #2ecc71, #f1c40f);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
-}
-
-/* Trophy icon container */
-.trophy-icon {
-  display: flex;
-  justify-content: center;
   margin-bottom: 10px;
 }
 
-/* Table Styling */
+/* Trophy icon container */
+.trophy-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+/* Table */
 .leaderboard-table {
   width: 100%;
   border-collapse: collapse;
-  font-family: "Roboto", sans-serif;
+  font-size: 0.95rem;
+  background: white;
+  border-radius: 10px;
+  overflow: hidden;
 }
 
 .leaderboard-table th,
 .leaderboard-table td {
+  border: 1px solid #e5e7eb;
   padding: 10px;
   text-align: center;
-  border: 1px solid #e5e7eb;
 }
 
 .leaderboard-table thead {
-  background: linear-gradient(90deg, #d9f99d, #fef08a);
-  color: #333;
-  font-weight: 600;
+  background: linear-gradient(90deg, #2ecc71, #f1c40f);
+  color: white;
 }
 
 .leaderboard-table tbody tr:nth-child(even) {
-  background-color: rgba(250, 250, 250, 0.7);
+  background: #fafafa;
 }
 
-/* Responsive */
-@media (max-width: 768px) {
-  .leaderboard-card {
-    max-width: 95%;
-    padding: 16px;
-  }
+.leaderboard-table tbody tr:hover {
+  background: #f5fff0;
+  transition: 0.2s ease;
 }
 
 

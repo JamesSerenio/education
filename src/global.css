@@ -805,7 +805,6 @@ ion-content {
 }
 
 /* --- Radar chart container --- */
-/* --- Radar chart container --- */
 .radar-card {
   background: rgba(255, 255, 255, 0.9);
   border-radius: 16px;
@@ -818,11 +817,14 @@ ion-content {
   display: flex;
   justify-content: center;
   align-items: center;
+  overflow: hidden; /* ✅ Prevent chart overflow */
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .radar-card canvas {
-  width: 100% !important;
-  height: 100% !important;
+  width: 95% !important; /* ✅ Prevent overflow */
+  height: 95% !important;
   object-fit: contain;
 }
 
@@ -856,18 +858,35 @@ ion-content {
 /* --- Responsive layout --- */
 @media (max-width: 768px) {
   .radar-content {
-    max-width: 95%;
-    padding: 20px;
+    max-width: 100%;
+    padding: 12px;
   }
 
   .radar-title {
-    font-size: 1.3rem;
+    font-size: 1.2rem;
+    text-align: center;
   }
 
   .radar-card {
-    height: 380px;
+    max-width: 340px; /* ✅ Smaller width for mobile */
+    width: 100%;
+    height: auto;
+    aspect-ratio: 1 / 1;
+    padding: 10px;
+  }
+
+  .radar-card canvas {
+    width: 100% !important;
+    height: auto !important;
+  }
+
+  .radar-refresh-btn {
+    font-size: 14px;
+    padding: 8px 16px;
+    max-width: 180px;
   }
 }
+
 
 
 /* === ADMIN HOME === */

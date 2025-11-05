@@ -878,8 +878,6 @@ ion-content {
 }
 
 .radar-label {
-  position: relative;
-  z-index: 10;
   background: linear-gradient(90deg, #65a30d, #eab308);
   padding: 6px 14px;
   border-radius: 8px;
@@ -888,9 +886,7 @@ ion-content {
   font-size: 14px;
   box-shadow: 0 4px 10px rgba(250, 204, 21, 0.25);
   transition: transform 0.3s ease;
-  cursor: pointer;
 }
-
 
 .radar-label:hover {
   transform: scale(1.05);
@@ -979,12 +975,6 @@ ion-content {
     max-width: 180px;
   }
 }
-
-.radar-content p {
-  position: relative;
-  z-index: 10;
-}
-
 
 /* --- Arithmetic Quiz Section --- */
 .quiz-container {

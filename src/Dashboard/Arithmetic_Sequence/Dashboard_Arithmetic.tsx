@@ -67,11 +67,11 @@ const Dashboard_Arithmetic: React.FC = () => {
   return (
     <IonPage>
       <IonSplitPane contentId="main" when="(min-width: 768px)">
-        {/* Side Menu */}
+        {/* Sidebar / Menu */}
         <IonMenu contentId="main" className="arithmetic-menu">
           <IonHeader>
             <IonToolbar className="menu-toolbar">
-              <IonTitle>Menu</IonTitle>
+              <IonTitle className="menu-title">📘 Arithmetic Menu</IonTitle>
             </IonToolbar>
           </IonHeader>
 
@@ -99,7 +99,7 @@ const Dashboard_Arithmetic: React.FC = () => {
                 </motion.div>
               ))}
 
-              {/* Logout Button */}
+              {/* Logout */}
               <motion.div variants={itemVariants} className="logout-container">
                 <IonMenuToggle autoHide={false}>
                   <IonButton
@@ -117,13 +117,13 @@ const Dashboard_Arithmetic: React.FC = () => {
         </IonMenu>
 
         {/* Main Content */}
-        <IonPage id="main">
+        <IonPage id="main" className="dashboard-main">
           <IonHeader>
             <IonToolbar className="main-toolbar">
               <IonButtons slot="start">
                 <IonMenuButton />
               </IonButtons>
-              <IonTitle>
+              <IonTitle className="main-title">
                 {menuItems.find((m) => m.key === activePage)?.name || "Dashboard Arithmetic"}
               </IonTitle>
             </IonToolbar>
@@ -133,10 +133,10 @@ const Dashboard_Arithmetic: React.FC = () => {
             <AnimatePresence mode="wait">
               <motion.div
                 key={activePage}
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: 25 }}
                 animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.3, ease: "easeOut" }}
+                exit={{ opacity: 0, y: -25 }}
+                transition={{ duration: 0.4, ease: "easeOut" }}
               >
                 {renderContent()}
               </motion.div>

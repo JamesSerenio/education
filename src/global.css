@@ -313,78 +313,132 @@ input:-webkit-autofill:focus {
 }
 
 /* ===Dashboard_Arithmetic === */
-/* === Dashboard Arithmetic Global Styles === */
+/* === Dashboard Arithmetic Creative Theme === */
+
+/* Sidebar Base */
 .arithmetic-menu {
-  --background: #ffffff;
-  background-color: #ffffff;
+  --background: transparent;
+  backdrop-filter: blur(14px);
+  background: rgba(255, 255, 255, 0.6);
+  border-right: 1px solid rgba(255, 255, 255, 0.25);
+  box-shadow: 4px 0 15px rgba(0, 0, 0, 0.05);
 }
 
+/* Sidebar Header */
 .menu-toolbar {
-  --background: #d9f99d; /* Light Green */
-  color: #000;
+  background: linear-gradient(135deg, #bbf7d0, #fef08a);
+  color: #222;
+  text-align: center;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.3);
 }
 
+.menu-title {
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+/* Sidebar Items */
 .menu-content {
-  background-color: #ffffff;
-  color: #222;
+  background: rgba(255, 255, 255, 0.4);
 }
 
 .menu-item {
   display: flex;
   align-items: center;
   font-weight: 500;
-  color: #333;
-  transition: background-color 0.3s ease, transform 0.2s ease;
+  color: #222;
+  border-radius: 12px;
+  margin: 6px 10px;
+  transition: all 0.3s ease;
+  padding: 10px 12px;
 }
 
 .menu-item:hover {
-  background-color: #fef08a; /* Canary Yellow */
-  transform: translateX(4px);
+  background: linear-gradient(90deg, #fef08a 0%, #bbf7d0 100%);
+  transform: translateX(5px) scale(1.02);
 }
 
 .menu-item.active {
-  background-color: #bbf7d0; /* Light Green Active State */
-  border-left: 4px solid #84cc16;
+  background: linear-gradient(90deg, #a7f3d0 0%, #fef08a 100%);
+  border-left: 4px solid #65a30d;
+  box-shadow: 0 4px 12px rgba(101, 163, 13, 0.2);
 }
 
+/* Sidebar Icons */
 .menu-icon {
-  width: 26px;
-  height: 26px;
-  margin-right: 10px;
-  border-radius: 5px;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  margin-right: 12px;
+  background: rgba(255, 255, 255, 0.7);
+  padding: 3px;
 }
 
+/* Sidebar Text */
 .menu-text {
   font-size: 1rem;
+  letter-spacing: 0.3px;
 }
 
+/* Logout */
 .logout-container {
-  margin-top: 1rem;
+  margin-top: 1.5rem;
   padding: 0 1rem;
 }
 
 .logout-button {
-  --background: #facc15; /* Canary Yellow */
-  --color: #000;
+  --background: linear-gradient(135deg, #fef08a, #bbf7d0);
+  --color: #222;
+  border-radius: 12px;
   font-weight: 600;
-  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(250, 204, 21, 0.25);
+  transition: transform 0.2s ease, box-shadow 0.3s ease;
 }
 
+.logout-button:hover {
+  transform: scale(1.05);
+  box-shadow: 0 6px 20px rgba(250, 204, 21, 0.4);
+}
+
+/* Main Toolbar */
 .main-toolbar {
-  --background: #d9f99d;
-  color: #000;
+  background: linear-gradient(135deg, #bbf7d0, #fef08a);
+  color: #222;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+}
+
+.main-title {
+  font-weight: 700;
+  letter-spacing: 0.4px;
+}
+
+/* Main Dashboard */
+.dashboard-main {
+  background: linear-gradient(135deg, #ffffff, #fefce8);
 }
 
 .main-content {
-  background-color: #ffffff;
-  padding: 1rem;
+  padding: 1.5rem;
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(10px);
+  border-radius: 20px;
+  margin: 1rem;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
 }
 
+.main-content:hover {
+  transform: scale(1.01);
+}
+
+/* Welcome Text */
 .arithmetic-welcome {
   text-align: center;
-  margin-top: 2rem;
   color: #333;
-  font-weight: 600;
+  font-weight: 700;
+  font-size: 1.3rem;
+  letter-spacing: 0.5px;
+  margin-top: 2rem;
 }
 
 /* === ADMIN HOME === */

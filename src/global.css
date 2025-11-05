@@ -1208,7 +1208,165 @@ ion-content {
   }
 }
 
+/* Arithmetic_Practice.css */
+.arithmetic-practice-page {
+  font-family: 'Arial', sans-serif;
+  background: linear-gradient(135deg, #f0f8e7 0%, #e8f5e8 50%, #fffde7 100%);
+  min-height: 100vh;
+}
 
+.arithmetic-practice-header {
+  background: linear-gradient(90deg, #4caf50, #8bc34a);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.arithmetic-practice-toolbar {
+  --background: transparent;
+}
+
+.arithmetic-practice-title {
+  color: #fff;
+  font-weight: bold;
+  text-align: center;
+}
+
+.arithmetic-practice-content {
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 12px;
+  margin: 16px;
+  padding: 20px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.arithmetic-practice-item {
+  --background: rgba(255, 255, 255, 0.8);
+  border-radius: 8px;
+  margin-bottom: 16px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.arithmetic-practice-label {
+  color: #388e3c;
+  font-weight: 600;
+}
+
+.arithmetic-practice-select {
+  --placeholder-color: #388e3c;
+}
+
+.arithmetic-practice-input-item {
+  margin-top: 8px;
+  --background: rgba(255, 255, 255, 0.8);
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.arithmetic-practice-input-container {
+  width: 100%;
+}
+
+.arithmetic-practice-input-label {
+  color: #388e3c;
+  font-weight: 600;
+}
+
+.arithmetic-practice-input {
+  width: 100%;
+  --background: #f9f9f9;
+  --border-radius: 6px;
+  --padding-start: 12px;
+  --padding-end: 12px;
+  border: 1px solid #c8e6c9;
+}
+
+.arithmetic-practice-error-text {
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.arithmetic-practice-buttons-container {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 20px;
+  flex-wrap: wrap;
+}
+
+.arithmetic-practice-button {
+  --border-radius: 8px;
+  font-weight: 600;
+  min-width: 100px;
+  transition: all 0.3s ease;
+}
+
+.arithmetic-practice-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.arithmetic-practice-steps-container {
+  margin-top: 20px;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 8px;
+  padding: 16px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.arithmetic-practice-steps-title {
+  color: #388e3c;
+  margin-bottom: 12px;
+  font-size: 18px;
+}
+
+.arithmetic-practice-steps-list {
+  padding-left: 20px;
+}
+
+.arithmetic-practice-step-item {
+  margin-bottom: 6px;
+  color: #333;
+}
+
+.arithmetic-practice-result-box {
+  margin-top: 18px;
+  padding: 14px;
+  border: 2px solid #000;
+  border-radius: 8px;
+  background-color: #fff;
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
+  text-align: center;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.arithmetic-practice-result-text {
+  font-size: 18px;
+  font-weight: bold;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+  .arithmetic-practice-content {
+    margin: 8px;
+    padding: 16px;
+  }
+
+  .arithmetic-practice-buttons-container {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .arithmetic-practice-button {
+    width: 100%;
+    max-width: 200px;
+  }
+
+  .arithmetic-practice-result-box {
+    margin-left: 8px;
+    margin-right: 8px;
+  }
+}
 
 /* === ADMIN HOME === */
 /* --- Welcome Title --- */

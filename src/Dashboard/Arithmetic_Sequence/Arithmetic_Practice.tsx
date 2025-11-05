@@ -1,3 +1,4 @@
+// Arithmetic_Practice.tsx
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import React, { useRef, useState } from "react";
@@ -17,6 +18,7 @@ import {
 } from "@ionic/react";
 import { useHistory } from "react-router-dom"; 
 import ArithmeticQuiz from "./arithmetic_quiz";
+
 
 const Arithmetic_Practice: React.FC = () => {
   const history = useHistory();
@@ -319,16 +321,16 @@ const Arithmetic_Practice: React.FC = () => {
   }
 
   return (
-    <IonPage>
-      <IonHeader>
-        <IonToolbar>
-          <IonTitle>Let's Practice First</IonTitle>
+    <IonPage className="arithmetic-practice-page">
+      <IonHeader className="arithmetic-practice-header">
+        <IonToolbar className="arithmetic-practice-toolbar">
+          <IonTitle className="arithmetic-practice-title">Let's Practice First</IonTitle>
         </IonToolbar>
       </IonHeader>
-      <IonContent className="ion-padding">
+      <IonContent className="ion-padding arithmetic-practice-content">
         {/* Select Category */}
-        <IonItem>
-          <IonLabel>Choose Category</IonLabel>
+        <IonItem className="arithmetic-practice-item">
+          <IonLabel className="arithmetic-practice-label">Choose Category</IonLabel>
           <IonSelect
             value={category}
             onIonChange={(e) => {
@@ -337,6 +339,7 @@ const Arithmetic_Practice: React.FC = () => {
               setSteps([]);
               clearErrors();
             }}
+            className="arithmetic-practice-select"
           >
             <IonSelectOption value="an">Find aₙ</IonSelectOption>
             <IonSelectOption value="a1">Find a₁</IonSelectOption>
@@ -347,9 +350,9 @@ const Arithmetic_Practice: React.FC = () => {
 
         {/* Inputs */}
         {category !== "a1" && (
-          <IonItem lines="none" style={{ marginTop: 8 }}>
-            <div style={{ width: "100%" }}>
-              <IonLabel position="stacked">a₁</IonLabel>
+          <IonItem lines="none" className="arithmetic-practice-input-item">
+            <div className="arithmetic-practice-input-container">
+              <IonLabel position="stacked" className="arithmetic-practice-input-label">a₁</IonLabel>
               <IonInput
                 ref={a1Ref}
                 type="number"
@@ -357,10 +360,10 @@ const Arithmetic_Practice: React.FC = () => {
                 value={a1}
                 onIonChange={(e) => setA1(e.detail.value ?? "")}
                 onKeyDown={blockInvalidKeys}
-                style={{ width: "100%" }}
+                className="arithmetic-practice-input"
               />
               {a1Error && (
-                <IonText color="danger" style={{ fontSize: 12 }}>
+                <IonText color="danger" className="arithmetic-practice-error-text">
                   {a1Error}
                 </IonText>
               )}
@@ -369,9 +372,9 @@ const Arithmetic_Practice: React.FC = () => {
         )}
 
         {category !== "an" && (
-          <IonItem lines="none" style={{ marginTop: 8 }}>
-            <div style={{ width: "100%" }}>
-              <IonLabel position="stacked">aₙ</IonLabel>
+          <IonItem lines="none" className="arithmetic-practice-input-item">
+            <div className="arithmetic-practice-input-container">
+              <IonLabel position="stacked" className="arithmetic-practice-input-label">aₙ</IonLabel>
               <IonInput
                 ref={anRef}
                 type="number"
@@ -379,10 +382,10 @@ const Arithmetic_Practice: React.FC = () => {
                 value={an}
                 onIonChange={(e) => setAn(e.detail.value ?? "")}
                 onKeyDown={blockInvalidKeys}
-                style={{ width: "100%" }}
+                className="arithmetic-practice-input"
               />
               {anError && (
-                <IonText color="danger" style={{ fontSize: 12 }}>
+                <IonText color="danger" className="arithmetic-practice-error-text">
                   {anError}
                 </IonText>
               )}
@@ -391,9 +394,9 @@ const Arithmetic_Practice: React.FC = () => {
         )}
 
         {category !== "n" && (
-          <IonItem lines="none" style={{ marginTop: 8 }}>
-            <div style={{ width: "100%" }}>
-              <IonLabel position="stacked">n</IonLabel>
+          <IonItem lines="none" className="arithmetic-practice-input-item">
+            <div className="arithmetic-practice-input-container">
+              <IonLabel position="stacked" className="arithmetic-practice-input-label">n</IonLabel>
               <IonInput
                 ref={nRef}
                 type="number"
@@ -401,21 +404,20 @@ const Arithmetic_Practice: React.FC = () => {
                 value={n}
                 onIonChange={(e) => setN(e.detail.value ?? "")}
                 onKeyDown={blockInvalidKeys}
-                style={{ width: "100%" }}
+                className="arithmetic-practice-input"
               />
               {nError && (
-                <IonText color="danger" style={{ fontSize: 12 }}>
+                <IonText color="danger" className="arithmetic-practice-error-text">
                   {nError}
                 </IonText>
               )}
             </div>
           </IonItem>
         )}
-
         {category !== "d" && (
-          <IonItem lines="none" style={{ marginTop: 8 }}>
-            <div style={{ width: "100%" }}>
-              <IonLabel position="stacked">d</IonLabel>
+          <IonItem lines="none" className="arithmetic-practice-input-item">
+            <div className="arithmetic-practice-input-container">
+              <IonLabel position="stacked" className="arithmetic-practice-input-label">d</IonLabel>
               <IonInput
                 ref={dRef}
                 type="number"
@@ -423,10 +425,10 @@ const Arithmetic_Practice: React.FC = () => {
                 value={d}
                 onIonChange={(e) => setD(e.detail.value ?? "")}
                 onKeyDown={blockInvalidKeys}
-                style={{ width: "100%" }}
+                className="arithmetic-practice-input"
               />
               {dError && (
-                <IonText color="danger" style={{ fontSize: 12 }}>
+                <IonText color="danger" className="arithmetic-practice-error-text">
                   {dError}
                 </IonText>
               )}
@@ -435,16 +437,17 @@ const Arithmetic_Practice: React.FC = () => {
         )}
 
         {/* Buttons (centered) */}
-        <div style={{ display: "flex", justifyContent: "center", gap: 12, marginTop: 20 }}>
-          <IonButton color="primary" onClick={calculate}>
+        <div className="arithmetic-practice-buttons-container">
+          <IonButton color="primary" onClick={calculate} className="arithmetic-practice-button">
             Solve
           </IonButton>
-          <IonButton color="medium" onClick={resetAll}>
+          <IonButton color="medium" onClick={resetAll} className="arithmetic-practice-button">
             Reset
           </IonButton>
           <IonButton
             color="success"
             onClick={() => setShowQuiz(true)} // 👉 switch to quiz
+            className="arithmetic-practice-button"
           >
             Proceed to Quiz
           </IonButton>
@@ -452,11 +455,11 @@ const Arithmetic_Practice: React.FC = () => {
 
         {/* Step-by-step */}
         {steps.length > 0 && (
-          <div style={{ marginTop: 20 }}>
-            <h3>Solution:</h3>
-            <ol>
+          <div className="arithmetic-practice-steps-container">
+            <h3 className="arithmetic-practice-steps-title">Solution:</h3>
+            <ol className="arithmetic-practice-steps-list">
               {steps.map((s, i) => (
-                <li key={i} style={{ marginBottom: 6 }}>
+                <li key={i} className="arithmetic-practice-step-item">
                   <IonText color="dark">{s}</IonText>
                 </li>
               ))}
@@ -466,21 +469,9 @@ const Arithmetic_Practice: React.FC = () => {
 
         {/* Final Answer box (black border, black text inside) */}
         {result && (
-          <div
-            style={{
-              marginTop: 18,
-              padding: 14,
-              border: "2px solid #000",
-              borderRadius: 8,
-              backgroundColor: "#fff",
-              maxWidth: 600,
-              marginLeft: "auto",
-              marginRight: "auto",
-              textAlign: "center",
-            }}
-          >
-            <IonText color="dark">
-              <strong style={{ fontSize: 18 }}>{result}</strong>
+          <div className="arithmetic-practice-result-box">
+            <IonText color="dark" className="arithmetic-practice-result-text">
+              <strong>{result}</strong>
             </IonText>
           </div>
         )}

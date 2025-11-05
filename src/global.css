@@ -725,11 +725,13 @@ ion-content {
 }
 
 /* --- Arithmetic Radar Section --- */
+/* --- Arithmetic Radar Section --- */
 .arithmetic-radar-container {
   background: linear-gradient(135deg, #fafffa, #fffde7);
   display: flex;
-  justify-content: center;
-  align-items: center;
+  justify-content: center;        /* ✅ Centers horizontally */
+  align-items: center;            /* ✅ Centers vertically */
+  flex-direction: column;         /* ✅ Keeps layout stacked */
   min-height: 100vh;
   padding: 40px 20px;
   overflow: hidden;
@@ -741,28 +743,31 @@ ion-content {
   background: rgba(255, 255, 255, 0.85);
   border: 2px solid rgba(255, 255, 255, 0.3);
   border-radius: 20px;
-  padding: 30px 25px;
+  padding: 25px;
   text-align: center;
   max-width: 520px;
   width: 100%;
-  box-shadow: 0 10px 35px rgba(0, 0, 0, 0.1);
+  margin: 0 auto;                 /* ✅ Ensures true centering */
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
   transition: transform 0.4s ease, box-shadow 0.4s ease;
   display: flex;
   flex-direction: column;
+  justify-content: center;
   align-items: center;
 }
 
 .radar-content:hover {
   transform: translateY(-6px);
-  box-shadow: 0 15px 35px rgba(234, 179, 8, 0.35);
+  box-shadow: 0 15px 35px rgba(234, 179, 8, 0.3);
 }
 
 /* --- Title --- */
 .radar-title {
   font-family: "Roboto", sans-serif;
-  font-size: 1.7rem;
+  font-size: 1.6rem;
   font-weight: 700;
   margin-bottom: 20px;
+  color: #333;
   background: linear-gradient(90deg, #65a30d, #eab308);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -785,23 +790,23 @@ ion-content {
   font-weight: 700;
   font-size: 14px;
   box-shadow: 0 4px 10px rgba(250, 204, 21, 0.25);
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  transition: transform 0.3s ease;
 }
 
 .radar-label:hover {
   transform: scale(1.05);
-  box-shadow: 0 6px 14px rgba(234, 179, 8, 0.35);
 }
 
 /* --- Radar chart container --- */
 .radar-card {
-  background: rgba(255, 255, 255, 0.95);
+  background: rgba(255, 255, 255, 0.9);
   border-radius: 16px;
-  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.08);
+  box-shadow: 0px 8px 20px rgba(0, 0, 0, 0.08);
   margin-top: 24px;
   padding: 20px;
   height: 450px;
   width: 100%;
+  max-width: 460px;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -819,50 +824,41 @@ ion-content {
   border-radius: 10px;
   color: white;
   font-weight: 700;
-  padding: 12px 20px;
+  padding: 10px 20px;
   font-size: 15px;
-  margin-top: 28px;
+  margin-top: 24px;
   width: 100%;
-  max-width: 220px;
+  max-width: 200px;
   box-shadow: 0 6px 15px rgba(234, 179, 8, 0.3);
   cursor: pointer;
-  transition: transform 0.3s ease, opacity 0.3s ease, box-shadow 0.3s ease;
+  transition: transform 0.3s ease, opacity 0.3s ease;
 }
 
 .radar-refresh-btn:hover {
-  transform: translateY(-3px);
+  transform: translateY(-2px);
   opacity: 0.95;
-  box-shadow: 0 8px 20px rgba(234, 179, 8, 0.4);
 }
 
 .radar-refresh-btn.loading {
   background: linear-gradient(90deg, #9CA3AF, #D1D5DB);
   cursor: not-allowed;
-  box-shadow: none;
 }
 
 /* --- Responsive layout --- */
 @media (max-width: 768px) {
   .radar-content {
-    max-width: 92%;
-    padding: 22px;
+    max-width: 95%;
+    padding: 20px;
   }
 
   .radar-title {
-    font-size: 1.4rem;
+    font-size: 1.3rem;
   }
 
   .radar-card {
-    height: 370px;
-    padding: 15px;
-  }
-
-  .radar-refresh-btn {
-    font-size: 14px;
-    padding: 10px 18px;
+    height: 380px;
   }
 }
-
 
 
 /* === ADMIN HOME === */

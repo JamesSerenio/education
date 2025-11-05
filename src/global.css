@@ -966,6 +966,7 @@ ion-content {
   .radar-card canvas {
     width: 100% !important;
     height: auto !important;
+    transition: all 0.25s ease-in-out;
   }
 
   .radar-refresh-btn {

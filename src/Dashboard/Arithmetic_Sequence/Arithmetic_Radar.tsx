@@ -160,9 +160,7 @@ const Arithmetic_Radar: React.FC = () => {
         problemSolving: (bestProblemSolving / MAX_SCORE) * 100,
       };
 
-      // Save total percentages for display
       setCategoryPercent(newPerformance);
-
       animateRadarUpdate(newPerformance);
     } catch (err) {
       console.error("Error fetching radar data:", err);
@@ -176,6 +174,7 @@ const Arithmetic_Radar: React.FC = () => {
     void fetchRadarData();
   }, []);
 
+  // ✅ FIXED: Clean version with visible percent labels on hover
   useEffect(() => {
     if (!radarRef.current || selectedCategory) return;
     const ctx = radarRef.current.getContext("2d");
@@ -183,7 +182,7 @@ const Arithmetic_Radar: React.FC = () => {
 
     chartInstance.current?.destroy();
 
-    const gradient = ctx.createLinearGradient(0, 0, 0, 500);
+    const gradient = ctx.createLinearGradient(0, 0, 0, 400);
     gradient.addColorStop(0, "rgba(101, 163, 13, 0.35)");
     gradient.addColorStop(1, "rgba(234, 179, 8, 0.35)");
 
@@ -205,14 +204,18 @@ const Arithmetic_Radar: React.FC = () => {
             borderWidth: 3,
             pointBackgroundColor: "#eab308",
             pointBorderColor: "#fff",
+            pointRadius: 5,
+            pointHoverRadius: 7,
           },
         ],
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
+        interaction: { mode: "nearest", intersect: true },
         plugins: {
-          legend: { display: true },
+          tooltip: { enabled: false },
+          legend: { display: true, labels: { color: "#222" } },
           title: {
             display: true,
             text: "📊 Arithmetic Sequence",
@@ -221,11 +224,26 @@ const Arithmetic_Radar: React.FC = () => {
           },
           datalabels: {
             color: "#000",
-            font: { weight: "bold", size: 11 },
+            font: { weight: "bold", size: 12 },
             formatter: (val: number) => `${val.toFixed(1)}%`,
+            opacity: (ctx) =>
+              ctx.active ? 1 : 0, // 👈 only show label on hover
+            align: "end",
+            anchor: "end",
           },
         },
-        scales: { r: { suggestedMin: 0, suggestedMax: 100, ticks: { display: false } } },
+        scales: {
+          r: {
+            suggestedMin: 0,
+            suggestedMax: 100,
+            grid: { color: "rgba(0,0,0,0.1)" },
+            pointLabels: {
+              color: "#111",
+              font: { size: 13, weight: "bold" },
+            },
+            ticks: { display: false },
+          },
+        },
       },
       plugins: [ChartDataLabels],
     });

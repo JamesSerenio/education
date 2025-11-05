@@ -18,6 +18,7 @@ import {
 import ChartDataLabels from "chartjs-plugin-datalabels";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "../../utils/supabaseClient";
+import "../../global.css"; // ✅ Make sure this is imported
 
 ChartJS.register(
   RadialLinearScale,
@@ -60,23 +61,15 @@ const Arithmetic_Radar: React.FC = () => {
     const quizzesRaw = rawData["quizzes"] as Record<string, unknown> | undefined;
     return {
       id: String(rawData["id"] ?? ""),
-      score:
-        rawData["score"] === undefined || rawData["score"] === null
-          ? null
-          : Number(rawData["score"]),
-      time_taken:
-        rawData["time_taken"] === undefined || rawData["time_taken"] === null
-          ? null
-          : Number(rawData["time_taken"]),
+      score: rawData["score"] == null ? null : Number(rawData["score"]),
+      time_taken: rawData["time_taken"] == null ? null : Number(rawData["time_taken"]),
       created_at: String(rawData["created_at"] ?? new Date().toISOString()),
       quiz_id: String(rawData["quiz_id"] ?? ""),
       quizzes: quizzesRaw
         ? {
             id: String(quizzesRaw["id"] ?? ""),
             category: String(quizzesRaw["category"] ?? ""),
-            subject: quizzesRaw["subject"]
-              ? String(quizzesRaw["subject"])
-              : undefined,
+            subject: quizzesRaw["subject"] ? String(quizzesRaw["subject"]) : undefined,
           }
         : null,
     };
@@ -98,8 +91,7 @@ const Arithmetic_Radar: React.FC = () => {
 
       setPerformance({
         time:
-          startValues.time +
-          (newData.time - startValues.time) * progress,
+          startValues.time + (newData.time - startValues.time) * progress,
         wordProblem:
           startValues.wordProblem +
           (newData.wordProblem - startValues.wordProblem) * progress,
@@ -160,7 +152,6 @@ const Arithmetic_Radar: React.FC = () => {
 
       const normalize = (txt: string | undefined) => txt?.trim().toLowerCase() ?? "";
 
-      // ✅ Updated category matching
       const wordProblemScores = arithmeticScores.filter(
         (s) => normalize(s.quizzes?.category) === "word problem" && s.score !== null
       );
@@ -219,8 +210,8 @@ const Arithmetic_Radar: React.FC = () => {
     }
 
     const gradient = ctx.createLinearGradient(0, 0, 0, 500);
-    gradient.addColorStop(0, "rgba(54, 162, 235, 0.32)");
-    gradient.addColorStop(1, "rgba(236, 72, 153, 0.32)");
+    gradient.addColorStop(0, "rgba(101, 163, 13, 0.35)");
+    gradient.addColorStop(1, "rgba(234, 179, 8, 0.35)");
 
     chartInstance.current = new ChartJS(ctx, {
       type: "radar",
@@ -236,9 +227,9 @@ const Arithmetic_Radar: React.FC = () => {
             ],
             fill: true,
             backgroundColor: gradient,
-            borderColor: "rgb(54, 162, 235)",
+            borderColor: "#65a30d",
             borderWidth: 3,
-            pointBackgroundColor: "rgb(236, 72, 153)",
+            pointBackgroundColor: "#eab308",
             pointBorderColor: "#fff",
           },
         ],
@@ -288,7 +279,7 @@ const Arithmetic_Radar: React.FC = () => {
   return (
     <IonPage>
       <IonHeader />
-      <IonContent fullscreen>
+      <IonContent fullscreen className="arithmetic-radar-container">
         <AnimatePresence>
           {visible && (
             <motion.div
@@ -297,39 +288,25 @@ const Arithmetic_Radar: React.FC = () => {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.5 }}
-              style={{
-                padding: 16,
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                justifyContent: "center",
-                minHeight: "90vh",
-              }}
+              className="radar-content"
             >
               <motion.h2
                 initial={{ opacity: 0, y: -8 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6 }}
-                style={{ fontSize: 22, fontWeight: 700, color: "#222" }}
+                className="radar-title"
               >
                 🏅 Best Performance Overview
               </motion.h2>
 
-              <div style={{ display: "flex", gap: 10, marginTop: 12 }}>
+              <div className="radar-labels">
                 {labels.map((label, idx) => (
                   <motion.div
                     key={label}
                     initial={{ opacity: 0, y: 12 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.55, delay: 0.25 + idx * 0.14 }}
-                    style={{
-                      background: "linear-gradient(90deg, #36A2EB, #EC4899)",
-                      padding: "6px 12px",
-                      borderRadius: 8,
-                      color: "white",
-                      fontWeight: 700,
-                      fontSize: 14,
-                    }}
+                    className="radar-label"
                   >
                     {label}
                   </motion.div>
@@ -340,18 +317,9 @@ const Arithmetic_Radar: React.FC = () => {
                 initial={{ opacity: 0, scale: 0.96, y: 12 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 transition={{ duration: 0.8, delay: 0.7 }}
-                style={{
-                  width: "100%",
-                  maxWidth: 500,
-                  height: 450,
-                  background: "white",
-                  borderRadius: 16,
-                  boxShadow: "0px 8px 20px rgba(0,0,0,0.08)",
-                  marginTop: 24,
-                  padding: 16,
-                }}
+                className="radar-card"
               >
-                <canvas ref={radarRef} style={{ width: "100%", height: "100%" }} />
+                <canvas ref={radarRef} />
               </motion.div>
 
               <motion.button
@@ -359,20 +327,7 @@ const Arithmetic_Radar: React.FC = () => {
                 disabled={loading}
                 whileTap={{ scale: 0.96 }}
                 whileHover={{ scale: loading ? 1 : 1.03 }}
-                style={{
-                  padding: "10px 20px",
-                  background: loading
-                    ? "linear-gradient(90deg, #9CA3AF, #D1D5DB)"
-                    : "linear-gradient(90deg, #36A2EB, #EC4899)",
-                  color: "white",
-                  fontSize: 15,
-                  fontWeight: 700,
-                  borderRadius: 10,
-                  border: "none",
-                  marginTop: 24,
-                  width: "100%",
-                  maxWidth: 200,
-                }}
+                className={`radar-refresh-btn ${loading ? "loading" : ""}`}
               >
                 {loading ? "🔄 Refreshing..." : "🔄 Refresh"}
               </motion.button>

@@ -724,6 +724,131 @@ ion-content {
   }
 }
 
+/* --- Arithmetic Radar Section --- */
+.arithmetic-radar-container {
+  background: linear-gradient(135deg, #fafffa, #fffde7); /* 💚💛 gradient background */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  padding: 40px 20px;
+  overflow: hidden;
+}
+
+/* --- Main content wrapper --- */
+.radar-content {
+  backdrop-filter: blur(15px);
+  background: rgba(255, 255, 255, 0.8);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 20px;
+  padding: 25px;
+  text-align: center;
+  max-width: 500px;
+  width: 100%;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+  transition: transform 0.4s ease, box-shadow 0.4s ease;
+}
+
+.radar-content:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 15px 35px rgba(234, 179, 8, 0.3);
+}
+
+/* --- Title --- */
+.radar-title {
+  font-family: "Roboto", sans-serif;
+  font-size: 1.6rem;
+  font-weight: 700;
+  margin-bottom: 20px;
+  color: #333;
+  background: linear-gradient(90deg, #65a30d, #eab308);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* --- Label chips --- */
+.radar-labels {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+
+.radar-label {
+  background: linear-gradient(90deg, #65a30d, #eab308);
+  padding: 6px 14px;
+  border-radius: 8px;
+  color: white;
+  font-weight: 700;
+  font-size: 14px;
+  box-shadow: 0 4px 10px rgba(250, 204, 21, 0.25);
+  transition: transform 0.3s ease;
+}
+
+.radar-label:hover {
+  transform: scale(1.05);
+}
+
+/* --- Radar chart container --- */
+.radar-card {
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 16px;
+  box-shadow: 0px 8px 20px rgba(0, 0, 0, 0.08);
+  margin-top: 24px;
+  padding: 20px;
+  height: 450px;
+  width: 100%;
+}
+
+.radar-card canvas {
+  width: 100%;
+  height: 100%;
+}
+
+/* --- Refresh button --- */
+.radar-refresh-btn {
+  background: linear-gradient(90deg, #65a30d, #eab308);
+  border: none;
+  border-radius: 10px;
+  color: white;
+  font-weight: 700;
+  padding: 10px 20px;
+  font-size: 15px;
+  margin-top: 24px;
+  width: 100%;
+  max-width: 200px;
+  box-shadow: 0 6px 15px rgba(234, 179, 8, 0.3);
+  cursor: pointer;
+  transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+.radar-refresh-btn:hover {
+  transform: translateY(-2px);
+  opacity: 0.95;
+}
+
+.radar-refresh-btn.loading {
+  background: linear-gradient(90deg, #9CA3AF, #D1D5DB);
+  cursor: not-allowed;
+}
+
+/* --- Responsive layout --- */
+@media (max-width: 768px) {
+  .radar-content {
+    max-width: 95%;
+    padding: 20px;
+  }
+
+  .radar-title {
+    font-size: 1.3rem;
+  }
+
+  .radar-card {
+    height: 380px;
+  }
+}
+
 
 /* === ADMIN HOME === */
 /* --- Welcome Title --- */

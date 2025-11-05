@@ -312,9 +312,82 @@ input:-webkit-autofill:focus {
   object-fit: contain;
 }
 
+/* ===Dashboard_Arithmetic === */
+/* === Dashboard Arithmetic Global Styles === */
+.arithmetic-menu {
+  --background: #ffffff;
+  background-color: #ffffff;
+}
+
+.menu-toolbar {
+  --background: #d9f99d; /* Light Green */
+  color: #000;
+}
+
+.menu-content {
+  background-color: #ffffff;
+  color: #222;
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  font-weight: 500;
+  color: #333;
+  transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+.menu-item:hover {
+  background-color: #fef08a; /* Canary Yellow */
+  transform: translateX(4px);
+}
+
+.menu-item.active {
+  background-color: #bbf7d0; /* Light Green Active State */
+  border-left: 4px solid #84cc16;
+}
+
+.menu-icon {
+  width: 26px;
+  height: 26px;
+  margin-right: 10px;
+  border-radius: 5px;
+}
+
+.menu-text {
+  font-size: 1rem;
+}
+
+.logout-container {
+  margin-top: 1rem;
+  padding: 0 1rem;
+}
+
+.logout-button {
+  --background: #facc15; /* Canary Yellow */
+  --color: #000;
+  font-weight: 600;
+  border-radius: 10px;
+}
+
+.main-toolbar {
+  --background: #d9f99d;
+  color: #000;
+}
+
+.main-content {
+  background-color: #ffffff;
+  padding: 1rem;
+}
+
+.arithmetic-welcome {
+  text-align: center;
+  margin-top: 2rem;
+  color: #333;
+  font-weight: 600;
+}
 
 /* === ADMIN HOME === */
-
 /* --- Welcome Title --- */
 .admin-home h2.welcome-title {
   margin-bottom: 20px;

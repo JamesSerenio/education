@@ -12,11 +12,11 @@ import {
   IonSplitPane,
   IonTitle,
   IonToolbar,
+  IonIcon,
 } from "@ionic/react";
-import { IonIcon } from "@ionic/react";
 import { logOutOutline } from "ionicons/icons";
 import { useHistory } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion"; // ✅ Animation library
+import { motion, AnimatePresence } from "framer-motion";
 
 import ArithmeticHome from "./Arithmetic_Home";
 import ArithmeticModule from "./Arithmetic_Module";
@@ -30,7 +30,7 @@ import iconRadar from "../../assets/icon_radar.png";
 
 const Dashboard_Arithmetic: React.FC = () => {
   const history = useHistory();
-  const [activePage, setActivePage] = useState("Home");
+  const [activePage, setActivePage] = useState<string>("Home");
 
   const menuItems = [
     { name: "Home", key: "Home", icon: iconHome },
@@ -50,23 +50,13 @@ const Dashboard_Arithmetic: React.FC = () => {
       case "radar":
         return <ArithmeticRadar />;
       default:
-        return (
-          <h2 style={{ textAlign: "center", marginTop: "2rem" }}>
-            Welcome to Arithmetic Dashboard
-          </h2>
-        );
+        return <h2 className="arithmetic-welcome">Welcome to Arithmetic Dashboard</h2>;
     }
   };
 
-  // ✅ Animation variants for staggered entrance
   const listVariants = {
     hidden: { opacity: 0 },
-    show: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.15, // delay between each item
-      },
-    },
+    show: { opacity: 1, transition: { staggerChildren: 0.15 } },
   };
 
   const itemVariants = {
@@ -78,20 +68,20 @@ const Dashboard_Arithmetic: React.FC = () => {
     <IonPage>
       <IonSplitPane contentId="main" when="(min-width: 768px)">
         {/* Side Menu */}
-        <IonMenu contentId="main">
+        <IonMenu contentId="main" className="arithmetic-menu">
           <IonHeader>
-            <IonToolbar>
+            <IonToolbar className="menu-toolbar">
               <IonTitle>Menu</IonTitle>
             </IonToolbar>
           </IonHeader>
 
-          <IonContent>
+          <IonContent className="menu-content">
             <motion.div
               variants={listVariants}
               initial="hidden"
               animate="show"
               transition={{ duration: 0.4, ease: "easeOut" }}
-              style={{ paddingTop: "1rem" }}
+              className="menu-motion"
             >
               {menuItems.map((item, index) => (
                 <motion.div key={index} variants={itemVariants}>
@@ -100,53 +90,21 @@ const Dashboard_Arithmetic: React.FC = () => {
                       button
                       onClick={() => setActivePage(item.key)}
                       lines="none"
+                      className={`menu-item ${activePage === item.key ? "active" : ""}`}
                     >
-                      <img
-                        src={item.icon}
-                        alt={item.name}
-                        style={{
-                          width: "24px",
-                          height: "24px",
-                          borderRadius: "4px",
-                          marginRight: "8px",
-                        }}
-                      />
-                      <span
-                        style={{
-                          marginLeft: "8px",
-                          position: "relative",
-                          paddingBottom: "4px",
-                        }}
-                      >
-                        {item.name}
-                        {activePage === item.key && (
-                          <span
-                            style={{
-                              position: "absolute",
-                              left: 0,
-                              bottom: 0,
-                              width: "100%",
-                              height: "2px",
-                              backgroundColor: "#3b82f6",
-                              borderRadius: "2px",
-                            }}
-                          />
-                        )}
-                      </span>
+                      <img src={item.icon} alt={item.name} className="menu-icon" />
+                      <span className="menu-text">{item.name}</span>
                     </IonItem>
                   </IonMenuToggle>
                 </motion.div>
               ))}
 
               {/* Logout Button */}
-              <motion.div
-                variants={itemVariants}
-                style={{ marginTop: "1rem" }}
-              >
+              <motion.div variants={itemVariants} className="logout-container">
                 <IonMenuToggle autoHide={false}>
                   <IonButton
                     expand="block"
-                    color="primary"
+                    className="logout-button"
                     onClick={() => history.push("/home")}
                   >
                     <IonIcon icon={logOutOutline} slot="start" />
@@ -161,18 +119,17 @@ const Dashboard_Arithmetic: React.FC = () => {
         {/* Main Content */}
         <IonPage id="main">
           <IonHeader>
-            <IonToolbar>
+            <IonToolbar className="main-toolbar">
               <IonButtons slot="start">
                 <IonMenuButton />
               </IonButtons>
               <IonTitle>
-                {menuItems.find((m) => m.key === activePage)?.name ||
-                  "Dashboard Arithmetic"}
+                {menuItems.find((m) => m.key === activePage)?.name || "Dashboard Arithmetic"}
               </IonTitle>
             </IonToolbar>
           </IonHeader>
 
-          <IonContent>
+          <IonContent className="main-content">
             <AnimatePresence mode="wait">
               <motion.div
                 key={activePage}

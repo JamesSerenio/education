@@ -54,7 +54,7 @@ const ArithmeticQuiz: React.FC = () => {
   const [timeLeft, setTimeLeft] = useState<number>(0);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [timeUsed, setTimeUsed] = useState<number>(0); // track per question
+  const [timeUsed, setTimeUsed] = useState<number>(0);
 
   // Fetch quizzes
   useEffect(() => {
@@ -71,7 +71,7 @@ const ArithmeticQuiz: React.FC = () => {
     fetchQuizzes();
   }, []);
 
-  // Start quiz when category is selected
+  // Start quiz
   const startQuiz = (category: string) => {
     setSelectedCategory(category);
 
@@ -95,7 +95,7 @@ const ArithmeticQuiz: React.FC = () => {
     if (buildQueue[0]) setTimeLeft(DIFFICULTY_TIMERS[buildQueue[0].difficulty]);
   };
 
-  // Timer per question
+  // Timer
   useEffect(() => {
     if (!currentQuiz) return;
     if (timerRef.current) clearInterval(timerRef.current);
@@ -121,6 +121,7 @@ const ArithmeticQuiz: React.FC = () => {
     };
   }, [currentQuiz]);
 
+  // Handle next question
   const handleNext = useCallback(
     (auto = false) => {
       if (!currentQuiz) return;
@@ -158,7 +159,6 @@ const ArithmeticQuiz: React.FC = () => {
         },
       ]);
 
-      // Move to next question
       if (currentQuizIndex < quizQueue.length - 1) {
         const nextIndex = currentQuizIndex + 1;
         setCurrentQuizIndex(nextIndex);
@@ -206,81 +206,52 @@ const ArithmeticQuiz: React.FC = () => {
   };
 
   return (
-    <IonPage>
+    <IonPage className="quiz-container">
       <IonHeader>
-        <IonToolbar>
-          <IonTitle>Arithmetic Quiz</IonTitle>
+        <IonToolbar color="light">
+          <IonTitle className="quiz-title">Arithmetic Quiz</IonTitle>
         </IonToolbar>
       </IonHeader>
 
       <IonContent fullscreen>
         {!selectedCategory ? (
-          <div className="flex flex-col items-center justify-center h-full p-6 text-center">
-            <h2>Select Category</h2>
-            <div
-              style={{
-                display: "flex",
-                gap: "15px",
-                flexWrap: "wrap",
-                justifyContent: "center",
-              }}
-            >
+          <div className="quiz-category">
+            <h2 className="quiz-heading">Select Category</h2>
+            <div className="quiz-category-buttons">
               {["Word Problem", "Problem Solving"].map((cat) => (
-                <IonButton key={cat} onClick={() => startQuiz(cat)}>
+                <IonButton key={cat} onClick={() => startQuiz(cat)} className="quiz-btn">
                   {cat}
                 </IonButton>
               ))}
             </div>
           </div>
         ) : currentQuiz ? (
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              padding: "25px 10px 100px",
-            }}
-          >
+          <div className="quiz-content">
             <div
-              style={{
-                fontSize: "22px",
-                fontWeight: "bold",
-                color: timeLeft <= 5 ? "red" : "#333",
-                marginBottom: "10px",
-              }}
+              className={`quiz-timer ${timeLeft <= 5 ? "critical" : ""}`}
             >
               ⏳ Time Left: {timeLeft}s
             </div>
 
-            <h2>{currentQuiz.difficulty}</h2>
-            <p
-              style={{
-                textAlign: "center",
-                fontSize: "18px",
-                margin: "10px 0",
-              }}
-            >
-              {currentQuiz.question}
-            </p>
+            <h2 className="quiz-difficulty">{currentQuiz.difficulty}</h2>
+            <p className="quiz-question">{currentQuiz.question}</p>
 
-            <IonItem
-              style={{ width: "90%", maxWidth: "400px", marginTop: "10px" }}
-            >
+            <IonItem className="quiz-input-item">
               <IonInput
                 value={userAnswer}
                 placeholder="Enter your answer"
                 onIonInput={(e) => setUserAnswer(e.detail.value ?? "")}
-                style={{ textAlign: "center" }}
+                className="quiz-input"
               />
             </IonItem>
 
-            {errorMessage && <IonText color="danger">{errorMessage}</IonText>}
+            {errorMessage && (
+              <IonText color="danger" className="quiz-error">
+                {errorMessage}
+              </IonText>
+            )}
 
-            <IonButton
-              expand="block"
-              onClick={() => handleNext(false)}
-              style={{ marginTop: "20px" }}
-            >
+            <IonButton expand="block" onClick={() => handleNext(false)} className="quiz-next">
               Next
             </IonButton>
 
@@ -297,42 +268,33 @@ const ArithmeticQuiz: React.FC = () => {
                 setUserSolutions([]);
                 clearInterval(timerRef.current!);
               }}
-              style={{ marginTop: "10px" }}
+              className="quiz-back"
             >
               Back to Categories
             </IonButton>
           </div>
         ) : (
-          <p style={{ textAlign: "center", marginTop: "50px" }}>Loading...</p>
+          <p className="quiz-loading">Loading...</p>
         )}
 
         <IonModal isOpen={showResultModal} backdropDismiss={false}>
           <IonHeader>
-            <IonToolbar>
+            <IonToolbar color="light">
               <IonTitle>Results</IonTitle>
             </IonToolbar>
           </IonHeader>
-          <IonContent style={{ padding: "20px", overflowY: "auto" }}>
+          <IonContent className="quiz-result-content">
             <h2>Quiz Completed!</h2>
             <h3>
               Score: {score}/{userSolutions.length}
             </h3>
-            <ul style={{ textAlign: "left" }}>
+            <ul className="quiz-result-list">
               {userSolutions.map((res, i) => (
-                <li
-                  key={i}
-                  style={{
-                    border: "1px solid #ccc",
-                    borderRadius: "10px",
-                    padding: "10px",
-                    marginBottom: "15px",
-                    background: res.isCorrect ? "#e6ffe6" : "#ffe6e6",
-                  }}
-                >
+                <li key={i} className={`quiz-result-item ${res.isCorrect ? "correct" : "wrong"}`}>
                   <b>Q{i + 1}:</b> {res.question}
                   <br />
                   <b>Your Answer:</b>{" "}
-                  <span style={{ color: res.isCorrect ? "green" : "red" }}>
+                  <span className={res.isCorrect ? "text-correct" : "text-wrong"}>
                     {res.userAnswer}
                   </span>
                   <br />
@@ -341,11 +303,7 @@ const ArithmeticQuiz: React.FC = () => {
                   <b>Time Used:</b> {res.timeUsed}s
                   <br />
                   <b>Solution:</b>
-                  <pre
-                    style={{ whiteSpace: "pre-wrap", margin: 0 }}
-                  >
-                    {res.solution || "No solution provided."}
-                  </pre>
+                  <pre>{res.solution || "No solution provided."}</pre>
                 </li>
               ))}
             </ul>
@@ -358,7 +316,7 @@ const ArithmeticQuiz: React.FC = () => {
                 setUserAnswer("");
                 setUserSolutions([]);
               }}
-              style={{ marginTop: "20px" }}
+              className="quiz-finish-btn"
             >
               Back to Categories
             </IonButton>

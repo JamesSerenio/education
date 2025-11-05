@@ -1208,60 +1208,6 @@ ion-content {
   }
 }
 
-.gradient-toolbar {
-  --background: linear-gradient(90deg, #00ff87, #9eff00);
-  color: black;
-  font-weight: bold;
-  text-align: center;
-}
-
-.gradient-background {
-  --background: linear-gradient(180deg, #e8ffc7, #faffd1);
-}
-
-.practice-card {
-  background: white;
-  border-radius: 16px;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
-  padding: 20px;
-  margin-top: 20px;
-}
-
-.custom-item {
-  --border-color: transparent;
-  margin-bottom: 10px;
-}
-
-.btn-group {
-  display: flex;
-  justify-content: center;
-  gap: 10px;
-  margin-top: 18px;
-}
-
-.gradient-btn {
-  --background: linear-gradient(90deg, #00ff87, #9eff00);
-  color: black;
-  font-weight: bold;
-}
-
-.solution-box {
-  margin-top: 20px;
-  background: #f8fff1;
-  border-radius: 10px;
-  padding: 15px;
-}
-
-.answer-box {
-  margin-top: 15px;
-  padding: 14px;
-  border: 2px solid black;
-  border-radius: 10px;
-  text-align: center;
-  background-color: white;
-  font-size: 18px;
-  font-weight: 600;
-}
 
 
 /* === ADMIN HOME === */

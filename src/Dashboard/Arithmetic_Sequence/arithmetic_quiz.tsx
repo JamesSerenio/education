@@ -96,18 +96,17 @@ const ArithmeticQuiz: React.FC = () => {
     setUserSolutions([]);
     setUserAnswer("");
     setTimeUsed(0);
-    if (buildQueue[0]) setDelayTime(15); // 15s delay before timer starts
+    if (buildQueue[0]) setDelayTime(15); // start reading time
   };
 
-  // Timer logic with 15-second pre-delay
+  // Timer logic with 15-second reading delay
   useEffect(() => {
     if (!currentQuiz) return;
 
-    // Clear previous intervals
     if (timerRef.current) clearInterval(timerRef.current);
     if (delayRef.current) clearInterval(delayRef.current);
 
-    // Start 15-second delay
+    // Start 15-second reading time
     setDelayTime(15);
     setTimeLeft(0);
     setTimeUsed(0);
@@ -188,7 +187,7 @@ const ArithmeticQuiz: React.FC = () => {
         setCurrentQuizIndex(nextIndex);
         setCurrentQuiz(quizQueue[nextIndex]);
         setUserAnswer("");
-        setDelayTime(15); // reset 15-second delay for next question
+        setDelayTime(15); // restart reading time
       } else {
         clearInterval(timerRef.current!);
         setShowResultModal(true);
@@ -256,7 +255,16 @@ const ArithmeticQuiz: React.FC = () => {
           <div className="quiz-content">
             {delayTime !== null ? (
               <div className={`quiz-delay ${delayTime <= 3 ? "almost-start" : ""}`}>
-                🕒 Get Ready... <span className="countdown">{delayTime}</span>
+                {delayTime > 3 ? (
+                  <>
+                    📖 Reading Time: <span className="countdown">{delayTime}s</span>
+                  </>
+                ) : (
+                  <>
+                    ⚡ Get Ready! The timer will start soon:{" "}
+                    <span className="countdown">{delayTime}s</span>
+                  </>
+                )}
               </div>
             ) : (
               <div className={`quiz-timer ${timeLeft <= 5 ? "critical" : ""}`}>

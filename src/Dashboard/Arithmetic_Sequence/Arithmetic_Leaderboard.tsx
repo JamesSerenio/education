@@ -41,7 +41,7 @@ const ArithmeticLeaderboard: React.FC = () => {
     fetchLeaderboards();
   }, []);
 
-  /** Normalizes Supabase row structure */
+  /** Normalize Supabase row structure */
   const normalizeRow = (r: RawScoreRow): LeaderboardRow => {
     const lastname = Array.isArray(r.profiles)
       ? r.profiles[0]?.lastname ?? ""
@@ -66,7 +66,6 @@ const ArithmeticLeaderboard: React.FC = () => {
   /** Keeps only the best score per user */
   const filterHighestPerUser = (data: LeaderboardRow[]) => {
     const map = new Map<string, LeaderboardRow>();
-
     data.forEach((row) => {
       const key = row.profiles.lastname;
       const existing = map.get(key);
@@ -80,14 +79,13 @@ const ArithmeticLeaderboard: React.FC = () => {
         }
       }
     });
-
     return Array.from(map.values()).sort((a, b) => {
       if (b.score !== a.score) return b.score - a.score;
       return a.time_taken - b.time_taken;
     });
   };
 
-  /** Fetch data for each category from Supabase */
+  /** Fetch data from Supabase */
   const fetchLeaderboards = async () => {
     setLoading(true);
     try {
@@ -112,7 +110,6 @@ const ArithmeticLeaderboard: React.FC = () => {
         return (data as RawScoreRow[]).map(normalizeRow);
       };
 
-      // ✅ Use exact category names from your quizzes table
       const wordProblemRaw = await fetchCategory("Word Problem");
       const problemSolvingRaw = await fetchCategory("Problem Solving");
 
@@ -127,7 +124,7 @@ const ArithmeticLeaderboard: React.FC = () => {
     }
   };
 
-  /** Format time from seconds → MM:SS */
+  /** Format seconds → MM:SS */
   const formatTime = (seconds: number) => {
     if (!Number.isFinite(seconds)) return "0:00";
     const mins = Math.floor(seconds / 60);
@@ -135,37 +132,41 @@ const ArithmeticLeaderboard: React.FC = () => {
     return `${mins}:${secs < 10 ? "0" : ""}${secs}`;
   };
 
-  /** Render leaderboard table */
-  const renderTable = (data: LeaderboardRow[]) => (
-    <div className="leaderboard-table-wrapper">
-      <table className="leaderboard-table">
-        <thead>
-          <tr>
-            <th>Place</th>
-            <th>Lastname</th>
-            <th>Score</th>
-            <th>Time</th>
-          </tr>
-        </thead>
-        <tbody>
-          {data.length > 0 ? (
-            data.map((row, index) => (
-              <tr key={index}>
-                <td>{index + 1}</td>
-                <td>{row.profiles?.lastname || "-"}</td>
-                <td>{Math.round(row.score)}</td>
-                <td>{formatTime(row.time_taken)}</td>
-              </tr>
-            ))
-          ) : (
+  /** Render leaderboard table with medals */
+  const renderTable = (data: LeaderboardRow[]) => {
+    const medals = ["🥇", "🥈", "🥉"];
+
+    return (
+      <div className="leaderboard-table-wrapper">
+        <table className="leaderboard-table">
+          <thead>
             <tr>
-              <td colSpan={4}>No data found.</td>
+              <th>Place</th>
+              <th>Lastname</th>
+              <th>Score</th>
+              <th>Time</th>
             </tr>
-          )}
-        </tbody>
-      </table>
-    </div>
-  );
+          </thead>
+          <tbody>
+            {data.length > 0 ? (
+              data.map((row, index) => (
+                <tr key={index}>
+                  <td>{medals[index] || index + 1}</td>
+                  <td>{row.profiles?.lastname || "-"}</td>
+                  <td>{Math.round(row.score)}</td>
+                  <td>{formatTime(row.time_taken)}</td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan={4}>No data found.</td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    );
+  };
 
   return (
     <IonPage>

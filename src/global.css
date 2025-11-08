@@ -1209,6 +1209,35 @@ ion-content {
   }
 }
 
+/* --- Pre-Timer Delay --- */
+.quiz-delay {
+  font-size: 22px;
+  font-weight: 700;
+  color: #4d7c0f;
+  margin-bottom: 12px;
+  animation: fadeIn 0.5s ease-in;
+}
+
+.quiz-delay .countdown {
+  background: linear-gradient(90deg, #65a30d, #eab308);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  font-size: 28px;
+  font-weight: 800;
+}
+
+.quiz-delay.almost-start {
+  color: #eab308;
+  animation: pulseCountdown 1s infinite;
+}
+
+@keyframes pulseCountdown {
+  0% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.2); opacity: 0.6; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+
 /* Arithmetic_Practice.css */
 .arithmetic-practice-page {
   background: linear-gradient(135deg, #f0f8e7 0%, #e8f5e8 100%);

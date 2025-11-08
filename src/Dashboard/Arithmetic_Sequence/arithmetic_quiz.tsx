@@ -52,9 +52,13 @@ const ArithmeticQuiz: React.FC = () => {
   >([]);
   const [showResultModal, setShowResultModal] = useState(false);
   const [timeLeft, setTimeLeft] = useState<number>(0);
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [timeUsed, setTimeUsed] = useState<number>(0);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+
+  // delay countdown before timer starts
+  const [delayTime, setDelayTime] = useState<number | null>(null);
+  const delayRef = useRef<NodeJS.Timeout | null>(null);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Fetch quizzes
   useEffect(() => {
@@ -92,32 +96,52 @@ const ArithmeticQuiz: React.FC = () => {
     setUserSolutions([]);
     setUserAnswer("");
     setTimeUsed(0);
-    if (buildQueue[0]) setTimeLeft(DIFFICULTY_TIMERS[buildQueue[0].difficulty]);
+    if (buildQueue[0]) setDelayTime(15); // 15s delay before timer starts
   };
 
-  // Timer
+  // Timer logic with 15-second pre-delay
   useEffect(() => {
     if (!currentQuiz) return;
-    if (timerRef.current) clearInterval(timerRef.current);
 
-    const totalTime = DIFFICULTY_TIMERS[currentQuiz.difficulty];
-    setTimeLeft(totalTime);
+    // Clear previous intervals
+    if (timerRef.current) clearInterval(timerRef.current);
+    if (delayRef.current) clearInterval(delayRef.current);
+
+    // Start 15-second delay
+    setDelayTime(15);
+    setTimeLeft(0);
     setTimeUsed(0);
 
-    timerRef.current = setInterval(() => {
-      setTimeLeft((prev) => {
+    delayRef.current = setInterval(() => {
+      setDelayTime((prev) => {
+        if (prev === null) return null;
         if (prev <= 1) {
-          clearInterval(timerRef.current!);
-          handleNext(true);
-          return 0;
+          clearInterval(delayRef.current!);
+          setDelayTime(null);
+
+          // After delay, start main timer
+          const totalTime = DIFFICULTY_TIMERS[currentQuiz.difficulty];
+          setTimeLeft(totalTime);
+
+          timerRef.current = setInterval(() => {
+            setTimeLeft((prev) => {
+              if (prev <= 1) {
+                clearInterval(timerRef.current!);
+                handleNext(true);
+                return 0;
+              }
+              return prev - 1;
+            });
+            setTimeUsed((prev) => prev + 1);
+          }, 1000);
         }
         return prev - 1;
       });
-      setTimeUsed((prev) => prev + 1);
     }, 1000);
 
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
+      if (delayRef.current) clearInterval(delayRef.current);
     };
   }, [currentQuiz]);
 
@@ -164,19 +188,22 @@ const ArithmeticQuiz: React.FC = () => {
         setCurrentQuizIndex(nextIndex);
         setCurrentQuiz(quizQueue[nextIndex]);
         setUserAnswer("");
-        setTimeLeft(DIFFICULTY_TIMERS[quizQueue[nextIndex].difficulty]);
+        setDelayTime(15); // reset 15-second delay for next question
       } else {
         clearInterval(timerRef.current!);
         setShowResultModal(true);
 
-        const totalTimeUsed = [...userSolutions, {
-          question: currentQuiz.question,
-          correct: currentQuiz.answer,
-          userAnswer: userAnswer || "(no answer)",
-          solution: currentQuiz.solution,
-          isCorrect,
-          timeUsed: timeUsedForThis,
-        }].reduce((sum, q) => sum + q.timeUsed, 0);
+        const totalTimeUsed = [
+          ...userSolutions,
+          {
+            question: currentQuiz.question,
+            correct: currentQuiz.answer,
+            userAnswer: userAnswer || "(no answer)",
+            solution: currentQuiz.solution,
+            isCorrect,
+            timeUsed: timeUsedForThis,
+          },
+        ].reduce((sum, q) => sum + q.timeUsed, 0);
 
         saveResult(score + (isCorrect ? 1 : 0), totalTimeUsed);
       }
@@ -227,11 +254,15 @@ const ArithmeticQuiz: React.FC = () => {
           </div>
         ) : currentQuiz ? (
           <div className="quiz-content">
-            <div
-              className={`quiz-timer ${timeLeft <= 5 ? "critical" : ""}`}
-            >
-              ⏳ Time Left: {timeLeft}s
-            </div>
+            {delayTime !== null ? (
+              <div className={`quiz-delay ${delayTime <= 3 ? "almost-start" : ""}`}>
+                🕒 Get Ready... <span className="countdown">{delayTime}</span>
+              </div>
+            ) : (
+              <div className={`quiz-timer ${timeLeft <= 5 ? "critical" : ""}`}>
+                ⏳ Time Left: {timeLeft}s
+              </div>
+            )}
 
             <h2 className="quiz-difficulty">{currentQuiz.difficulty}</h2>
             <p className="quiz-question">{currentQuiz.question}</p>
@@ -267,6 +298,7 @@ const ArithmeticQuiz: React.FC = () => {
                 setScore(0);
                 setUserSolutions([]);
                 clearInterval(timerRef.current!);
+                clearInterval(delayRef.current!);
               }}
               className="quiz-back"
             >

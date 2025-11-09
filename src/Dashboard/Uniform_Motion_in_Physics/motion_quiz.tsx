@@ -11,6 +11,7 @@ import {
   IonText,
   IonModal,
 } from "@ionic/react";
+import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "../../utils/supabaseClient";
 
 interface Quiz {
@@ -41,16 +42,18 @@ const MotionQuiz: React.FC = () => {
   const [errorMessage, setErrorMessage] = useState<string>("");
   const [score, setScore] = useState<number>(0);
   const [userSolutions, setUserSolutions] = useState<
-    { question: string; correct: string; userAnswer: string; solution: string; isCorrect: boolean }[]
+    { question: string; correct: string; userAnswer: string; solution: string; isCorrect: boolean; timeUsed: number }[]
   >([]);
   const [showResultModal, setShowResultModal] = useState(false);
   const [timeLeft, setTimeLeft] = useState<number>(0);
-  const [totalTimeTaken, setTotalTimeTaken] = useState<number>(0);
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const startTimeRef = useRef<number>(0);
+  const [timeUsed, setTimeUsed] = useState<number>(0);
+  const [delayTime, setDelayTime] = useState<number | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
-  // 🔹 Fetch quizzes for Uniform Motion
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const delayRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Fetch quizzes
   useEffect(() => {
     const fetchQuizzes = async () => {
       const { data, error } = await supabase
@@ -65,20 +68,16 @@ const MotionQuiz: React.FC = () => {
     fetchQuizzes();
   }, []);
 
-  // 🔹 Start quiz by category
   const startQuiz = (category: string) => {
     setSelectedCategory(category);
-
     const categoryQuizzes = allQuizzes.filter((q) => q.category === category);
 
-    // Randomize 5 per difficulty
-    const buildQueue = ["Easy", "Average", "Difficult"].flatMap((difficulty) => {
-      const filtered = categoryQuizzes
+    const buildQueue = ["Easy", "Average", "Difficult"].flatMap((difficulty) =>
+      categoryQuizzes
         .filter((q) => q.difficulty === difficulty)
         .sort(() => Math.random() - 0.5)
-        .slice(0, QUESTIONS_PER_DIFFICULTY);
-      return filtered;
-    });
+        .slice(0, QUESTIONS_PER_DIFFICULTY)
+    );
 
     setQuizQueue(buildQueue);
     setCurrentQuizIndex(0);
@@ -86,28 +85,42 @@ const MotionQuiz: React.FC = () => {
     setScore(0);
     setUserSolutions([]);
     setUserAnswer("");
-    setTotalTimeTaken(0);
-
-    if (buildQueue[0]) {
-      const duration = DIFFICULTY_TIMERS[buildQueue[0].difficulty];
-      setTimeLeft(duration);
-      startTimeRef.current = Date.now();
-    }
+    setTimeUsed(0);
+    if (buildQueue[0]) setDelayTime(15);
   };
 
-  // 🔹 Timer per question
+  // Timer with reading delay
   useEffect(() => {
     if (!currentQuiz) return;
+
     if (timerRef.current) clearInterval(timerRef.current);
+    if (delayRef.current) clearInterval(delayRef.current);
 
-    startTimeRef.current = Date.now();
+    setDelayTime(15);
+    setTimeLeft(0);
+    setTimeUsed(0);
 
-    timerRef.current = setInterval(() => {
-      setTimeLeft((prev) => {
+    delayRef.current = setInterval(() => {
+      setDelayTime((prev) => {
+        if (prev === null) return null;
         if (prev <= 1) {
-          clearInterval(timerRef.current!);
-          handleNext(true);
-          return 0;
+          clearInterval(delayRef.current!);
+          setDelayTime(null);
+
+          const duration = DIFFICULTY_TIMERS[currentQuiz.difficulty];
+          setTimeLeft(duration);
+
+          timerRef.current = setInterval(() => {
+            setTimeLeft((prev) => {
+              if (prev <= 1) {
+                clearInterval(timerRef.current!);
+                handleNext(true);
+                return 0;
+              }
+              return prev - 1;
+            });
+            setTimeUsed((prev) => prev + 1);
+          }, 1000);
         }
         return prev - 1;
       });
@@ -115,10 +128,10 @@ const MotionQuiz: React.FC = () => {
 
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
+      if (delayRef.current) clearInterval(delayRef.current);
     };
   }, [currentQuiz]);
 
-  // 🔹 Check answer & move to next
   const handleNext = useCallback(
     (auto = false) => {
       if (!currentQuiz) return;
@@ -135,12 +148,7 @@ const MotionQuiz: React.FC = () => {
       const alternates = (currentQuiz.accepted_answers || []).map((a) => a.trim().toLowerCase());
       const isCorrect = normalizedAnswer === correctAnswer || alternates.includes(normalizedAnswer);
 
-      // 🔹 Calculate time spent on this question
-      const timeSpent = (Date.now() - startTimeRef.current) / 1000;
-      const maxTime = DIFFICULTY_TIMERS[currentQuiz.difficulty];
-      const usedTime = isCorrect ? Math.min(timeSpent, maxTime) : maxTime;
-
-      setTotalTimeTaken((prev) => prev + usedTime);
+      const usedTime = timeUsed;
 
       setScore((prev) => (isCorrect ? prev + 1 : prev));
       setUserSolutions((prev) => [
@@ -151,28 +159,32 @@ const MotionQuiz: React.FC = () => {
           userAnswer: userAnswer || "(no answer)",
           solution: currentQuiz.solution,
           isCorrect,
+          timeUsed: usedTime,
         },
       ]);
 
-      // Move to next question
       if (currentQuizIndex < quizQueue.length - 1) {
         const nextIndex = currentQuizIndex + 1;
         setCurrentQuizIndex(nextIndex);
         setCurrentQuiz(quizQueue[nextIndex]);
         setUserAnswer("");
-        const duration = DIFFICULTY_TIMERS[quizQueue[nextIndex].difficulty];
-        setTimeLeft(duration);
-        startTimeRef.current = Date.now();
+        setTimeUsed(0);
+        setDelayTime(15);
       } else {
         clearInterval(timerRef.current!);
         setShowResultModal(true);
-        saveResult(score + (isCorrect ? 1 : 0), totalTimeTaken + usedTime);
+        saveResult(
+          score + (isCorrect ? 1 : 0),
+          [...userSolutions, { question: currentQuiz.question, correct: currentQuiz.answer, userAnswer, solution: currentQuiz.solution, isCorrect, timeUsed }].reduce(
+            (sum, q) => sum + q.timeUsed,
+            0
+          )
+        );
       }
     },
-    [currentQuiz, currentQuizIndex, quizQueue, userAnswer, score, totalTimeTaken]
+    [currentQuiz, currentQuizIndex, quizQueue, userAnswer, score, timeUsed, userSolutions]
   );
 
-  // 🔹 Save score to Supabase
   const saveResult = async (finalScore: number, totalTime: number) => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -193,118 +205,119 @@ const MotionQuiz: React.FC = () => {
   };
 
   return (
-    <IonPage>
+    <IonPage className="quiz-container">
       <IonHeader>
         <IonToolbar>
-          <IonTitle>Uniform Motion Quiz</IonTitle>
+          <IonTitle className="quiz-title">Uniform Motion Quiz</IonTitle>
         </IonToolbar>
       </IonHeader>
 
       <IonContent fullscreen>
-        {/* 🔹 Category Selection */}
-        {!selectedCategory ? (
-          <div className="flex flex-col items-center justify-center h-full p-6 text-center">
-            <h2>Select Category</h2>
-            <div style={{ display: "flex", gap: "15px", flexWrap: "wrap", justifyContent: "center" }}>
-              {["Word Problem", "Problem Solving"].map((cat) => (
-                <IonButton key={cat} onClick={() => startQuiz(cat)}>
-                  {cat}
-                </IonButton>
-              ))}
-            </div>
-          </div>
-        ) : currentQuiz ? (
-          // 🔹 Active Question
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "25px 10px 100px" }}>
-            <div
-              style={{
-                fontSize: "22px",
-                fontWeight: "bold",
-                color: timeLeft <= 5 ? "red" : "#333",
-                marginBottom: "10px",
-              }}
+        <AnimatePresence>
+          {!selectedCategory ? (
+            <motion.div
+              key="category"
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              className="quiz-category"
             >
-              ⏳ Time Left: {timeLeft}s
-            </div>
-
-            <h2>{currentQuiz.difficulty}</h2>
-            <p style={{ textAlign: "center", fontSize: "18px", margin: "10px 0" }}>
-              {currentQuiz.question}
-            </p>
-
-            <IonItem style={{ width: "90%", maxWidth: "400px", marginTop: "10px" }}>
-              <IonInput
-                value={userAnswer}
-                placeholder="Enter your answer"
-                onIonInput={(e) => setUserAnswer(e.detail.value!)}
-                style={{ textAlign: "center" }}
-              />
-            </IonItem>
-
-            {errorMessage && <IonText color="danger">{errorMessage}</IonText>}
-
-            <IonButton expand="block" onClick={() => handleNext(false)} style={{ marginTop: "20px" }}>
-              Next
-            </IonButton>
-
-            <IonButton
-              expand="block"
-              fill="outline"
-              color="medium"
-              onClick={() => {
-                setSelectedCategory(null);
-                setCurrentQuiz(null);
-                setUserAnswer("");
-                setErrorMessage("");
-                setScore(0);
-                setUserSolutions([]);
-                clearInterval(timerRef.current!);
-              }}
-              style={{ marginTop: "10px" }}
+              <h2 className="quiz-heading">Select Category</h2>
+              <div className="quiz-category-buttons">
+                {["Word Problem", "Problem Solving"].map((cat) => (
+                  <IonButton key={cat} onClick={() => startQuiz(cat)} className="quiz-btn">
+                    {cat}
+                  </IonButton>
+                ))}
+              </div>
+            </motion.div>
+          ) : currentQuiz ? (
+            <motion.div
+              key={currentQuiz.id}
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              transition={{ duration: 0.4 }}
+              className="quiz-content"
             >
-              Back to Categories
-            </IonButton>
-          </div>
-        ) : (
-          <p style={{ textAlign: "center", marginTop: "50px" }}>Loading...</p>
-        )}
+              {delayTime !== null ? (
+                <div className={`quiz-delay ${delayTime <= 3 ? "almost-start" : ""}`}>
+                  {delayTime > 3
+                    ? `📖 Reading Time: ${delayTime}s`
+                    : `⚡ Get Ready! The timer will start soon: ${delayTime}s`}
+                </div>
+              ) : (
+                <div className={`quiz-timer ${timeLeft <= 5 ? "critical" : ""}`}>
+                  ⏳ Time Left: {timeLeft}s
+                </div>
+              )}
 
-        {/* 🔹 Result Modal */}
+              <h2 className="quiz-difficulty">{currentQuiz.difficulty}</h2>
+              <p className="quiz-question">{currentQuiz.question}</p>
+
+              <IonItem className="quiz-input-item">
+                <IonInput
+                  value={userAnswer}
+                  placeholder="Enter your answer"
+                  onIonInput={(e) => setUserAnswer(e.detail.value!)}
+                  className="quiz-input"
+                />
+              </IonItem>
+
+              {errorMessage && <IonText color="danger" className="quiz-error">{errorMessage}</IonText>}
+
+              <IonButton expand="block" onClick={() => handleNext(false)} className="quiz-next">
+                Next
+              </IonButton>
+
+              <IonButton
+                expand="block"
+                fill="outline"
+                color="medium"
+                onClick={() => {
+                  setSelectedCategory(null);
+                  setCurrentQuiz(null);
+                  setUserAnswer("");
+                  setErrorMessage("");
+                  setScore(0);
+                  setUserSolutions([]);
+                  clearInterval(timerRef.current!);
+                  clearInterval(delayRef.current!);
+                }}
+                className="quiz-back"
+              >
+                Back to Categories
+              </IonButton>
+            </motion.div>
+          ) : (
+            <p className="quiz-loading">Loading...</p>
+          )}
+        </AnimatePresence>
+
         <IonModal isOpen={showResultModal} backdropDismiss={false}>
           <IonHeader>
             <IonToolbar>
               <IonTitle>Results</IonTitle>
             </IonToolbar>
           </IonHeader>
-          <IonContent style={{ padding: "20px", overflowY: "auto" }}>
+          <IonContent className="quiz-result-content">
             <h2>Quiz Completed!</h2>
             <h3>
               Score: {score}/{userSolutions.length}
             </h3>
-            <h4>Total Time Taken: {Math.round(totalTimeTaken)}s</h4>
-            <ul style={{ textAlign: "left" }}>
+            <ul className="quiz-result-list">
               {userSolutions.map((res, i) => (
-                <li
-                  key={i}
-                  style={{
-                    border: "1px solid #ccc",
-                    borderRadius: "10px",
-                    padding: "10px",
-                    marginBottom: "15px",
-                    background: res.isCorrect ? "#e6ffe6" : "#ffe6e6",
-                  }}
-                >
+                <li key={i} className={`quiz-result-item ${res.isCorrect ? "correct" : "wrong"}`}>
                   <b>Q{i + 1}:</b> {res.question}
                   <br />
                   <b>Your Answer:</b>{" "}
-                  <span style={{ color: res.isCorrect ? "green" : "red" }}>{res.userAnswer}</span>
+                  <span className={res.isCorrect ? "text-correct" : "text-wrong"}>{res.userAnswer}</span>
                   <br />
                   <b>Correct Answer:</b> {res.correct}
                   <br />
                   <b>Solution:</b>
-                  <pre style={{ whiteSpace: "pre-wrap", margin: 0 }}>
-                    {res.solution || "No solution provided."}
-                  </pre>
+                  <pre>{res.solution || "No solution provided."}</pre>
+                  <b>Time Used:</b> {res.timeUsed}s
                 </li>
               ))}
             </ul>
@@ -317,7 +330,7 @@ const MotionQuiz: React.FC = () => {
                 setUserAnswer("");
                 setUserSolutions([]);
               }}
-              style={{ marginTop: "20px" }}
+              className="quiz-finish-btn"
             >
               Back to Categories
             </IonButton>

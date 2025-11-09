@@ -87,6 +87,10 @@ const MotionQuiz: React.FC = () => {
     setUserAnswer("");
     setTimeUsed(0);
     if (buildQueue[0]) setDelayTime(15);
+
+    // Scroll to top when quiz starts
+    const ionContent = document.querySelector("ion-content");
+    ionContent?.scrollToTop(0);
   };
 
   // Timer with reading delay
@@ -170,6 +174,10 @@ const MotionQuiz: React.FC = () => {
         setUserAnswer("");
         setTimeUsed(0);
         setDelayTime(15);
+
+        // Scroll to top after moving to next quiz
+        const ionContent = document.querySelector("ion-content");
+        ionContent?.scrollToTop(300);
       } else {
         clearInterval(timerRef.current!);
         setShowResultModal(true);
@@ -213,86 +221,95 @@ const MotionQuiz: React.FC = () => {
       </IonHeader>
 
       <IonContent fullscreen>
-        <AnimatePresence>
-          {!selectedCategory ? (
-            <motion.div
-              key="category"
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0 }}
-              className="quiz-category"
-            >
-              <h2 className="quiz-heading">Select Category</h2>
-              <div className="quiz-category-buttons">
-                {["Word Problem", "Problem Solving"].map((cat) => (
-                  <IonButton key={cat} onClick={() => startQuiz(cat)} className="quiz-btn">
-                    {cat}
-                  </IonButton>
-                ))}
-              </div>
-            </motion.div>
-          ) : currentQuiz ? (
-            <motion.div
-              key={currentQuiz.id}
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              transition={{ duration: 0.4 }}
-              className="quiz-content"
-            >
-              {delayTime !== null ? (
-                <div className={`quiz-delay ${delayTime <= 3 ? "almost-start" : ""}`}>
-                  {delayTime > 3
-                    ? `📖 Reading Time: ${delayTime}s`
-                    : `⚡ Get Ready! The timer will start soon: ${delayTime}s`}
-                </div>
-              ) : (
-                <div className={`quiz-timer ${timeLeft <= 5 ? "critical" : ""}`}>
-                  ⏳ Time Left: {timeLeft}s
-                </div>
-              )}
-
-              <h2 className="quiz-difficulty">{currentQuiz.difficulty}</h2>
-              <p className="quiz-question">{currentQuiz.question}</p>
-
-              <IonItem className="quiz-input-item">
-                <IonInput
-                  value={userAnswer}
-                  placeholder="Enter your answer"
-                  onIonInput={(e) => setUserAnswer(e.detail.value!)}
-                  className="quiz-input"
-                />
-              </IonItem>
-
-              {errorMessage && <IonText color="danger" className="quiz-error">{errorMessage}</IonText>}
-
-              <IonButton expand="block" onClick={() => handleNext(false)} className="quiz-next">
-                Next
-              </IonButton>
-
-              <IonButton
-                expand="block"
-                fill="outline"
-                color="medium"
-                onClick={() => {
-                  setSelectedCategory(null);
-                  setCurrentQuiz(null);
-                  setUserAnswer("");
-                  setErrorMessage("");
-                  setScore(0);
-                  setUserSolutions([]);
-                  clearInterval(timerRef.current!);
-                  clearInterval(delayRef.current!);
-                }}
-                className="quiz-back"
+        <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
+          <AnimatePresence>
+            {!selectedCategory ? (
+              <motion.div
+                key="category"
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                className="quiz-category"
               >
-                Back to Categories
-              </IonButton>
-            </motion.div>
-          ) : (
-            <p className="quiz-loading">Loading...</p>
-          )}
-        </AnimatePresence>
+                <h2 className="quiz-heading">Select Category</h2>
+                <div className="quiz-category-buttons">
+                  {["Word Problem", "Problem Solving"].map((cat) => (
+                    <IonButton key={cat} onClick={() => startQuiz(cat)} className="quiz-btn">
+                      {cat}
+                    </IonButton>
+                  ))}
+                </div>
+              </motion.div>
+            ) : currentQuiz ? (
+              <motion.div
+                key={currentQuiz.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.4 }}
+                className="quiz-content"
+              >
+                {delayTime !== null ? (
+                  <div className={`quiz-delay ${delayTime <= 3 ? "almost-start" : ""}`}>
+                    {delayTime > 3
+                      ? `📖 Reading Time: ${delayTime}s`
+                      : `⚡ Get Ready! The timer will start soon: ${delayTime}s`}
+                  </div>
+                ) : (
+                  <div className={`quiz-timer ${timeLeft <= 5 ? "critical" : ""}`}>
+                    ⏳ Time Left: {timeLeft}s
+                  </div>
+                )}
+
+                <h2 className="quiz-difficulty">{currentQuiz.difficulty}</h2>
+                <p className="quiz-question">{currentQuiz.question}</p>
+
+                <IonItem className="quiz-input-item">
+                  <IonInput
+                    value={userAnswer}
+                    placeholder="Enter your answer"
+                    onIonInput={(e) => setUserAnswer(e.detail.value!)}
+                    className="quiz-input"
+                  />
+                </IonItem>
+
+                {errorMessage && <IonText color="danger" className="quiz-error">{errorMessage}</IonText>}
+
+                <IonButton
+                  expand="block"
+                  onClick={() => handleNext(false)}
+                  className="quiz-next"
+                >
+                  Next
+                </IonButton>
+
+                <IonButton
+                  expand="block"
+                  fill="outline"
+                  color="medium"
+                  onClick={() => {
+                    setSelectedCategory(null);
+                    setCurrentQuiz(null);
+                    setUserAnswer("");
+                    setErrorMessage("");
+                    setScore(0);
+                    setUserSolutions([]);
+                    clearInterval(timerRef.current!);
+                    clearInterval(delayRef.current!);
+
+                    const ionContent = document.querySelector("ion-content");
+                    ionContent?.scrollToTop(300);
+                  }}
+                  className="quiz-back"
+                >
+                  Back to Categories
+                </IonButton>
+              </motion.div>
+            ) : (
+              <p className="quiz-loading">Loading...</p>
+            )}
+          </AnimatePresence>
+        </div>
 
         <IonModal isOpen={showResultModal} backdropDismiss={false}>
           <IonHeader>
@@ -329,6 +346,8 @@ const MotionQuiz: React.FC = () => {
                 setCurrentQuiz(null);
                 setUserAnswer("");
                 setUserSolutions([]);
+                const ionContent = document.querySelector("ion-content");
+                ionContent?.scrollToTop(0);
               }}
               className="quiz-finish-btn"
             >

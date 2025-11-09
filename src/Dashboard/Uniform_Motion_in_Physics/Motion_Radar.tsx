@@ -31,9 +31,8 @@ ChartJS.register(
   ChartDataLabels
 );
 
-// 🧮 Constants
-const MAX_SCORE = 15; // 15 questions (5 Easy + 5 Average + 5 Difficult)
-const MAX_TIME = 525; // 15*5 + 30*5 + 60*5 = 525 seconds total
+const MAX_SCORE = 15;
+const MAX_TIME = 525;
 
 interface QuizRef {
   id: string;
@@ -62,7 +61,6 @@ const Motion_Radar: React.FC = () => {
   const [visible, setVisible] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // 🔍 Safely map Supabase data
   const mapToScoreWithQuizzes = (rawData: Record<string, unknown>): ScoreWithQuizzes => {
     const quizzesRaw = rawData["quizzes"] as Record<string, unknown> | undefined;
     return {
@@ -87,7 +85,6 @@ const Motion_Radar: React.FC = () => {
     };
   };
 
-  // ✨ Smooth radar animation
   const animateRadarUpdate = (
     newData: { time: number; wordProblem: number; problemSolving: number },
     duration = 800
@@ -110,7 +107,6 @@ const Motion_Radar: React.FC = () => {
     }, interval);
   };
 
-  // 📊 Fetch Radar Data
   const fetchRadarData = async () => {
     setLoading(true);
     try {
@@ -143,7 +139,6 @@ const Motion_Radar: React.FC = () => {
       const rawArray = (allScores ?? []) as Record<string, unknown>[];
       const typedScores: ScoreWithQuizzes[] = rawArray.map(mapToScoreWithQuizzes);
 
-      // 🎯 Filter: Uniform Motion in Physics
       const motionScores = typedScores.filter(
         (s) => s.quizzes?.subject === "Uniform Motion in Physics"
       );
@@ -155,7 +150,6 @@ const Motion_Radar: React.FC = () => {
 
       const normalize = (txt: string | undefined) => txt?.trim().toLowerCase() ?? "";
 
-      // Filter each category
       const wordProblemScores = motionScores.filter(
         (s) => normalize(s.quizzes?.category) === "word problem" && s.score !== null
       );
@@ -163,7 +157,6 @@ const Motion_Radar: React.FC = () => {
         (s) => normalize(s.quizzes?.category) === "problem solving" && s.score !== null
       );
 
-      // 🧠 Get the highest score for each
       const bestWordProblem =
         wordProblemScores.length > 0
           ? Math.max(...wordProblemScores.map((s) => s.score ?? 0))
@@ -174,14 +167,12 @@ const Motion_Radar: React.FC = () => {
           ? Math.max(...problemSolvingScores.map((s) => s.score ?? 0))
           : 0;
 
-      // ⏱ Find fastest time
       const validTimes = motionScores.filter((s) => s.time_taken !== null);
       const bestTime =
         validTimes.length > 0
           ? Math.min(...validTimes.map((s) => s.time_taken ?? MAX_TIME))
           : MAX_TIME;
 
-      // 💯 Convert to percentage
       const timePercent = ((MAX_TIME - bestTime) / MAX_TIME) * 100;
       const newPerformance = {
         time: Math.max(0, Math.min(100, parseFloat(timePercent.toFixed(2)))),
@@ -199,38 +190,30 @@ const Motion_Radar: React.FC = () => {
     }
   };
 
-  // 🚀 Initialize chart
+  // initialize radar
   useEffect(() => {
     setVisible(true);
     void fetchRadarData();
   }, []);
 
+  // ✅ Fix: only initialize chart once
   useEffect(() => {
     if (!radarRef.current) return;
     const ctx = radarRef.current.getContext("2d");
     if (!ctx) return;
 
-    if (chartInstance.current) {
-      chartInstance.current.destroy();
-      chartInstance.current = null;
-    }
-
     const gradient = ctx.createLinearGradient(0, 0, 0, 500);
     gradient.addColorStop(0, "rgba(54, 162, 235, 0.32)");
     gradient.addColorStop(1, "rgba(236, 72, 153, 0.32)");
 
-    chartInstance.current = new ChartJS(ctx, {
+    const chart = new ChartJS(ctx, {
       type: "radar",
       data: {
         labels: ["⏱ Time", "📘 Word Problem", "🧩 Problem Solving"],
         datasets: [
           {
             label: "🚀 Best Performance (Uniform Motion in Physics)",
-            data: [
-              performance.time,
-              performance.wordProblem,
-              performance.problemSolving,
-            ],
+            data: [performance.time, performance.wordProblem, performance.problemSolving],
             fill: true,
             backgroundColor: gradient,
             borderColor: "rgb(54, 162, 235)",
@@ -258,7 +241,7 @@ const Motion_Radar: React.FC = () => {
             color: "#000",
             font: { weight: "bold", size: 11 },
             formatter: (val: number) =>
-              Number.isInteger(val) ? `${val}%` : `${val.toFixed(2)}%`,
+              Number.isInteger(val) ? `${val}%` : `${val.toFixed(1)}%`,
           },
         },
         scales: {
@@ -272,10 +255,24 @@ const Motion_Radar: React.FC = () => {
       plugins: [ChartDataLabels],
     });
 
+    chartInstance.current = chart;
+
     return () => {
-      chartInstance.current?.destroy();
+      chart.destroy();
       chartInstance.current = null;
     };
+  }, []);
+
+  // ✅ Fix: update chart data reactively when performance changes
+  useEffect(() => {
+    if (!chartInstance.current) return;
+    const chart = chartInstance.current;
+    chart.data.datasets[0].data = [
+      performance.time,
+      performance.wordProblem,
+      performance.problemSolving,
+    ];
+    chart.update();
   }, [performance]);
 
   const labels = ["⏱ Time", "📘 Word Problem", "🧩 Problem Solving"];

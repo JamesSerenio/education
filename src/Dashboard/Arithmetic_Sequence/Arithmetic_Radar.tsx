@@ -18,6 +18,7 @@ import {
 import ChartDataLabels from "chartjs-plugin-datalabels";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "../../utils/supabaseClient";
+import "../../global.css";
 
 ChartJS.register(
   RadialLinearScale,
@@ -40,19 +41,29 @@ interface ScoreWithQuizzes {
   time_taken: number | null;
   created_at: string;
   quiz_id: string;
-  quizzes: { id: string; category: string; subject?: string } | null;
+  quizzes: {
+    id: string;
+    category: string;
+    subject?: string;
+  } | null;
+}
+
+interface RadarPerformance {
+  time: number;
+  wordProblem: number;
+  problemSolving: number;
 }
 
 const Arithmetic_Radar: React.FC = () => {
   const radarRef = useRef<HTMLCanvasElement | null>(null);
   const chartInstance = useRef<ChartJS | null>(null);
 
-  const [performance, setPerformance] = useState({
+  const [performance, setPerformance] = useState<RadarPerformance>({
     time: 0,
     wordProblem: 0,
     problemSolving: 0,
   });
-  const [categoryPercent, setCategoryPercent] = useState({
+  const [categoryPercent, setCategoryPercent] = useState<RadarPerformance>({
     time: 0,
     wordProblem: 0,
     problemSolving: 0,
@@ -62,6 +73,7 @@ const Arithmetic_Radar: React.FC = () => {
   const [scores, setScores] = useState<ScoreWithQuizzes[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
+  // ✅ Convert Supabase raw data to typed structure
   const mapToScoreWithQuizzes = (rawData: Record<string, unknown>): ScoreWithQuizzes => {
     const quizzesRaw = rawData["quizzes"] as Record<string, unknown> | undefined;
     return {
@@ -80,10 +92,8 @@ const Arithmetic_Radar: React.FC = () => {
     };
   };
 
-  const animateRadarUpdate = (
-    newData: { time: number; wordProblem: number; problemSolving: number },
-    duration = 800
-  ) => {
+  // ✅ Smoothly animate radar values
+  const animateRadarUpdate = (newData: RadarPerformance, duration = 600) => {
     const steps = 30;
     const interval = duration / steps;
     let currentStep = 0;
@@ -107,6 +117,7 @@ const Arithmetic_Radar: React.FC = () => {
     }, interval);
   };
 
+  // ✅ Fetch radar data
   const fetchRadarData = async () => {
     setLoading(true);
     try {
@@ -120,7 +131,10 @@ const Arithmetic_Radar: React.FC = () => {
         .order("created_at", { ascending: false })
         .limit(100);
 
-      if (scoresError) return;
+      if (scoresError) {
+        console.error(scoresError);
+        return;
+      }
 
       const rawArray = (allScores ?? []) as Record<string, unknown>[];
       const typedScores = rawArray.map(mapToScoreWithQuizzes);
@@ -139,21 +153,24 @@ const Arithmetic_Radar: React.FC = () => {
         (s) => normalize(s.quizzes?.category) === "problem solving" && s.score !== null
       );
 
-      const bestWordProblem = wordProblemScores.length > 0
-        ? Math.max(...wordProblemScores.map((s) => s.score ?? 0))
-        : 0;
-      const bestProblemSolving = problemSolvingScores.length > 0
-        ? Math.max(...problemSolvingScores.map((s) => s.score ?? 0))
-        : 0;
+      const bestWordProblem =
+        wordProblemScores.length > 0
+          ? Math.max(...wordProblemScores.map((s) => s.score ?? 0))
+          : 0;
+      const bestProblemSolving =
+        problemSolvingScores.length > 0
+          ? Math.max(...problemSolvingScores.map((s) => s.score ?? 0))
+          : 0;
 
       const validTimes = arithmeticScores.filter((s) => s.time_taken !== null);
-      const bestTime = validTimes.length > 0
-        ? Math.min(...validTimes.map((s) => s.time_taken ?? MAX_TIME))
-        : MAX_TIME;
+      const bestTime =
+        validTimes.length > 0
+          ? Math.min(...validTimes.map((s) => s.time_taken ?? MAX_TIME))
+          : MAX_TIME;
 
       const timePercent = ((MAX_TIME - bestTime) / MAX_TIME) * 100;
 
-      const newPerformance = {
+      const newPerformance: RadarPerformance = {
         time: Math.max(0, Math.min(100, parseFloat(timePercent.toFixed(2)))),
         wordProblem: (bestWordProblem / MAX_SCORE) * 100,
         problemSolving: (bestProblemSolving / MAX_SCORE) * 100,
@@ -173,6 +190,7 @@ const Arithmetic_Radar: React.FC = () => {
     void fetchRadarData();
   }, []);
 
+  // ✅ Create radar chart
   useEffect(() => {
     if (!radarRef.current || selectedCategory) return;
     const ctx = radarRef.current.getContext("2d");
@@ -230,12 +248,11 @@ const Arithmetic_Radar: React.FC = () => {
     return () => chartInstance.current?.destroy();
   }, [performance, selectedCategory]);
 
+  // ✅ Category record filtering
   const getCategoryRecords = () => {
     const normalize = (txt: string | undefined) => txt?.trim().toLowerCase() ?? "";
     if (selectedCategory === "time") {
-      return scores.filter(
-        (s) => s.quizzes?.subject?.toLowerCase() === "arithmetic sequence"
-      );
+      return scores.filter((s) => s.quizzes?.subject?.toLowerCase() === "arithmetic sequence");
     }
     return scores.filter(
       (s) =>
@@ -248,11 +265,8 @@ const Arithmetic_Radar: React.FC = () => {
     if (selectedCategory === "time") {
       return record.time_taken ? ((MAX_TIME - record.time_taken) / MAX_TIME) * 100 : 0;
     }
-    if (selectedCategory === "word problem") {
-      return record.score ? (record.score / MAX_SCORE) * 100 : 0;
-    }
-    if (selectedCategory === "problem solving") {
-      return record.score ? (record.score / MAX_SCORE) * 100 : 0;
+    if (record.score != null) {
+      return (record.score / MAX_SCORE) * 100;
     }
     return 0;
   };
@@ -284,92 +298,59 @@ const Arithmetic_Radar: React.FC = () => {
             >
               {!selectedCategory ? (
                 <>
-                  <motion.h2
-                    initial={{ opacity: 0, y: -8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.6 }}
-                    className="radar-title"
-                  >
-                    🏅 Best Performance Overview
-                  </motion.h2>
-
+                  <h2 className="radar-title">🏅 Best Performance Overview</h2>
                   <div className="radar-labels">
                     {labels.map((label) => (
-                      <motion.div
-                        key={label}
-                        className="radar-label"
-                        onClick={() => handleLabelClick(label)}
-                      >
+                      <div key={label} className="radar-label" onClick={() => handleLabelClick(label)}>
                         {label}
-                      </motion.div>
+                      </div>
                     ))}
                   </div>
-
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.96 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    className="radar-card"
-                  >
+                  <div className="radar-card">
                     <canvas ref={radarRef} />
-                  </motion.div>
-
-                  <motion.button
+                  </div>
+                  <button
                     onClick={fetchRadarData}
                     disabled={loading}
-                    whileTap={{ scale: 0.96 }}
                     className={`radar-refresh-btn ${loading ? "loading" : ""}`}
                   >
                     {loading ? "🔄 Refreshing..." : "🔄 Refresh"}
-                  </motion.button>
+                  </button>
                 </>
               ) : (
                 <>
-                  <motion.h2 className="radar-title">
-                    📘 {selectedCategory.toUpperCase()} RECORDS
-                  </motion.h2>
-
-                  <p style={{ fontWeight: "bold", marginBottom: "12px" }}>
-                    Total Percent:{" "}
-                    {selectedCategory === "time"
-                      ? categoryPercent.time.toFixed(1)
-                      : selectedCategory === "word problem"
-                      ? categoryPercent.wordProblem.toFixed(1)
-                      : categoryPercent.problemSolving.toFixed(1)}
-                    %
+                  <h2 className="radar-title">📘 {selectedCategory.toUpperCase()} RECORDS</h2>
+                  <p>
+                    <b>Total Percent:</b>{" "}
+                    {categoryPercent[selectedCategory as keyof RadarPerformance].toFixed(1)}%
                   </p>
-
-                  <div style={{ textAlign: "left", marginTop: "15px" }}>
-                    {getCategoryRecords().length > 0 ? (
-                      getCategoryRecords().map((record) => (
-                        <div
-                          key={record.id}
-                          style={{
-                            background: "#f8fafc",
-                            padding: "10px",
-                            borderRadius: "10px",
-                            marginBottom: "8px",
-                          }}
-                        >
-                          <strong>Score:</strong> {record.score ?? "N/A"} / {MAX_SCORE}<br />
-                          <strong>Time Taken:</strong>{" "}
-                          {record.time_taken ? `${record.time_taken}s` : "N/A"}<br />
-                          <strong>Percent:</strong> {recordPercent(record).toFixed(1)}%<br />
-                          <small>{new Date(record.created_at).toLocaleString()}</small>
-                        </div>
-                      ))
-                    ) : (
-                      <p>No records found.</p>
-                    )}
-                  </div>
-
-                  <motion.button
+                  {getCategoryRecords().length > 0 ? (
+                    getCategoryRecords().map((record) => (
+                      <div
+                        key={record.id}
+                        style={{
+                          background: "#f8fafc",
+                          padding: "10px",
+                          borderRadius: "10px",
+                          marginBottom: "8px",
+                        }}
+                      >
+                        <strong>Score:</strong> {record.score ?? "N/A"} / {MAX_SCORE}<br />
+                        <strong>Time Taken:</strong>{" "}
+                        {record.time_taken ? `${record.time_taken}s` : "N/A"}<br />
+                        <strong>Percent:</strong> {recordPercent(record).toFixed(1)}%
+                      </div>
+                    ))
+                  ) : (
+                    <p>No records found.</p>
+                  )}
+                  <button
                     onClick={() => setSelectedCategory(null)}
-                    whileTap={{ scale: 0.95 }}
                     className="radar-refresh-btn"
                     style={{ marginTop: "20px" }}
                   >
                     ⬅ Back to Radar
-                  </motion.button>
+                  </button>
                 </>
               )}
             </motion.div>

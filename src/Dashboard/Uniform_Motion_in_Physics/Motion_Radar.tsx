@@ -64,7 +64,7 @@ const Motion_Radar: React.FC = () => {
 
   // 🔍 Safely map Supabase data
   const mapToScoreWithQuizzes = (rawData: Record<string, unknown>): ScoreWithQuizzes => {
-    const quizzesRaw = rawData["quizzes"] as Record<string, unknown> | null;
+    const quizzesRaw = rawData["quizzes"] as Record<string, unknown> | undefined;
     return {
       id: String(rawData["id"] ?? ""),
       score:
@@ -199,14 +199,21 @@ const Motion_Radar: React.FC = () => {
     }
   };
 
-  // 🚀 Initialize chart once
+  // 🚀 Initialize chart
   useEffect(() => {
     setVisible(true);
     void fetchRadarData();
+  }, []);
 
+  useEffect(() => {
     if (!radarRef.current) return;
     const ctx = radarRef.current.getContext("2d");
     if (!ctx) return;
+
+    if (chartInstance.current) {
+      chartInstance.current.destroy();
+      chartInstance.current = null;
+    }
 
     const gradient = ctx.createLinearGradient(0, 0, 0, 500);
     gradient.addColorStop(0, "rgba(54, 162, 235, 0.32)");
@@ -269,18 +276,6 @@ const Motion_Radar: React.FC = () => {
       chartInstance.current?.destroy();
       chartInstance.current = null;
     };
-  }, []); // Empty dependency array to run only once
-
-  // Update chart data when performance changes
-  useEffect(() => {
-    if (chartInstance.current) {
-      chartInstance.current.data.datasets[0].data = [
-        performance.time,
-        performance.wordProblem,
-        performance.problemSolving,
-      ];
-      chartInstance.current.update();
-    }
   }, [performance]);
 
   const labels = ["⏱ Time", "📘 Word Problem", "🧩 Problem Solving"];

@@ -28,10 +28,9 @@ import iconModule from "../../assets/icon_module.gif";
 import iconLeaderboard from "../../assets/icon_leaderboard.gif";
 import iconRadar from "../../assets/icon_radar.png";
 
-
 const Dashboard_Motion: React.FC = () => {
   const history = useHistory();
-  const [activePage, setActivePage] = useState("Home");
+  const [activePage, setActivePage] = useState<string>("Home");
 
   const menuItems = [
     { name: "Home", key: "Home", icon: iconHome },
@@ -51,9 +50,7 @@ const Dashboard_Motion: React.FC = () => {
       case "radar":
         return <MotionRadar />;
       default:
-        return (
-          <h2 className="arithmetic-welcome">Welcome to Motion Dashboard</h2>
-        );
+        return <h2 className="motion-welcome">Welcome to Motion Dashboard</h2>;
     }
   };
 
@@ -63,28 +60,28 @@ const Dashboard_Motion: React.FC = () => {
   };
 
   const itemVariants = {
-    hidden: { opacity: 0, x: -25 },
+    hidden: { opacity: 0, x: -30 },
     show: { opacity: 1, x: 0 },
   };
 
   return (
     <IonPage>
       <IonSplitPane contentId="main" when="(min-width: 768px)">
-        {/* Sidebar Menu */}
-        <IonMenu contentId="main" className="arithmetic-menu">
+        {/* Sidebar / Menu */}
+        <IonMenu contentId="main" className="motion-menu">
           <IonHeader>
             <IonToolbar className="menu-toolbar">
-              <IonTitle className="menu-title">Menu</IonTitle>
+              <IonTitle className="menu-title">🎬 Motion Menu</IonTitle>
             </IonToolbar>
           </IonHeader>
 
           <IonContent className="menu-content">
             <motion.div
-              style={{ display: "flex", flexDirection: "column", height: "100%" }}
               variants={listVariants}
               initial="hidden"
               animate="show"
               transition={{ duration: 0.4, ease: "easeOut" }}
+              className="menu-motion"
             >
               {menuItems.map((item, index) => (
                 <motion.div key={index} variants={itemVariants}>
@@ -92,8 +89,8 @@ const Dashboard_Motion: React.FC = () => {
                     <IonItem
                       button
                       onClick={() => setActivePage(item.key)}
-                      className={`menu-item ${activePage === item.key ? "active" : ""}`}
                       lines="none"
+                      className={`menu-item ${activePage === item.key ? "active" : ""}`}
                     >
                       <img src={item.icon} alt={item.name} className="menu-icon" />
                       <span className="menu-text">{item.name}</span>
@@ -102,7 +99,7 @@ const Dashboard_Motion: React.FC = () => {
                 </motion.div>
               ))}
 
-              {/* Logout Button */}
+              {/* Logout */}
               <motion.div variants={itemVariants} className="logout-container">
                 <IonMenuToggle autoHide={false}>
                   <IonButton
@@ -132,15 +129,14 @@ const Dashboard_Motion: React.FC = () => {
             </IonToolbar>
           </IonHeader>
 
-          <IonContent fullscreen className="main-content-wrapper">
+          <IonContent className="main-content">
             <AnimatePresence mode="wait">
               <motion.div
                 key={activePage}
-                initial={{ opacity: 0, scale: 0.98, y: 20 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.98, y: -20 }}
+                initial={{ opacity: 0, y: 25 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -25 }}
                 transition={{ duration: 0.4, ease: "easeOut" }}
-                className="main-motion-container"
               >
                 {renderContent()}
               </motion.div>

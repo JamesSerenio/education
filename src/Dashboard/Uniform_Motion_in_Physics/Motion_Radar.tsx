@@ -127,7 +127,7 @@ const Motion_Radar: React.FC = () => {
       setScores(typedScores);
 
       const motionScores = typedScores.filter(
-        (s) => s.quizzes?.subject?.toLowerCase() === "uniform motion in physics"
+        (s) => s.quizzes?.subject?.toLowerCase() === "Uniform motion in physics"
       );
 
       const normalize = (txt: string | undefined) => txt?.trim().toLowerCase() ?? "";
@@ -234,12 +234,12 @@ const Motion_Radar: React.FC = () => {
     const normalize = (txt: string | undefined) => txt?.trim().toLowerCase() ?? "";
     if (selectedCategory === "time") {
       return scores.filter(
-        (s) => s.quizzes?.subject?.toLowerCase() === "uniform motion in physics"
+        (s) => s.quizzes?.subject?.toLowerCase() === "Uniform motion in physics"
       );
     }
     return scores.filter(
       (s) =>
-        s.quizzes?.subject?.toLowerCase() === "uniform motion in physics" &&
+        s.quizzes?.subject?.toLowerCase() === "Uniform motion in physics" &&
         normalize(s.quizzes?.category) === selectedCategory
     );
   };

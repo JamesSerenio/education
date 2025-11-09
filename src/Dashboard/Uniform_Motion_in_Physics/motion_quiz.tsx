@@ -11,7 +11,6 @@ import {
   IonText,
   IonModal,
 } from "@ionic/react";
-import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "../../utils/supabaseClient";
 
 interface Quiz {
@@ -42,16 +41,23 @@ const MotionQuiz: React.FC = () => {
   const [errorMessage, setErrorMessage] = useState<string>("");
   const [score, setScore] = useState<number>(0);
   const [userSolutions, setUserSolutions] = useState<
-    { question: string; correct: string; userAnswer: string; solution: string; isCorrect: boolean; timeUsed: number }[]
+    {
+      question: string;
+      correct: string;
+      userAnswer: string;
+      solution: string;
+      isCorrect: boolean;
+      timeUsed: number;
+    }[]
   >([]);
   const [showResultModal, setShowResultModal] = useState(false);
   const [timeLeft, setTimeLeft] = useState<number>(0);
   const [timeUsed, setTimeUsed] = useState<number>(0);
-  const [delayTime, setDelayTime] = useState<number | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const [delayTime, setDelayTime] = useState<number | null>(null);
   const delayRef = useRef<NodeJS.Timeout | null>(null);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Fetch quizzes
   useEffect(() => {
@@ -68,16 +74,19 @@ const MotionQuiz: React.FC = () => {
     fetchQuizzes();
   }, []);
 
+  // Start quiz
   const startQuiz = (category: string) => {
     setSelectedCategory(category);
+
     const categoryQuizzes = allQuizzes.filter((q) => q.category === category);
 
-    const buildQueue = ["Easy", "Average", "Difficult"].flatMap((difficulty) =>
-      categoryQuizzes
+    const buildQueue = ["Easy", "Average", "Difficult"].flatMap((difficulty) => {
+      const filtered = categoryQuizzes
         .filter((q) => q.difficulty === difficulty)
         .sort(() => Math.random() - 0.5)
-        .slice(0, QUESTIONS_PER_DIFFICULTY)
-    );
+        .slice(0, QUESTIONS_PER_DIFFICULTY);
+      return filtered;
+    });
 
     setQuizQueue(buildQueue);
     setCurrentQuizIndex(0);
@@ -87,13 +96,9 @@ const MotionQuiz: React.FC = () => {
     setUserAnswer("");
     setTimeUsed(0);
     if (buildQueue[0]) setDelayTime(15);
-
-    // Scroll to top when quiz starts
-    const ionContent = document.querySelector("ion-content");
-    ionContent?.scrollToTop(0);
   };
 
-  // Timer with reading delay
+  // Timer with 15-second reading delay
   useEffect(() => {
     if (!currentQuiz) return;
 
@@ -111,8 +116,8 @@ const MotionQuiz: React.FC = () => {
           clearInterval(delayRef.current!);
           setDelayTime(null);
 
-          const duration = DIFFICULTY_TIMERS[currentQuiz.difficulty];
-          setTimeLeft(duration);
+          const totalTime = DIFFICULTY_TIMERS[currentQuiz.difficulty];
+          setTimeLeft(totalTime);
 
           timerRef.current = setInterval(() => {
             setTimeLeft((prev) => {
@@ -149,12 +154,18 @@ const MotionQuiz: React.FC = () => {
 
       const normalizedAnswer = userAnswer.trim().toLowerCase();
       const correctAnswer = currentQuiz.answer.trim().toLowerCase();
-      const alternates = (currentQuiz.accepted_answers || []).map((a) => a.trim().toLowerCase());
-      const isCorrect = normalizedAnswer === correctAnswer || alternates.includes(normalizedAnswer);
+      const alternates = (currentQuiz.accepted_answers || []).map((a) =>
+        a.trim().toLowerCase()
+      );
+      const isCorrect =
+        normalizedAnswer === correctAnswer || alternates.includes(normalizedAnswer);
 
-      const usedTime = timeUsed;
+      const timeUsedForThis = isCorrect
+        ? timeUsed
+        : DIFFICULTY_TIMERS[currentQuiz.difficulty];
 
       setScore((prev) => (isCorrect ? prev + 1 : prev));
+
       setUserSolutions((prev) => [
         ...prev,
         {
@@ -163,7 +174,7 @@ const MotionQuiz: React.FC = () => {
           userAnswer: userAnswer || "(no answer)",
           solution: currentQuiz.solution,
           isCorrect,
-          timeUsed: usedTime,
+          timeUsed: timeUsedForThis,
         },
       ]);
 
@@ -172,30 +183,34 @@ const MotionQuiz: React.FC = () => {
         setCurrentQuizIndex(nextIndex);
         setCurrentQuiz(quizQueue[nextIndex]);
         setUserAnswer("");
-        setTimeUsed(0);
         setDelayTime(15);
-
-        // Scroll to top after moving to next quiz
-        const ionContent = document.querySelector("ion-content");
-        ionContent?.scrollToTop(300);
       } else {
         clearInterval(timerRef.current!);
         setShowResultModal(true);
-        saveResult(
-          score + (isCorrect ? 1 : 0),
-          [...userSolutions, { question: currentQuiz.question, correct: currentQuiz.answer, userAnswer, solution: currentQuiz.solution, isCorrect, timeUsed }].reduce(
-            (sum, q) => sum + q.timeUsed,
-            0
-          )
-        );
+
+        const totalTimeUsed = [
+          ...userSolutions,
+          {
+            question: currentQuiz.question,
+            correct: currentQuiz.answer,
+            userAnswer: userAnswer || "(no answer)",
+            solution: currentQuiz.solution,
+            isCorrect,
+            timeUsed: timeUsedForThis,
+          },
+        ].reduce((sum, q) => sum + q.timeUsed, 0);
+
+        saveResult(score + (isCorrect ? 1 : 0), totalTimeUsed);
       }
     },
     [currentQuiz, currentQuizIndex, quizQueue, userAnswer, score, timeUsed, userSolutions]
   );
 
-  const saveResult = async (finalScore: number, totalTime: number) => {
+  const saveResult = async (finalScore: number, totalTimeUsed: number) => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (!session) return;
       const userId = session.user.id;
 
@@ -204,116 +219,103 @@ const MotionQuiz: React.FC = () => {
           user_id: userId,
           quiz_id: quizQueue[0]?.id || null,
           score: finalScore,
-          time_taken: Math.round(totalTime),
+          time_taken: totalTimeUsed,
         },
       ]);
     } catch (err) {
-      console.error("Error saving motion quiz score:", err);
+      console.error("Error saving score:", err);
     }
   };
 
   return (
     <IonPage className="quiz-container">
       <IonHeader>
-        <IonToolbar>
-          <IonTitle className="quiz-title">Uniform Motion Quiz</IonTitle>
+        <IonToolbar color="light">
+          <IonTitle className="quiz-title">Uniform Motion in Physics Quiz</IonTitle>
         </IonToolbar>
       </IonHeader>
 
       <IonContent fullscreen>
-        <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
-          <AnimatePresence>
-            {!selectedCategory ? (
-              <motion.div
-                key="category"
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0 }}
-                className="quiz-category"
-              >
-                <h2 className="quiz-heading">Select Category</h2>
-                <div className="quiz-category-buttons">
-                  {["Word Problem", "Problem Solving"].map((cat) => (
-                    <IonButton key={cat} onClick={() => startQuiz(cat)} className="quiz-btn">
-                      {cat}
-                    </IonButton>
-                  ))}
-                </div>
-              </motion.div>
-            ) : currentQuiz ? (
-              <motion.div
-                key={currentQuiz.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.4 }}
-                className="quiz-content"
-              >
-                {delayTime !== null ? (
-                  <div className={`quiz-delay ${delayTime <= 3 ? "almost-start" : ""}`}>
-                    {delayTime > 3
-                      ? `📖 Reading Time: ${delayTime}s`
-                      : `⚡ Get Ready! The timer will start soon: ${delayTime}s`}
-                  </div>
+        {!selectedCategory ? (
+          <div className="quiz-category">
+            <h2 className="quiz-heading">Select Category</h2>
+            <div className="quiz-category-buttons">
+              {["Word Problem", "Problem Solving"].map((cat) => (
+                <IonButton key={cat} onClick={() => startQuiz(cat)} className="quiz-btn">
+                  {cat}
+                </IonButton>
+              ))}
+            </div>
+          </div>
+        ) : currentQuiz ? (
+          <div className="quiz-content">
+            {delayTime !== null ? (
+              <div className={`quiz-delay ${delayTime <= 3 ? "almost-start" : ""}`}>
+                {delayTime > 3 ? (
+                  <>
+                    📖 Reading Time: <span className="countdown">{delayTime}s</span>
+                  </>
                 ) : (
-                  <div className={`quiz-timer ${timeLeft <= 5 ? "critical" : ""}`}>
-                    ⏳ Time Left: {timeLeft}s
-                  </div>
+                  <>
+                    ⚡ Get Ready! The timer will start soon:{" "}
+                    <span className="countdown">{delayTime}s</span>
+                  </>
                 )}
-
-                <h2 className="quiz-difficulty">{currentQuiz.difficulty}</h2>
-                <p className="quiz-question">{currentQuiz.question}</p>
-
-                <IonItem className="quiz-input-item">
-                  <IonInput
-                    value={userAnswer}
-                    placeholder="Enter your answer"
-                    onIonInput={(e) => setUserAnswer(e.detail.value!)}
-                    className="quiz-input"
-                  />
-                </IonItem>
-
-                {errorMessage && <IonText color="danger" className="quiz-error">{errorMessage}</IonText>}
-
-                <IonButton
-                  expand="block"
-                  onClick={() => handleNext(false)}
-                  className="quiz-next"
-                >
-                  Next
-                </IonButton>
-
-                <IonButton
-                  expand="block"
-                  fill="outline"
-                  color="medium"
-                  onClick={() => {
-                    setSelectedCategory(null);
-                    setCurrentQuiz(null);
-                    setUserAnswer("");
-                    setErrorMessage("");
-                    setScore(0);
-                    setUserSolutions([]);
-                    clearInterval(timerRef.current!);
-                    clearInterval(delayRef.current!);
-
-                    const ionContent = document.querySelector("ion-content");
-                    ionContent?.scrollToTop(300);
-                  }}
-                  className="quiz-back"
-                >
-                  Back to Categories
-                </IonButton>
-              </motion.div>
+              </div>
             ) : (
-              <p className="quiz-loading">Loading...</p>
+              <div className={`quiz-timer ${timeLeft <= 5 ? "critical" : ""}`}>
+                ⏳ Time Left: {timeLeft}s
+              </div>
             )}
-          </AnimatePresence>
-        </div>
+
+            <h2 className="quiz-difficulty">{currentQuiz.difficulty}</h2>
+            <p className="quiz-question">{currentQuiz.question}</p>
+
+            <IonItem className="quiz-input-item">
+              <IonInput
+                value={userAnswer}
+                placeholder="Enter your answer"
+                onIonInput={(e) => setUserAnswer(e.detail.value ?? "")}
+                className="quiz-input"
+              />
+            </IonItem>
+
+            {errorMessage && (
+              <IonText color="danger" className="quiz-error">
+                {errorMessage}
+              </IonText>
+            )}
+
+            <IonButton expand="block" onClick={() => handleNext(false)} className="quiz-next">
+              Next
+            </IonButton>
+
+            <IonButton
+              expand="block"
+              fill="outline"
+              color="medium"
+              onClick={() => {
+                setSelectedCategory(null);
+                setCurrentQuiz(null);
+                setUserAnswer("");
+                setErrorMessage("");
+                setScore(0);
+                setUserSolutions([]);
+                clearInterval(timerRef.current!);
+                clearInterval(delayRef.current!);
+              }}
+              className="quiz-back"
+            >
+              Back to Categories
+            </IonButton>
+          </div>
+        ) : (
+          <p className="quiz-loading">Loading...</p>
+        )}
 
         <IonModal isOpen={showResultModal} backdropDismiss={false}>
           <IonHeader>
-            <IonToolbar>
+            <IonToolbar color="light">
               <IonTitle>Results</IonTitle>
             </IonToolbar>
           </IonHeader>
@@ -328,13 +330,16 @@ const MotionQuiz: React.FC = () => {
                   <b>Q{i + 1}:</b> {res.question}
                   <br />
                   <b>Your Answer:</b>{" "}
-                  <span className={res.isCorrect ? "text-correct" : "text-wrong"}>{res.userAnswer}</span>
+                  <span className={res.isCorrect ? "text-correct" : "text-wrong"}>
+                    {res.userAnswer}
+                  </span>
                   <br />
                   <b>Correct Answer:</b> {res.correct}
                   <br />
+                  <b>Time Used:</b> {res.timeUsed}s
+                  <br />
                   <b>Solution:</b>
                   <pre>{res.solution || "No solution provided."}</pre>
-                  <b>Time Used:</b> {res.timeUsed}s
                 </li>
               ))}
             </ul>
@@ -346,8 +351,6 @@ const MotionQuiz: React.FC = () => {
                 setCurrentQuiz(null);
                 setUserAnswer("");
                 setUserSolutions([]);
-                const ionContent = document.querySelector("ion-content");
-                ionContent?.scrollToTop(0);
               }}
               className="quiz-finish-btn"
             >

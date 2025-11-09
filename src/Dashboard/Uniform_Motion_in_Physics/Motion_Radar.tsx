@@ -53,11 +53,13 @@ const Motion_Radar: React.FC = () => {
     wordProblem: 0,
     problemSolving: 0,
   });
+
   const [categoryPercent, setCategoryPercent] = useState({
     time: 0,
     wordProblem: 0,
     problemSolving: 0,
   });
+
   const [visible, setVisible] = useState(false);
   const [loading, setLoading] = useState(false);
   const [scores, setScores] = useState<ScoreWithQuizzes[]>([]);
@@ -96,12 +98,8 @@ const Motion_Radar: React.FC = () => {
 
       setPerformance({
         time: startValues.time + (newData.time - startValues.time) * progress,
-        wordProblem:
-          startValues.wordProblem +
-          (newData.wordProblem - startValues.wordProblem) * progress,
-        problemSolving:
-          startValues.problemSolving +
-          (newData.problemSolving - startValues.problemSolving) * progress,
+        wordProblem: startValues.wordProblem + (newData.wordProblem - startValues.wordProblem) * progress,
+        problemSolving: startValues.problemSolving + (newData.problemSolving - startValues.problemSolving) * progress,
       });
 
       if (currentStep >= steps) clearInterval(animate);
@@ -127,7 +125,7 @@ const Motion_Radar: React.FC = () => {
       setScores(typedScores);
 
       const motionScores = typedScores.filter(
-        (s) => s.quizzes?.subject?.toLowerCase() === "Uniform motion in physics"
+        (s) => s.quizzes?.subject?.toLowerCase() === "uniform motion in physics"
       );
 
       const normalize = (txt: string | undefined) => txt?.trim().toLowerCase() ?? "";
@@ -142,6 +140,7 @@ const Motion_Radar: React.FC = () => {
       const bestWordProblem = wordProblemScores.length > 0
         ? Math.max(...wordProblemScores.map((s) => s.score ?? 0))
         : 0;
+
       const bestProblemSolving = problemSolvingScores.length > 0
         ? Math.max(...problemSolvingScores.map((s) => s.score ?? 0))
         : 0;
@@ -174,7 +173,7 @@ const Motion_Radar: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (!radarRef.current || selectedCategory) return;
+    if (!radarRef.current) return;
     const ctx = radarRef.current.getContext("2d");
     if (!ctx) return;
 
@@ -191,11 +190,7 @@ const Motion_Radar: React.FC = () => {
         datasets: [
           {
             label: "🏆 Best Performance (Uniform Motion in Physics)",
-            data: [
-              performance.time,
-              performance.wordProblem,
-              performance.problemSolving,
-            ],
+            data: [performance.time, performance.wordProblem, performance.problemSolving],
             fill: true,
             backgroundColor: gradient,
             borderColor: "#36A2EB",
@@ -228,18 +223,31 @@ const Motion_Radar: React.FC = () => {
     });
 
     return () => chartInstance.current?.destroy();
-  }, [performance, selectedCategory]);
+  }, []);
+
+  // ✅ Update chart whenever performance changes
+  useEffect(() => {
+    if (!chartInstance.current) return;
+
+    chartInstance.current.data.datasets[0].data = [
+      performance.time,
+      performance.wordProblem,
+      performance.problemSolving,
+    ];
+
+    chartInstance.current.update();
+  }, [performance]);
 
   const getCategoryRecords = () => {
     const normalize = (txt: string | undefined) => txt?.trim().toLowerCase() ?? "";
     if (selectedCategory === "time") {
       return scores.filter(
-        (s) => s.quizzes?.subject?.toLowerCase() === "Uniform motion in physics"
+        (s) => s.quizzes?.subject?.toLowerCase() === "uniform motion in physics"
       );
     }
     return scores.filter(
       (s) =>
-        s.quizzes?.subject?.toLowerCase() === "Uniform motion in physics" &&
+        s.quizzes?.subject?.toLowerCase() === "uniform motion in physics" &&
         normalize(s.quizzes?.category) === selectedCategory
     );
   };
@@ -284,9 +292,7 @@ const Motion_Radar: React.FC = () => {
             >
               {!selectedCategory ? (
                 <>
-                  <motion.h2 className="radar-title">
-                    🏅 Best Performance Overview
-                  </motion.h2>
+                  <motion.h2 className="radar-title">🏅 Best Performance Overview</motion.h2>
 
                   <div className="radar-labels">
                     {labels.map((label) => (
@@ -314,9 +320,7 @@ const Motion_Radar: React.FC = () => {
                 </>
               ) : (
                 <>
-                  <motion.h2 className="radar-title">
-                    📘 {selectedCategory.toUpperCase()} RECORDS
-                  </motion.h2>
+                  <motion.h2 className="radar-title">📘 {selectedCategory.toUpperCase()} RECORDS</motion.h2>
 
                   <p style={{ fontWeight: "bold", marginBottom: "12px" }}>
                     Total Percent:{" "}
@@ -340,10 +344,13 @@ const Motion_Radar: React.FC = () => {
                             marginBottom: "8px",
                           }}
                         >
-                          <strong>Score:</strong> {record.score ?? "N/A"} / {MAX_SCORE}<br />
+                          <strong>Score:</strong> {record.score ?? "N/A"} / {MAX_SCORE}
+                          <br />
                           <strong>Time Taken:</strong>{" "}
-                          {record.time_taken ? `${record.time_taken}s` : "N/A"}<br />
-                          <strong>Percent:</strong> {recordPercent(record).toFixed(1)}%<br />
+                          {record.time_taken ? `${record.time_taken}s` : "N/A"}
+                          <br />
+                          <strong>Percent:</strong> {recordPercent(record).toFixed(1)}%
+                          <br />
                           <small>{new Date(record.created_at).toLocaleString()}</small>
                         </div>
                       ))

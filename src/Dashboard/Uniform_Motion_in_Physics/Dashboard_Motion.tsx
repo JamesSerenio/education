@@ -51,7 +51,11 @@ const Dashboard_Motion: React.FC = () => {
       case "radar":
         return <MotionRadar />;
       default:
-        return <h2 className="arithmetic-welcome">Welcome to Motion Dashboard</h2>;
+        return (
+          <h2 className="arithmetic-welcome">
+            Welcome to Motion Dashboard
+          </h2>
+        );
     }
   };
 
@@ -101,7 +105,7 @@ const Dashboard_Motion: React.FC = () => {
                 </motion.div>
               ))}
 
-              {/* Logout Button at Bottom */}
+              {/* Logout Button */}
               <motion.div variants={itemVariants} className="logout-container">
                 <IonMenuToggle autoHide={false}>
                   <IonButton
@@ -131,15 +135,16 @@ const Dashboard_Motion: React.FC = () => {
             </IonToolbar>
           </IonHeader>
 
-          <IonContent>
+          {/* ✅ Fixed Fullscreen Motion Layout */}
+          <IonContent fullscreen className="main-content-wrapper">
             <AnimatePresence mode="wait">
               <motion.div
                 key={activePage}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.3, ease: "easeOut" }}
-                className="main-content"
+                initial={{ opacity: 0, scale: 0.98, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.98, y: -20 }}
+                transition={{ duration: 0.4, ease: "easeOut" }}
+                className="main-motion-container"
               >
                 {renderContent()}
               </motion.div>

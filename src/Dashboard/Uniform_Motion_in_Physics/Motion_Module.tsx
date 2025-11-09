@@ -33,11 +33,19 @@ import distance4 from "../../assets/distance-4.png";
 const Motion_Module: React.FC = () => {
   const [selected, setSelected] = useState<string>("velocity");
 
-  // Centralized image controller
-  const images: Record<string, { src: string[]; label: string }> = {
-    velocity: { src: [velocity1, velocity2, velocity3, velocity4], label: "Velocity" },
-    time: { src: [time1, time2, time3, time4], label: "Time" },
-    distance: { src: [distance1, distance2, distance3, distance4], label: "Distance" },
+  const images: Record<string, { src: string | string[]; label: string }> = {
+    velocity: {
+      src: [velocity1, velocity2, velocity3, velocity4],
+      label: "Velocity (scroll to view more)",
+    },
+    time: {
+      src: [time1, time2, time3, time4],
+      label: "Time (scroll to view more)",
+    },
+    distance: {
+      src: [distance1, distance2, distance3, distance4],
+      label: "Distance (scroll to view more)",
+    },
   };
 
   return (
@@ -48,35 +56,59 @@ const Motion_Module: React.FC = () => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ staggerChildren: 0.3, delayChildren: 0.2 }}
-          className="motion-module-container"
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "flex-start",
+            gap: "20px",
+            padding: "20px",
+            flexWrap: "wrap",
+          }}
         >
-          {/* CARD 1 — Who Discovered Motion */}
+          {/* Who Discovered Motion */}
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, ease: "easeOut" }}
-            className="motion-card"
+            style={{
+              border: "2px solid #ccc",
+              borderRadius: "10px",
+              padding: "10px",
+              textAlign: "center",
+              width: "100%",
+              maxWidth: "400px",
+              boxShadow: "0 4px 8px rgba(0,0,0,0.1)",
+              flex: "1 1 300px",
+            }}
           >
-            <h3>Who Discovered Motion</h3>
+            <h3 style={{ marginBottom: "10px" }}>Who Discovered Motion</h3>
             <motion.img
               src={discoverImg}
               alt="Who Discover Motion"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.8 }}
+              style={{ width: "100%", borderRadius: "8px" }}
             />
           </motion.div>
 
-          {/* CARD 2 — Motion Module */}
+          {/* Motion Module */}
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, ease: "easeOut", delay: 0.3 }}
-            className="motion-card"
+            style={{
+              border: "2px solid #ccc",
+              borderRadius: "10px",
+              padding: "10px",
+              width: "100%",
+              maxWidth: "400px",
+              boxShadow: "0 4px 8px rgba(0,0,0,0.1)",
+              textAlign: "center",
+            }}
           >
-            <h3>Uniform Motion Module</h3>
+            <h3 style={{ marginBottom: "10px" }}>Uniform Motion Module</h3>
 
-            {/* Segment Tabs */}
             <IonSegment
               value={selected}
               onIonChange={(e) => setSelected(e.detail.value as string)}
@@ -85,38 +117,59 @@ const Motion_Module: React.FC = () => {
               <IonSegmentButton value="velocity">
                 <IonLabel>Velocity</IonLabel>
               </IonSegmentButton>
-
               <IonSegmentButton value="time">
                 <IonLabel>Time</IonLabel>
               </IonSegmentButton>
-
               <IonSegmentButton value="distance">
                 <IonLabel>Distance</IonLabel>
               </IonSegmentButton>
             </IonSegment>
 
-            {/* Scrollable Image Viewer */}
-            <div className="image-scroll-container">
+            {/* Scrollable image viewer */}
+            <div
+              style={{
+                marginTop: "15px",
+                maxHeight: "400px",
+                overflowY: "auto",
+                display: "flex",
+                flexDirection: "column",
+                gap: "15px",
+              }}
+            >
               <AnimatePresence mode="wait">
-                <motion.div
-                  key={`${selected}-list`}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.6 }}
-                  style={{ display: "flex", flexDirection: "column", gap: "12px" }}
-                >
-                  {images[selected].src.map((img, index) => (
-                    <motion.img
-                      key={index}
-                      src={img}
-                      alt={`${selected}-${index}`}
-                      initial={{ scale: 0.96 }}
-                      animate={{ scale: 1 }}
-                      transition={{ duration: 0.4 }}
-                    />
-                  ))}
-                </motion.div>
+                {Array.isArray(images[selected].src) ? (
+                  <motion.div
+                    key={`${selected}-list`}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.6 }}
+                    style={{ display: "flex", flexDirection: "column", gap: "12px" }}
+                  >
+                    {(images[selected].src as string[]).map((img, idx) => (
+                      <motion.img
+                        key={idx}
+                        src={img}
+                        alt={`${selected}-${idx}`}
+                        initial={{ scale: 0.96 }}
+                        animate={{ scale: 1 }}
+                        transition={{ duration: 0.4 }}
+                        style={{ borderRadius: "8px" }}
+                      />
+                    ))}
+                  </motion.div>
+                ) : (
+                  <motion.img
+                    key={selected}
+                    src={images[selected].src as string}
+                    alt={images[selected].label}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.6 }}
+                    style={{ borderRadius: "8px" }}
+                  />
+                )}
               </AnimatePresence>
             </div>
           </motion.div>

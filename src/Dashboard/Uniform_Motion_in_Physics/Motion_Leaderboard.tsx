@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { IonPage, IonHeader, IonToolbar, IonTitle, IonContent } from "@ionic/react";
 import { Trophy } from "lucide-react";
 import { supabase } from "../../utils/supabaseClient";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface Profile {
   lastname: string;
@@ -36,22 +37,9 @@ const UniformMotionLeaderboard: React.FC = () => {
   }, []);
 
   const normalizeRow = (r: RawScoreRow): LeaderboardRow => {
-    let lastname = "";
-    if (r.profiles) {
-      lastname = Array.isArray(r.profiles) ? r.profiles[0]?.lastname ?? "" : r.profiles.lastname ?? "";
-    }
-
-    let category = "";
-    let subject = "";
-    if (r.quizzes) {
-      if (Array.isArray(r.quizzes)) {
-        category = r.quizzes[0]?.category ?? "";
-        subject = r.quizzes[0]?.subject ?? "";
-      } else {
-        category = r.quizzes.category ?? "";
-        subject = r.quizzes.subject ?? "";
-      }
-    }
+    const lastname = Array.isArray(r.profiles) ? r.profiles[0]?.lastname ?? "" : r.profiles?.lastname ?? "";
+    const category = Array.isArray(r.quizzes) ? r.quizzes[0]?.category ?? "" : r.quizzes?.category ?? "";
+    const subject = Array.isArray(r.quizzes) ? r.quizzes[0]?.subject ?? "" : r.quizzes?.subject ?? "";
 
     return {
       score: Number(r.score ?? 0),
@@ -63,18 +51,14 @@ const UniformMotionLeaderboard: React.FC = () => {
 
   const filterHighestPerUser = (data: LeaderboardRow[]) => {
     const map = new Map<string, LeaderboardRow>();
-
     data.forEach((row) => {
       const key = row.profiles.lastname;
       const existing = map.get(key);
-      if (!existing) {
+      if (!existing) map.set(key, row);
+      else if (row.score > existing.score || (row.score === existing.score && row.time_taken < existing.time_taken)) {
         map.set(key, row);
-      } else {
-        if (row.score > existing.score) map.set(key, row);
-        else if (row.score === existing.score && row.time_taken < existing.time_taken) map.set(key, row);
       }
     });
-
     return Array.from(map.values()).sort((a, b) => {
       if (b.score !== a.score) return b.score - a.score;
       return a.time_taken - b.time_taken;
@@ -83,7 +67,6 @@ const UniformMotionLeaderboard: React.FC = () => {
 
   const fetchLeaderboards = async () => {
     setLoading(true);
-
     try {
       const fetchCategory = async (category: string) => {
         const { data, error } = await supabase
@@ -132,22 +115,31 @@ const UniformMotionLeaderboard: React.FC = () => {
         </tr>
       </thead>
       <tbody>
-        {data.length > 0 ? (
-          data.map((row, index) => (
-            <tr key={index} style={{ borderBottom: "1px solid #e5e7eb" }}>
-              <td style={tdStyle}>{index + 1}</td>
-              <td style={tdStyle}>{row.profiles.lastname || "-"}</td>
-              <td style={tdStyle}>{row.score}</td>
-              <td style={tdStyle}>{formatTime(row.time_taken)}</td>
+        <AnimatePresence>
+          {data.length > 0 ? (
+            data.map((row, index) => (
+              <motion.tr
+                key={row.profiles.lastname}
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 10 }}
+                transition={{ duration: 0.3, delay: index * 0.05 }}
+                style={{ borderBottom: "1px solid #e5e7eb" }}
+              >
+                <td style={tdStyle}>{index + 1}</td>
+                <td style={tdStyle}>{row.profiles.lastname || "-"}</td>
+                <td style={tdStyle}>{row.score}</td>
+                <td style={tdStyle}>{formatTime(row.time_taken)}</td>
+              </motion.tr>
+            ))
+          ) : (
+            <tr>
+              <td style={tdStyle} colSpan={4}>
+                No data found.
+              </td>
             </tr>
-          ))
-        ) : (
-          <tr>
-            <td style={tdStyle} colSpan={4}>
-              No data found.
-            </td>
-          </tr>
-        )}
+          )}
+        </AnimatePresence>
       </tbody>
     </table>
   );
@@ -181,7 +173,7 @@ const UniformMotionLeaderboard: React.FC = () => {
   );
 };
 
-/* Styles a */
+/* Styles */
 const cardStyle: React.CSSProperties = {
   maxWidth: 720,
   margin: "0 auto",

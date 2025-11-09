@@ -18,7 +18,9 @@ import {
 import ChartDataLabels from "chartjs-plugin-datalabels";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "../../utils/supabaseClient";
+import "../../global.css";
 
+// Register required Chart.js components
 ChartJS.register(
   RadialLinearScale,
   PointElement,
@@ -31,15 +33,8 @@ ChartJS.register(
   ChartDataLabels
 );
 
-// 🧮 Constants
-const MAX_SCORE = 15; // 15 questions (5 Easy + 5 Average + 5 Difficult)
-const MAX_TIME = 525; // 15*5 + 30*5 + 60*5 = 525 seconds total
-
-interface QuizRef {
-  id: string;
-  subject: string;
-  category: string;
-}
+const MAX_SCORE = 15;
+const MAX_TIME = 525;
 
 interface ScoreWithQuizzes {
   id: string;
@@ -47,7 +42,7 @@ interface ScoreWithQuizzes {
   time_taken: number | null;
   created_at: string;
   quiz_id: string;
-  quizzes: QuizRef | null;
+  quizzes: { id: string; category: string; subject?: string } | null;
 }
 
 const Motion_Radar: React.FC = () => {
@@ -59,35 +54,36 @@ const Motion_Radar: React.FC = () => {
     wordProblem: 0,
     problemSolving: 0,
   });
+  const [categoryPercent, setCategoryPercent] = useState({
+    time: 0,
+    wordProblem: 0,
+    problemSolving: 0,
+  });
   const [visible, setVisible] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [scores, setScores] = useState<ScoreWithQuizzes[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
-  // 🔍 Safely map Supabase data
+  // 🧠 Helper for safe mapping
   const mapToScoreWithQuizzes = (rawData: Record<string, unknown>): ScoreWithQuizzes => {
-    const quizzesRaw = rawData["quizzes"] as Record<string, unknown> | undefined;
+    const quizzesRaw = rawData["quizzes"] as Record<string, unknown> | null;
     return {
       id: String(rawData["id"] ?? ""),
-      score:
-        rawData["score"] === undefined || rawData["score"] === null
-          ? null
-          : Number(rawData["score"]),
-      time_taken:
-        rawData["time_taken"] === undefined || rawData["time_taken"] === null
-          ? null
-          : Number(rawData["time_taken"]),
+      score: rawData["score"] == null ? null : Number(rawData["score"]),
+      time_taken: rawData["time_taken"] == null ? null : Number(rawData["time_taken"]),
       created_at: String(rawData["created_at"] ?? new Date().toISOString()),
       quiz_id: String(rawData["quiz_id"] ?? ""),
       quizzes: quizzesRaw
         ? {
             id: String(quizzesRaw["id"] ?? ""),
             category: String(quizzesRaw["category"] ?? ""),
-            subject: String(quizzesRaw["subject"] ?? ""),
+            subject: quizzesRaw["subject"] ? String(quizzesRaw["subject"]) : undefined,
           }
         : null,
     };
   };
 
-  // ✨ Smooth radar animation
+  // ✨ Animate radar transitions
   const animateRadarUpdate = (
     newData: { time: number; wordProblem: number; problemSolving: number },
     duration = 800
@@ -95,67 +91,49 @@ const Motion_Radar: React.FC = () => {
     const steps = 30;
     const interval = duration / steps;
     let currentStep = 0;
-    const start = { ...performance };
+    const startValues = { ...performance };
 
-    const animate = setInterval(() => {
+    const animation = setInterval(() => {
       currentStep++;
       const progress = currentStep / steps;
       setPerformance({
-        time: start.time + (newData.time - start.time) * progress,
-        wordProblem: start.wordProblem + (newData.wordProblem - start.wordProblem) * progress,
+        time: startValues.time + (newData.time - startValues.time) * progress,
+        wordProblem:
+          startValues.wordProblem +
+          (newData.wordProblem - startValues.wordProblem) * progress,
         problemSolving:
-          start.problemSolving + (newData.problemSolving - start.problemSolving) * progress,
+          startValues.problemSolving +
+          (newData.problemSolving - startValues.problemSolving) * progress,
       });
-      if (currentStep >= steps) clearInterval(animate);
+      if (currentStep >= steps) clearInterval(animation);
     }, interval);
   };
 
-  // 📊 Fetch Radar Data
+  // 📊 Fetch data from Supabase
   const fetchRadarData = async () => {
     setLoading(true);
     try {
-      const {
-        data: { user },
-        error: userError,
-      } = await supabase.auth.getUser();
-
-      if (userError || !user) {
-        console.error("No user logged in:", userError);
-        setPerformance({ time: 0, wordProblem: 0, problemSolving: 0 });
-        return;
-      }
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError || !user) return;
 
       const { data: allScores, error: scoresError } = await supabase
         .from("scores")
-        .select(
-          `id, score, time_taken, created_at, quiz_id, quizzes!quiz_id(id, subject, category)`
-        )
+        .select(`id, score, time_taken, created_at, quiz_id, quizzes!quiz_id(id, category, subject)`)
         .eq("user_id", user.id)
         .order("created_at", { ascending: false })
         .limit(100);
 
-      if (scoresError) {
-        console.error("Error fetching scores:", scoresError);
-        setPerformance({ time: 0, wordProblem: 0, problemSolving: 0 });
-        return;
-      }
+      if (scoresError) return;
 
-      const rawArray = (allScores ?? []) as Record<string, unknown>[];
-      const typedScores: ScoreWithQuizzes[] = rawArray.map(mapToScoreWithQuizzes);
+      const typedScores = (allScores ?? []).map(mapToScoreWithQuizzes);
+      setScores(typedScores);
 
-      // 🎯 Filter: Uniform Motion in Physics
       const motionScores = typedScores.filter(
         (s) => s.quizzes?.subject === "Uniform Motion in Physics"
       );
 
-      if (!motionScores.length) {
-        setPerformance({ time: 0, wordProblem: 0, problemSolving: 0 });
-        return;
-      }
-
       const normalize = (txt: string | undefined) => txt?.trim().toLowerCase() ?? "";
 
-      // Filter each category
       const wordProblemScores = motionScores.filter(
         (s) => normalize(s.quizzes?.category) === "word problem" && s.score !== null
       );
@@ -163,61 +141,60 @@ const Motion_Radar: React.FC = () => {
         (s) => normalize(s.quizzes?.category) === "problem solving" && s.score !== null
       );
 
-      // 🧠 Get the highest score for each
-      const bestWordProblem =
-        wordProblemScores.length > 0
-          ? Math.max(...wordProblemScores.map((s) => s.score ?? 0))
-          : 0;
+      const bestWordProblem = wordProblemScores.length
+        ? Math.max(...wordProblemScores.map((s) => s.score ?? 0))
+        : 0;
+      const bestProblemSolving = problemSolvingScores.length
+        ? Math.max(...problemSolvingScores.map((s) => s.score ?? 0))
+        : 0;
 
-      const bestProblemSolving =
-        problemSolvingScores.length > 0
-          ? Math.max(...problemSolvingScores.map((s) => s.score ?? 0))
-          : 0;
-
-      // ⏱ Find fastest time
       const validTimes = motionScores.filter((s) => s.time_taken !== null);
-      const bestTime =
-        validTimes.length > 0
-          ? Math.min(...validTimes.map((s) => s.time_taken ?? MAX_TIME))
-          : MAX_TIME;
+      const bestTime = validTimes.length
+        ? Math.min(...validTimes.map((s) => s.time_taken ?? MAX_TIME))
+        : MAX_TIME;
 
-      // 💯 Convert to percentage
       const timePercent = ((MAX_TIME - bestTime) / MAX_TIME) * 100;
+
       const newPerformance = {
         time: Math.max(0, Math.min(100, parseFloat(timePercent.toFixed(2)))),
         wordProblem: (bestWordProblem / MAX_SCORE) * 100,
         problemSolving: (bestProblemSolving / MAX_SCORE) * 100,
       };
 
-      console.log("✅ Computed performance (Motion):", newPerformance);
+      setCategoryPercent(newPerformance);
       animateRadarUpdate(newPerformance);
     } catch (err) {
       console.error("Error fetching radar data:", err);
-      setPerformance({ time: 0, wordProblem: 0, problemSolving: 0 });
     } finally {
       setTimeout(() => setLoading(false), 600);
     }
   };
 
-  // 🚀 Initialize chart
+  // 🎬 Initialize on mount
   useEffect(() => {
     setVisible(true);
     void fetchRadarData();
   }, []);
 
+  // 🌀 Render radar only once
   useEffect(() => {
-    if (!radarRef.current) return;
+    if (!radarRef.current || !visible || selectedCategory) return;
     const ctx = radarRef.current.getContext("2d");
     if (!ctx) return;
 
     if (chartInstance.current) {
-      chartInstance.current.destroy();
-      chartInstance.current = null;
+      chartInstance.current.data.datasets[0].data = [
+        performance.time,
+        performance.wordProblem,
+        performance.problemSolving,
+      ];
+      chartInstance.current.update();
+      return;
     }
 
     const gradient = ctx.createLinearGradient(0, 0, 0, 500);
-    gradient.addColorStop(0, "rgba(54, 162, 235, 0.32)");
-    gradient.addColorStop(1, "rgba(236, 72, 153, 0.32)");
+    gradient.addColorStop(0, "rgba(54, 162, 235, 0.4)");
+    gradient.addColorStop(1, "rgba(236, 72, 153, 0.4)");
 
     chartInstance.current = new ChartJS(ctx, {
       type: "radar",
@@ -225,7 +202,7 @@ const Motion_Radar: React.FC = () => {
         labels: ["⏱ Time", "📘 Word Problem", "🧩 Problem Solving"],
         datasets: [
           {
-            label: "🚀 Best Performance (Uniform Motion in Physics)",
+            label: "🏆 Best Performance (Uniform Motion in Physics)",
             data: [
               performance.time,
               performance.wordProblem,
@@ -233,9 +210,9 @@ const Motion_Radar: React.FC = () => {
             ],
             fill: true,
             backgroundColor: gradient,
-            borderColor: "rgb(54, 162, 235)",
+            borderColor: "#36A2EB",
             borderWidth: 3,
-            pointBackgroundColor: "rgb(236, 72, 153)",
+            pointBackgroundColor: "#EC4899",
             pointBorderColor: "#fff",
           },
         ],
@@ -244,10 +221,7 @@ const Motion_Radar: React.FC = () => {
         responsive: true,
         maintainAspectRatio: false,
         plugins: {
-          legend: {
-            display: true,
-            labels: { color: "#111", font: { size: 13, weight: "bold" } },
-          },
+          legend: { display: true },
           title: {
             display: true,
             text: "📊 Uniform Motion in Physics",
@@ -257,120 +231,153 @@ const Motion_Radar: React.FC = () => {
           datalabels: {
             color: "#000",
             font: { weight: "bold", size: 11 },
-            formatter: (val: number) =>
-              Number.isInteger(val) ? `${val}%` : `${val.toFixed(2)}%`,
+            formatter: (val: number) => `${val.toFixed(1)}%`,
           },
         },
-        scales: {
-          r: {
-            suggestedMin: 0,
-            suggestedMax: 100,
-            ticks: { display: false },
-          },
-        },
+        scales: { r: { suggestedMin: 0, suggestedMax: 100, ticks: { display: false } } },
       },
       plugins: [ChartDataLabels],
     });
 
-    return () => {
-      chartInstance.current?.destroy();
-      chartInstance.current = null;
-    };
-  }, [performance]);
+    return () => chartInstance.current?.destroy();
+  }, [performance, visible, selectedCategory]);
+
+  // 🧾 Category record filtering
+  const getCategoryRecords = () => {
+    const normalize = (txt: string | undefined) => txt?.trim().toLowerCase() ?? "";
+    if (selectedCategory === "time") {
+      return scores.filter(
+        (s) => s.quizzes?.subject === "Uniform Motion in Physics"
+      );
+    }
+    return scores.filter(
+      (s) =>
+        s.quizzes?.subject === "Uniform Motion in Physics" &&
+        normalize(s.quizzes?.category) === selectedCategory
+    );
+  };
+
+  // 📈 Compute percentage per record
+  const recordPercent = (record: ScoreWithQuizzes) => {
+    if (selectedCategory === "time") {
+      return record.time_taken ? ((MAX_TIME - record.time_taken) / MAX_TIME) * 100 : 0;
+    }
+    if (selectedCategory === "word problem" || selectedCategory === "problem solving") {
+      return record.score ? (record.score / MAX_SCORE) * 100 : 0;
+    }
+    return 0;
+  };
 
   const labels = ["⏱ Time", "📘 Word Problem", "🧩 Problem Solving"];
+  const handleLabelClick = (label: string) => {
+    const map: Record<string, string> = {
+      "⏱ Time": "time",
+      "📘 Word Problem": "word problem",
+      "🧩 Problem Solving": "problem solving",
+    };
+    setSelectedCategory(map[label]);
+  };
 
   return (
     <IonPage>
       <IonHeader />
-      <IonContent fullscreen>
+      <IonContent fullscreen className="arithmetic-radar-container">
         <AnimatePresence>
           {visible && (
             <motion.div
-              key="motion-radar"
+              key="radar"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.5 }}
-              style={{
-                padding: 16,
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                justifyContent: "center",
-                minHeight: "90vh",
-              }}
+              className="radar-content"
             >
-              <motion.h2
-                initial={{ opacity: 0, y: -8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6 }}
-                style={{ fontSize: 22, fontWeight: 700, color: "#222" }}
-              >
-                🌟 Best Performance Overview
-              </motion.h2>
-
-              <div style={{ display: "flex", gap: 10, marginTop: 12 }}>
-                {labels.map((label, idx) => (
-                  <motion.div
-                    key={label}
-                    initial={{ opacity: 0, y: 12 }}
+              {!selectedCategory ? (
+                <>
+                  <motion.h2
+                    initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.55, delay: 0.25 + idx * 0.14 }}
-                    style={{
-                      background: "linear-gradient(90deg, #36A2EB, #EC4899)",
-                      padding: "6px 12px",
-                      borderRadius: 8,
-                      color: "white",
-                      fontWeight: 700,
-                      fontSize: 14,
-                    }}
+                    transition={{ duration: 0.5 }}
+                    className="radar-title"
                   >
-                    {label}
-                  </motion.div>
-                ))}
-              </div>
+                    🏅 Best Performance Overview
+                  </motion.h2>
 
-              <motion.div
-                initial={{ opacity: 0, scale: 0.96, y: 12 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                transition={{ duration: 0.8, delay: 0.7 }}
-                style={{
-                  width: "100%",
-                  maxWidth: 500,
-                  height: 450,
-                  background: "white",
-                  borderRadius: 16,
-                  boxShadow: "0px 8px 20px rgba(0,0,0,0.08)",
-                  marginTop: 24,
-                  padding: 16,
-                }}
-              >
-                <canvas ref={radarRef} style={{ width: "100%", height: "100%" }} />
-              </motion.div>
+                  <div className="radar-labels">
+                    {labels.map((label) => (
+                      <motion.div
+                        key={label}
+                        className="radar-label"
+                        onClick={() => handleLabelClick(label)}
+                      >
+                        {label}
+                      </motion.div>
+                    ))}
+                  </div>
 
-              <motion.button
-                onClick={fetchRadarData}
-                disabled={loading}
-                whileTap={{ scale: 0.96 }}
-                whileHover={{ scale: loading ? 1 : 1.03 }}
-                style={{
-                  padding: "10px 20px",
-                  background: loading
-                    ? "linear-gradient(90deg, #9CA3AF, #D1D5DB)"
-                    : "linear-gradient(90deg, #36A2EB, #EC4899)",
-                  color: "white",
-                  fontSize: 15,
-                  fontWeight: 700,
-                  borderRadius: 10,
-                  border: "none",
-                  marginTop: 24,
-                  width: "100%",
-                  maxWidth: 200,
-                }}
-              >
-                {loading ? "🔄 Refreshing..." : "🔄 Refresh"}
-              </motion.button>
+                  <div className="radar-card">
+                    <canvas ref={radarRef} />
+                  </div>
+
+                  <motion.button
+                    onClick={fetchRadarData}
+                    disabled={loading}
+                    whileTap={{ scale: 0.96 }}
+                    className={`radar-refresh-btn ${loading ? "loading" : ""}`}
+                  >
+                    {loading ? "🔄 Refreshing..." : "🔄 Refresh"}
+                  </motion.button>
+                </>
+              ) : (
+                <>
+                  <motion.h2 className="radar-title">
+                    📘 {selectedCategory.toUpperCase()} RECORDS
+                  </motion.h2>
+
+                  <p style={{ fontWeight: "bold", marginBottom: "12px" }}>
+                    Total Percent:{" "}
+                    {selectedCategory === "time"
+                      ? categoryPercent.time.toFixed(1)
+                      : selectedCategory === "word problem"
+                      ? categoryPercent.wordProblem.toFixed(1)
+                      : categoryPercent.problemSolving.toFixed(1)}
+                    %
+                  </p>
+
+                  <div style={{ textAlign: "left", marginTop: "15px" }}>
+                    {getCategoryRecords().length > 0 ? (
+                      getCategoryRecords().map((record) => (
+                        <div
+                          key={record.id}
+                          style={{
+                            background: "#f8fafc",
+                            padding: "10px",
+                            borderRadius: "10px",
+                            marginBottom: "8px",
+                          }}
+                        >
+                          <strong>Score:</strong> {record.score ?? "N/A"} / {MAX_SCORE}<br />
+                          <strong>Time Taken:</strong>{" "}
+                          {record.time_taken ? `${record.time_taken}s` : "N/A"}<br />
+                          <strong>Percent:</strong> {recordPercent(record).toFixed(1)}%<br />
+                          <small>{new Date(record.created_at).toLocaleString()}</small>
+                        </div>
+                      ))
+                    ) : (
+                      <p>No records found.</p>
+                    )}
+                  </div>
+
+                  <motion.button
+                    onClick={() => setSelectedCategory(null)}
+                    whileTap={{ scale: 0.95 }}
+                    className="radar-refresh-btn"
+                    style={{ marginTop: "20px" }}
+                  >
+                    ⬅ Back to Radar
+                  </motion.button>
+                </>
+              )}
             </motion.div>
           )}
         </AnimatePresence>

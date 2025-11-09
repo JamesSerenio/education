@@ -18,8 +18,8 @@ import {
 import ChartDataLabels from "chartjs-plugin-datalabels";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "../../utils/supabaseClient";
-import "../../global.css";
 
+// ✅ Chart.js setup
 ChartJS.register(
   RadialLinearScale,
   PointElement,
@@ -29,7 +29,7 @@ ChartJS.register(
   Legend,
   RadarController,
   Title,
-  ChartDataLabels // ✅ Important for percentage labels
+  ChartDataLabels
 );
 
 const MAX_SCORE = 15;
@@ -63,6 +63,7 @@ const Motion_Radar: React.FC = () => {
   const [scores, setScores] = useState<ScoreWithQuizzes[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
+  // ✅ Helper map
   const mapToScoreWithQuizzes = (rawData: Record<string, unknown>): ScoreWithQuizzes => {
     const quizzesRaw = rawData["quizzes"] as Record<string, unknown> | undefined;
     return {
@@ -81,6 +82,7 @@ const Motion_Radar: React.FC = () => {
     };
   };
 
+  // ✅ Smooth radar animation
   const animateRadarUpdate = (
     newData: { time: number; wordProblem: number; problemSolving: number },
     duration = 800
@@ -106,6 +108,7 @@ const Motion_Radar: React.FC = () => {
     }, interval);
   };
 
+  // ✅ Fetch radar data
   const fetchRadarData = async () => {
     setLoading(true);
     try {
@@ -119,34 +122,39 @@ const Motion_Radar: React.FC = () => {
         .order("created_at", { ascending: false })
         .limit(100);
 
-      if (scoresError) return;
+      if (scoresError) {
+        console.error("Error fetching scores:", scoresError.message);
+        return;
+      }
 
       const rawArray = Array.isArray(allScores) ? allScores : [];
       const typedScores = rawArray.map(mapToScoreWithQuizzes);
       setScores(typedScores);
 
-      const motionScores = typedScores.filter(
-        (s) => s.quizzes?.subject?.toLowerCase() === "uniform motion in physics"
-      );
-
       const normalize = (txt: string | undefined) => txt?.trim().toLowerCase() ?? "";
 
-      const wordProblemScores = motionScores.filter(
-        (s) => normalize(s.quizzes?.category) === "word problem" && s.score !== null
-      );
-      const problemSolvingScores = motionScores.filter(
-        (s) => normalize(s.quizzes?.category) === "problem solving" && s.score !== null
+      // 🎯 Focus only on "Uniform Motion in Physics"
+      const motionScores = typedScores.filter(
+        (s) => normalize(s.quizzes?.subject) === "uniform motion in physics"
       );
 
-      const bestWordProblem = wordProblemScores.length > 0
+      // 📘 Word Problem & 🧩 Problem Solving
+      const wordProblemScores = motionScores.filter(
+        (s) => normalize(s.quizzes?.category) === "word problem"
+      );
+      const problemSolvingScores = motionScores.filter(
+        (s) => normalize(s.quizzes?.category) === "problem solving"
+      );
+
+      const bestWordProblem = wordProblemScores.length
         ? Math.max(...wordProblemScores.map((s) => s.score ?? 0))
         : 0;
-      const bestProblemSolving = problemSolvingScores.length > 0
+      const bestProblemSolving = problemSolvingScores.length
         ? Math.max(...problemSolvingScores.map((s) => s.score ?? 0))
         : 0;
 
       const validTimes = motionScores.filter((s) => s.time_taken !== null);
-      const bestTime = validTimes.length > 0
+      const bestTime = validTimes.length
         ? Math.min(...validTimes.map((s) => s.time_taken ?? MAX_TIME))
         : MAX_TIME;
 
@@ -163,16 +171,17 @@ const Motion_Radar: React.FC = () => {
     } catch (err) {
       console.error("Error fetching radar data:", err);
     } finally {
-      setTimeout(() => setLoading(false), 600);
+      setTimeout(() => setLoading(false), 500);
     }
   };
 
+  // ✅ On load
   useEffect(() => {
     setVisible(true);
     fetchRadarData();
   }, []);
 
-  // ✅ FIXED RADAR CHART WITH PERCENT LABELS
+  // ✅ Chart rendering / update
   useEffect(() => {
     if (!radarRef.current || selectedCategory) return;
     const ctx = radarRef.current.getContext("2d");
@@ -181,8 +190,8 @@ const Motion_Radar: React.FC = () => {
     if (chartInstance.current) chartInstance.current.destroy();
 
     const gradient = ctx.createLinearGradient(0, 0, 0, 400);
-    gradient.addColorStop(0, "rgba(101,163,13,0.3)");
-    gradient.addColorStop(1, "rgba(234,179,8,0.3)");
+    gradient.addColorStop(0, "rgba(59,130,246,0.4)");
+    gradient.addColorStop(1, "rgba(236,72,153,0.4)");
 
     chartInstance.current = new ChartJS(ctx, {
       type: "radar",
@@ -198,27 +207,18 @@ const Motion_Radar: React.FC = () => {
             ],
             fill: true,
             backgroundColor: gradient,
-            borderColor: "#65a30d",
-            borderWidth: 2.5,
-            pointBackgroundColor: "#eab308",
+            borderColor: "#2563eb",
+            borderWidth: 3,
+            pointBackgroundColor: "#ec4899",
             pointBorderColor: "#fff",
-            pointRadius: 5,
-            pointHoverRadius: 6,
           },
         ],
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        animation: {
-          duration: 900,
-          easing: "easeOutQuart",
-        },
         plugins: {
-          legend: {
-            display: true,
-            labels: { color: "#333", font: { size: 13 } },
-          },
+          legend: { display: true, labels: { color: "#111" } },
           title: {
             display: true,
             text: "📊 Uniform Motion in Physics",
@@ -226,10 +226,8 @@ const Motion_Radar: React.FC = () => {
             font: { size: 18, weight: "bold" },
           },
           datalabels: {
-            color: "#111",
-            anchor: "end",
-            align: "top",
-            font: { size: 12, weight: "bold" },
+            color: "#000",
+            font: { weight: "bold", size: 11 },
             formatter: (val: number) => `${val.toFixed(1)}%`,
           },
         },
@@ -237,36 +235,29 @@ const Motion_Radar: React.FC = () => {
           r: {
             min: 0,
             max: 100,
-            ticks: {
-              stepSize: 20,
-              backdropColor: "transparent",
-              color: "#555",
-              showLabelBackdrop: false,
-            },
+            ticks: { display: false },
             grid: { color: "rgba(0,0,0,0.1)" },
-            pointLabels: {
-              color: "#111",
-              font: { size: 13, weight: "bold" },
-            },
+            pointLabels: { color: "#111", font: { size: 13 } },
           },
         },
       },
-      plugins: [ChartDataLabels], // ✅ Plugin enabled
+      plugins: [ChartDataLabels],
     });
 
     return () => chartInstance.current?.destroy();
   }, [performance, selectedCategory]);
 
+  // ✅ Helper functions
   const getCategoryRecords = () => {
     const normalize = (txt: string | undefined) => txt?.trim().toLowerCase() ?? "";
     if (selectedCategory === "time") {
       return scores.filter(
-        (s) => s.quizzes?.subject?.toLowerCase() === "uniform motion in physics"
+        (s) => normalize(s.quizzes?.subject) === "uniform motion in physics"
       );
     }
     return scores.filter(
       (s) =>
-        s.quizzes?.subject?.toLowerCase() === "uniform motion in physics" &&
+        normalize(s.quizzes?.subject) === "uniform motion in physics" &&
         normalize(s.quizzes?.category) === selectedCategory
     );
   };
@@ -275,10 +266,7 @@ const Motion_Radar: React.FC = () => {
     if (selectedCategory === "time") {
       return record.time_taken ? ((MAX_TIME - record.time_taken) / MAX_TIME) * 100 : 0;
     }
-    if (selectedCategory === "word problem" || selectedCategory === "problem solving") {
-      return record.score ? (record.score / MAX_SCORE) * 100 : 0;
-    }
-    return 0;
+    return record.score ? (record.score / MAX_SCORE) * 100 : 0;
   };
 
   const handleLabelClick = (label: string) => {
@@ -292,6 +280,7 @@ const Motion_Radar: React.FC = () => {
 
   const labels = ["⏱ Time", "📘 Word Problem", "🧩 Problem Solving"];
 
+  // ✅ UI
   return (
     <IonPage>
       <IonHeader />

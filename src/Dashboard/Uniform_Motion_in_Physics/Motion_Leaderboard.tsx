@@ -103,36 +103,39 @@ const UniformMotionLeaderboard: React.FC = () => {
     return `${mins}:${secs < 10 ? "0" : ""}${secs}`;
   };
 
-  const renderTable = (data: LeaderboardRow[]) => (
-    <div className="leaderboard-table-wrapper">
-      <table className="leaderboard-table">
-        <thead>
-          <tr>
-            <th>Place</th>
-            <th>Lastname</th>
-            <th>Score</th>
-            <th>Time</th>
-          </tr>
-        </thead>
-        <tbody>
-          {data.length > 0 ? (
-            data.map((row, index) => (
-              <tr key={index}>
-                <td>{index + 1}</td>
-                <td>{row.profiles.lastname || "-"}</td>
-                <td>{row.score}</td>
-                <td>{formatTime(row.time_taken)}</td>
-              </tr>
-            ))
-          ) : (
+  const renderTable = (data: LeaderboardRow[]) => {
+    const medals = ["🥇", "🥈", "🥉"];
+    return (
+      <div className="leaderboard-table-wrapper">
+        <table className="leaderboard-table">
+          <thead>
             <tr>
-              <td colSpan={4}>No data found.</td>
+              <th>Place</th>
+              <th>Lastname</th>
+              <th>Score</th>
+              <th>Time</th>
             </tr>
-          )}
-        </tbody>
-      </table>
-    </div>
-  );
+          </thead>
+          <tbody>
+            {data.length > 0 ? (
+              data.map((row, index) => (
+                <tr key={index}>
+                  <td>{index < 3 ? medals[index] : index + 1}</td>
+                  <td>{row.profiles.lastname || "-"}</td>
+                  <td>{row.score}</td>
+                  <td>{formatTime(row.time_taken)}</td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan={4}>No data found.</td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    );
+  };
 
   return (
     <IonPage>

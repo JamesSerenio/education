@@ -23,11 +23,12 @@ import MotionModule from "./Motion_Module";
 import MotionLeaderboard from "./Motion_Leaderboard";
 import MotionRadar from "./Motion_Radar";
 
-// ✅ Custom icons
 import iconHome from "../../assets/icon_home.gif";
 import iconModule from "../../assets/icon_module.gif";
 import iconLeaderboard from "../../assets/icon_leaderboard.gif";
 import iconRadar from "../../assets/icon_radar.png";
+
+import "./Dashboard_Motion.css"; // ✅ Make sure you create this file
 
 const Dashboard_Motion: React.FC = () => {
   const history = useHistory();
@@ -52,14 +53,11 @@ const Dashboard_Motion: React.FC = () => {
         return <MotionRadar />;
       default:
         return (
-          <h2 className="arithmetic-welcome">
-            Welcome to Motion Dashboard
-          </h2>
+          <h2 className="arithmetic-welcome">Welcome to Motion Dashboard</h2>
         );
     }
   };
 
-  // Animation variants
   const listVariants = {
     hidden: { opacity: 0 },
     show: { opacity: 1, transition: { staggerChildren: 0.15 } },
@@ -135,7 +133,6 @@ const Dashboard_Motion: React.FC = () => {
             </IonToolbar>
           </IonHeader>
 
-          {/* ✅ Fixed Fullscreen Motion Layout */}
           <IonContent fullscreen className="main-content-wrapper">
             <AnimatePresence mode="wait">
               <motion.div

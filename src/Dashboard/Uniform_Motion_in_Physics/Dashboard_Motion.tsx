@@ -28,7 +28,6 @@ import iconModule from "../../assets/icon_module.gif";
 import iconLeaderboard from "../../assets/icon_leaderboard.gif";
 import iconRadar from "../../assets/icon_radar.png";
 
-import "./Dashboard_Motion.css"; // ✅ Make sure you create this file
 
 const Dashboard_Motion: React.FC = () => {
   const history = useHistory();

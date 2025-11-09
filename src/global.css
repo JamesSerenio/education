@@ -314,8 +314,10 @@ input:-webkit-autofill:focus {
   object-fit: contain;
 }
 
-/* === Dashboard === */
+/* ===Dashboard_Arithmetic === */
+/* === Dashboard Arithmetic Creative Theme === */
 
+/* Sidebar Base */
 .arithmetic-menu {
   --background: transparent;
   backdrop-filter: blur(14px);
@@ -331,6 +333,7 @@ input:-webkit-autofill:focus {
   text-align: center;
   border-bottom: 2px solid rgba(255, 255, 255, 0.3);
 }
+
 .menu-title {
   font-weight: 700;
   letter-spacing: 0.5px;
@@ -340,6 +343,7 @@ input:-webkit-autofill:focus {
 .menu-content {
   background: rgba(255, 255, 255, 0.4);
 }
+
 .menu-item {
   display: flex;
   align-items: center;
@@ -350,10 +354,12 @@ input:-webkit-autofill:focus {
   transition: all 0.3s ease;
   padding: 10px 12px;
 }
+
 .menu-item:hover {
   background: linear-gradient(90deg, #fef08a 0%, #bbf7d0 100%);
   transform: translateX(5px) scale(1.02);
 }
+
 .menu-item.active {
   background: linear-gradient(90deg, #a7f3d0 0%, #fef08a 100%);
   border-left: 4px solid #65a30d;
@@ -381,6 +387,7 @@ input:-webkit-autofill:focus {
   margin-top: 1.5rem;
   padding: 0 1rem;
 }
+
 .logout-button {
   --background: linear-gradient(135deg, #fef08a, #bbf7d0);
   --color: #222;
@@ -389,52 +396,42 @@ input:-webkit-autofill:focus {
   box-shadow: 0 4px 12px rgba(250, 204, 21, 0.25);
   transition: transform 0.2s ease, box-shadow 0.3s ease;
 }
+
 .logout-button:hover {
   transform: scale(1.05);
   box-shadow: 0 6px 20px rgba(250, 204, 21, 0.4);
 }
 
-/* Toolbar */
+/* Main Toolbar */
 .main-toolbar {
   background: linear-gradient(135deg, #bbf7d0, #fef08a);
   color: #222;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
 }
+
 .main-title {
   font-weight: 700;
   letter-spacing: 0.4px;
 }
 
-/* Main Dashboard Area */
+/* Main Dashboard */
 .dashboard-main {
   background: linear-gradient(135deg, #ffffff, #fefce8);
 }
 
-/* ✅ Fullscreen Motion Wrapper */
-.main-content-wrapper {
-  --background: transparent;
-  display: flex;
-  justify-content: center;
-  align-items: center; /* ✅ Keep content vertically centered */
-  min-height: 100vh;   /* ✅ Make sure it fills full screen height */
-  width: 100%;
-  padding: 2rem;
-  overflow: hidden;    /* ✅ Prevent jumpy scrollbars */
-  position: relative;
+.main-content {
+  padding: 1.5rem;
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(10px);
+  border-radius: 20px;
+  margin: 1rem;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
 }
 
-.main-motion-container {
-  width: 100%;
-  max-width: 1000px;
-  min-height: 80vh; /* ✅ Keep consistent space */
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  box-sizing: border-box;
-  overflow: hidden;
+.main-content:hover {
+  transform: scale(1.01);
 }
-
-
 
 /* Welcome Text */
 .arithmetic-welcome {
@@ -444,12 +441,6 @@ input:-webkit-autofill:focus {
   font-size: 1.3rem;
   letter-spacing: 0.5px;
   margin-top: 2rem;
-}
-
-.dashboard-main {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
 }
 
 /* === Arithmetic_Home === */
@@ -698,8 +689,8 @@ ion-content {
   border-radius: 20px;
   padding: 20px;
   text-align: center;
-  width: 95%;       /* full width for desktop */
-  max-width: none;  /* remove fixed max-width */
+  width: 100%;
+  max-width: 700px;
   box-shadow: 0 10px 25px rgba(234, 179, 8, 0.2);
   transition: all 0.4s ease;
   margin: 20px auto;
@@ -730,12 +721,10 @@ ion-content {
 .leaderboard-table-wrapper {
   overflow-x: auto;
   width: 100%;
-  -webkit-overflow-scrolling: touch;
 }
 
 .leaderboard-table {
   width: 100%;
-  min-width: 600px; /* ensures full table display on desktop */
   border-collapse: collapse;
   background: white;
   border-radius: 12px;
@@ -775,13 +764,6 @@ ion-content {
 }
 
 /* --- Responsive layout --- */
-@media (max-width: 1024px) {
-  .leaderboard-table {
-    font-size: 0.95rem;
-    min-width: 100%; /* table fits within card */
-  }
-}
-
 @media (max-width: 768px) {
   .leaderboard-card {
     width: 95%;
@@ -795,14 +777,20 @@ ion-content {
   }
 
   .leaderboard-table {
-    font-size: 0.9rem; /* smaller text for mobile */
+    font-size: 0.9rem; /* ✅ smaller text for mobile */
   }
 
   .leaderboard-table th,
   .leaderboard-table td {
-    padding: 8px 6px;
+    padding: 8px 6px; /* ✅ tighter spacing */
   }
 
+  .leaderboard-table-wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch; /* ✅ smooth scrolling on iOS */
+  }
+
+  /* Optional: make table horizontally scrollable with hint */
   .leaderboard-table-wrapper::after {
     content: "Swipe →";
     display: block;
@@ -830,6 +818,7 @@ ion-content {
     padding: 6px 4px;
   }
 }
+
 
 
 /* --- Arithmetic Radar Section --- */
@@ -1219,64 +1208,6 @@ ion-content {
     font-size: 14px;
   }
 }
-
-.quiz-delay {
-  font-size: 22px;
-  font-weight: 700;
-  color: #4d7c0f;
-  margin-bottom: 12px;
-  animation: fadeIn 0.5s ease-in;
-}
-
-.quiz-delay .countdown {
-  background: linear-gradient(90deg, #65a30d, #eab308);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  font-size: 28px;
-  font-weight: 800;
-}
-
-.quiz-delay.almost-start {
-  color: #eab308;
-  animation: pulseCountdown 1s infinite;
-}
-
-@keyframes pulseCountdown {
-  0% { transform: scale(1); opacity: 1; }
-  50% { transform: scale(1.2); opacity: 0.6; }
-  100% { transform: scale(1); opacity: 1; }
-}
-
-.quiz-timer {
-  font-size: 20px;
-  font-weight: 600;
-  color: #15803d;
-  margin-bottom: 10px;
-}
-
-.quiz-timer.critical {
-  color: #dc2626;
-  animation: blink 1s infinite;
-}
-
-@keyframes blink {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.4; }
-}
-
-.quiz-question {
-  font-size: 20px;
-  font-weight: 600;
-  margin: 15px 0;
-  color: #111827;
-}
-
-.quiz-options {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
 
 /* Arithmetic_Practice.css */
 .arithmetic-practice-page {

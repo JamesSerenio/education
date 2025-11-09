@@ -16,6 +16,7 @@ import {
   Title,
 } from "chart.js";
 import ChartDataLabels from "chartjs-plugin-datalabels";
+import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "../../utils/supabaseClient";
 
 ChartJS.register(
@@ -30,8 +31,15 @@ ChartJS.register(
   ChartDataLabels
 );
 
-const MAX_SCORE = 5;
-const MAX_TIME = 300; // seconds
+// 🧮 Constants
+const MAX_SCORE = 15; // 15 questions (5 Easy + 5 Average + 5 Difficult)
+const MAX_TIME = 525; // 15*5 + 30*5 + 60*5 = 525 seconds total
+
+interface QuizRef {
+  id: string;
+  subject: string;
+  category: string;
+}
 
 interface ScoreWithQuizzes {
   id: string;
@@ -39,7 +47,7 @@ interface ScoreWithQuizzes {
   time_taken: number | null;
   created_at: string;
   quiz_id: string;
-  quizzes: { id: string; category: string; subject?: string } | null;
+  quizzes: QuizRef | null;
 }
 
 const Motion_Radar: React.FC = () => {
@@ -48,28 +56,63 @@ const Motion_Radar: React.FC = () => {
 
   const [performance, setPerformance] = useState({
     time: 0,
-    wordProblem: 0, // Changed from 'solving' to 'wordProblem'
+    wordProblem: 0,
     problemSolving: 0,
   });
+  const [visible, setVisible] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  // Convert raw Supabase data to typed object
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const mapToScoreWithQuizzes = (rawData: any): ScoreWithQuizzes => ({
-    id: rawData.id || "",
-    score: rawData.score || null,
-    time_taken: rawData.time_taken || null,
-    created_at: rawData.created_at || new Date().toISOString(),
-    quiz_id: rawData.quiz_id || "",
-    quizzes: rawData.quizzes
-      ? {
-          id: rawData.quizzes.id || "",
-          category: rawData.quizzes.category || "",
-          subject: rawData.quizzes.subject || "",
-        }
-      : null,
-  });
+  // 🔍 Safely map Supabase data
+  const mapToScoreWithQuizzes = (rawData: Record<string, unknown>): ScoreWithQuizzes => {
+    const quizzesRaw = rawData["quizzes"] as Record<string, unknown> | undefined;
+    return {
+      id: String(rawData["id"] ?? ""),
+      score:
+        rawData["score"] === undefined || rawData["score"] === null
+          ? null
+          : Number(rawData["score"]),
+      time_taken:
+        rawData["time_taken"] === undefined || rawData["time_taken"] === null
+          ? null
+          : Number(rawData["time_taken"]),
+      created_at: String(rawData["created_at"] ?? new Date().toISOString()),
+      quiz_id: String(rawData["quiz_id"] ?? ""),
+      quizzes: quizzesRaw
+        ? {
+            id: String(quizzesRaw["id"] ?? ""),
+            category: String(quizzesRaw["category"] ?? ""),
+            subject: String(quizzesRaw["subject"] ?? ""),
+          }
+        : null,
+    };
+  };
 
+  // ✨ Smooth radar animation
+  const animateRadarUpdate = (
+    newData: { time: number; wordProblem: number; problemSolving: number },
+    duration = 800
+  ) => {
+    const steps = 30;
+    const interval = duration / steps;
+    let currentStep = 0;
+    const start = { ...performance };
+
+    const animate = setInterval(() => {
+      currentStep++;
+      const progress = currentStep / steps;
+      setPerformance({
+        time: start.time + (newData.time - start.time) * progress,
+        wordProblem: start.wordProblem + (newData.wordProblem - start.wordProblem) * progress,
+        problemSolving:
+          start.problemSolving + (newData.problemSolving - start.problemSolving) * progress,
+      });
+      if (currentStep >= steps) clearInterval(animate);
+    }, interval);
+  };
+
+  // 📊 Fetch Radar Data
   const fetchRadarData = async () => {
+    setLoading(true);
     try {
       const {
         data: { user },
@@ -82,16 +125,14 @@ const Motion_Radar: React.FC = () => {
         return;
       }
 
-      const userId = user.id;
-
       const { data: allScores, error: scoresError } = await supabase
         .from("scores")
         .select(
-          `id, score, time_taken, created_at, quiz_id, quizzes!quiz_id(id, category, subject)`
+          `id, score, time_taken, created_at, quiz_id, quizzes!quiz_id(id, subject, category)`
         )
-        .eq("user_id", userId)
+        .eq("user_id", user.id)
         .order("created_at", { ascending: false })
-        .limit(50);
+        .limit(100);
 
       if (scoresError) {
         console.error("Error fetching scores:", scoresError);
@@ -99,93 +140,103 @@ const Motion_Radar: React.FC = () => {
         return;
       }
 
-      const typedScores: ScoreWithQuizzes[] = (allScores || []).map(mapToScoreWithQuizzes);
+      const rawArray = (allScores ?? []) as Record<string, unknown>[];
+      const typedScores: ScoreWithQuizzes[] = rawArray.map(mapToScoreWithQuizzes);
 
-      if (!typedScores.length) {
+      // 🎯 Filter: Uniform Motion in Physics
+      const motionScores = typedScores.filter(
+        (s) => s.quizzes?.subject === "Uniform Motion in Physics"
+      );
+
+      if (!motionScores.length) {
         setPerformance({ time: 0, wordProblem: 0, problemSolving: 0 });
         return;
       }
 
-      // ✅ Filter only "Uniform Motion in Physics"
-      const uniformMotionScores = typedScores.filter(
-        (s) => s.quizzes?.subject === "Uniform Motion in Physics"
+      const normalize = (txt: string | undefined) => txt?.trim().toLowerCase() ?? "";
+
+      // Filter each category
+      const wordProblemScores = motionScores.filter(
+        (s) => normalize(s.quizzes?.category) === "word problem" && s.score !== null
+      );
+      const problemSolvingScores = motionScores.filter(
+        (s) => normalize(s.quizzes?.category) === "problem solving" && s.score !== null
       );
 
-      let timePercent = 0;
-      let wordProblemPercent = 0; // Changed from solvingPercent
-      let problemSolvingPercent = 0;
+      // 🧠 Get the highest score for each
+      const bestWordProblem =
+        wordProblemScores.length > 0
+          ? Math.max(...wordProblemScores.map((s) => s.score ?? 0))
+          : 0;
 
-      if (uniformMotionScores.length > 0) {
-        // ✅ TIME (average time taken)
-        const avgTime =
-          uniformMotionScores.reduce((sum, s) => sum + (s.time_taken || 0), 0) /
-          uniformMotionScores.length;
+      const bestProblemSolving =
+        problemSolvingScores.length > 0
+          ? Math.max(...problemSolvingScores.map((s) => s.score ?? 0))
+          : 0;
 
-        const timeRaw = ((MAX_TIME - avgTime) / MAX_TIME) * 100;
-        timePercent = Math.max(0, Math.min(100, parseFloat(timeRaw.toFixed(2)))); // keep decimals for time
+      // ⏱ Find fastest time
+      const validTimes = motionScores.filter((s) => s.time_taken !== null);
+      const bestTime =
+        validTimes.length > 0
+          ? Math.min(...validTimes.map((s) => s.time_taken ?? MAX_TIME))
+          : MAX_TIME;
 
-        // ✅ WORD PROBLEM (whole number) - Changed from SOLVING
-        const wordProblemScores = uniformMotionScores.filter(
-          (s) => s.quizzes?.category === "Word Problem" && s.score !== null
-        );
-        if (wordProblemScores.length > 0) {
-          const avgWordProblem =
-            wordProblemScores.reduce((sum, s) => sum + (s.score || 0), 0) /
-            wordProblemScores.length;
-          wordProblemPercent = Math.floor((avgWordProblem / MAX_SCORE) * 100); // no decimals
-        }
+      // 💯 Convert to percentage
+      const timePercent = ((MAX_TIME - bestTime) / MAX_TIME) * 100;
+      const newPerformance = {
+        time: Math.max(0, Math.min(100, parseFloat(timePercent.toFixed(2)))),
+        wordProblem: (bestWordProblem / MAX_SCORE) * 100,
+        problemSolving: (bestProblemSolving / MAX_SCORE) * 100,
+      };
 
-        // ✅ PROBLEM SOLVING (whole number)
-        const problemSolvingScores = uniformMotionScores.filter(
-          (s) => s.quizzes?.category === "Problem Solving" && s.score !== null
-        );
-        if (problemSolvingScores.length > 0) {
-          const avgProblemSolving =
-            problemSolvingScores.reduce((sum, s) => sum + (s.score || 0), 0) /
-            problemSolvingScores.length;
-          problemSolvingPercent = Math.floor((avgProblemSolving / MAX_SCORE) * 100); // no decimals
-        }
-      }
-
-      setPerformance({
-        time: timePercent,
-        wordProblem: wordProblemPercent, // Changed from solving
-        problemSolving: problemSolvingPercent,
-      });
+      console.log("✅ Computed performance (Motion):", newPerformance);
+      animateRadarUpdate(newPerformance);
     } catch (err) {
-      console.error("Error in fetchRadarData:", err);
+      console.error("Error fetching radar data:", err);
       setPerformance({ time: 0, wordProblem: 0, problemSolving: 0 });
+    } finally {
+      setTimeout(() => setLoading(false), 600);
     }
   };
 
-  // ✅ Chart Rendering
+  // 🚀 Initialize chart
+  useEffect(() => {
+    setVisible(true);
+    void fetchRadarData();
+  }, []);
+
   useEffect(() => {
     if (!radarRef.current) return;
     const ctx = radarRef.current.getContext("2d");
     if (!ctx) return;
 
-    if (chartInstance.current) chartInstance.current.destroy();
+    if (chartInstance.current) {
+      chartInstance.current.destroy();
+      chartInstance.current = null;
+    }
 
-    const gradient = ctx.createLinearGradient(0, 0, 0, 400);
-    gradient.addColorStop(0, "rgba(54, 162, 235, 0.3)");
-    gradient.addColorStop(1, "rgba(236, 72, 153, 0.3)");
+    const gradient = ctx.createLinearGradient(0, 0, 0, 500);
+    gradient.addColorStop(0, "rgba(54, 162, 235, 0.32)");
+    gradient.addColorStop(1, "rgba(236, 72, 153, 0.32)");
 
     chartInstance.current = new ChartJS(ctx, {
       type: "radar",
       data: {
-        labels: ["⏱ Time", "🧩 Problem Solving", "📘 Word Problem"], // Updated labels
+        labels: ["⏱ Time", "📘 Word Problem", "🧩 Problem Solving"],
         datasets: [
           {
-            label: "✨ My Performance (Uniform Motion in Physics)",
-            data: [performance.time, performance.problemSolving, performance.wordProblem], // Updated data order
+            label: "🚀 Best Performance (Uniform Motion in Physics)",
+            data: [
+              performance.time,
+              performance.wordProblem,
+              performance.problemSolving,
+            ],
             fill: true,
             backgroundColor: gradient,
             borderColor: "rgb(54, 162, 235)",
             borderWidth: 3,
             pointBackgroundColor: "rgb(236, 72, 153)",
             pointBorderColor: "#fff",
-            pointHoverBackgroundColor: "#fff",
-            pointHoverBorderColor: "rgb(236, 72, 153)",
           },
         ],
       },
@@ -195,26 +246,23 @@ const Motion_Radar: React.FC = () => {
         plugins: {
           legend: {
             display: true,
-            labels: { color: "#111", font: { size: 14, weight: "bold" } },
+            labels: { color: "#111", font: { size: 13, weight: "bold" } },
           },
           title: {
             display: true,
             text: "📊 Uniform Motion in Physics",
             color: "#111",
-            font: { size: 20, weight: "bold" },
+            font: { size: 18, weight: "bold" },
           },
           datalabels: {
             color: "#000",
-            font: { weight: "bold", size: 12 },
-            formatter: (val, ctx) =>
-              ctx.dataIndex === 0 ? `${val.toFixed(2)}%` : `${Math.round(val)}%`, // Time = decimal, others = whole
+            font: { weight: "bold", size: 11 },
+            formatter: (val: number) =>
+              Number.isInteger(val) ? `${val}%` : `${val.toFixed(2)}%`,
           },
         },
         scales: {
           r: {
-            angleLines: { color: "rgba(156, 163, 175, 0.3)" },
-            grid: { color: "rgba(209, 213, 219, 0.3)" },
-            pointLabels: { color: "#111", font: { size: 14, weight: "bold" } },
             suggestedMin: 0,
             suggestedMax: 100,
             ticks: { display: false },
@@ -224,56 +272,108 @@ const Motion_Radar: React.FC = () => {
       plugins: [ChartDataLabels],
     });
 
-    return () => chartInstance.current?.destroy();
+    return () => {
+      chartInstance.current?.destroy();
+      chartInstance.current = null;
+    };
   }, [performance]);
 
-  useEffect(() => {
-    fetchRadarData();
-  }, []);
+  const labels = ["⏱ Time", "📘 Word Problem", "🧩 Problem Solving"];
 
   return (
     <IonPage>
-      <IonHeader></IonHeader>
+      <IonHeader />
       <IonContent fullscreen>
-        <div style={{ padding: "20px" }}>
-          <div
-            style={{
-              width: "100%",
-              height: "650px",
-              marginTop: "40px",
-              background: "white",
-              borderRadius: "20px",
-              boxShadow: "0px 8px 20px rgba(0,0,0,0.1)",
-              padding: "20px",
-              display: "flex",
-              flexDirection: "column",
-              justifyContent: "space-between",
-            }}
-          >
-            <div style={{ flex: 1 }}>
-              <canvas ref={radarRef} />
-            </div>
-            <div style={{ textAlign: "center", marginTop: "15px" }}>
-              <button
-                onClick={fetchRadarData}
+        <AnimatePresence>
+          {visible && (
+            <motion.div
+              key="motion-radar"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.5 }}
+              style={{
+                padding: 16,
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                minHeight: "90vh",
+              }}
+            >
+              <motion.h2
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6 }}
+                style={{ fontSize: 22, fontWeight: 700, color: "#222" }}
+              >
+                🌟 Best Performance Overview
+              </motion.h2>
+
+              <div style={{ display: "flex", gap: 10, marginTop: 12 }}>
+                {labels.map((label, idx) => (
+                  <motion.div
+                    key={label}
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.55, delay: 0.25 + idx * 0.14 }}
+                    style={{
+                      background: "linear-gradient(90deg, #36A2EB, #EC4899)",
+                      padding: "6px 12px",
+                      borderRadius: 8,
+                      color: "white",
+                      fontWeight: 700,
+                      fontSize: 14,
+                    }}
+                  >
+                    {label}
+                  </motion.div>
+                ))}
+              </div>
+
+              <motion.div
+                initial={{ opacity: 0, scale: 0.96, y: 12 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                transition={{ duration: 0.8, delay: 0.7 }}
                 style={{
-                  padding: "12px 24px",
-                  background: "linear-gradient(90deg, #6366F1, #EC4899)",
-                  color: "white",
-                  fontSize: "16px",
-                  fontWeight: "bold",
-                  borderRadius: "12px",
-                  border: "none",
-                  cursor: "pointer",
                   width: "100%",
-                  maxWidth: "250px",
+                  maxWidth: 500,
+                  height: 450,
+                  background: "white",
+                  borderRadius: 16,
+                  boxShadow: "0px 8px 20px rgba(0,0,0,0.08)",
+                  marginTop: 24,
+                  padding: 16,
                 }}
               >
-                🔄 Refresh My Data
-              </button>
-            </div>
-          </div>
-        </div>
+                <canvas ref={radarRef} style={{ width: "100%", height: "100%" }} />
+              </motion.div>
+
+              <motion.button
+                onClick={fetchRadarData}
+                disabled={loading}
+                whileTap={{ scale: 0.96 }}
+                whileHover={{ scale: loading ? 1 : 1.03 }}
+                style={{
+                  padding: "10px 20px",
+                  background: loading
+                    ? "linear-gradient(90deg, #9CA3AF, #D1D5DB)"
+                    : "linear-gradient(90deg, #36A2EB, #EC4899)",
+                  color: "white",
+                  fontSize: 15,
+                  fontWeight: 700,
+                  borderRadius: 10,
+                  border: "none",
+                  marginTop: 24,
+                  width: "100%",
+                  maxWidth: 200,
+                }}
+              >
+                {loading ? "🔄 Refreshing..." : "🔄 Refresh"}
+              </motion.button>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </IonContent>
     </IonPage>
   );

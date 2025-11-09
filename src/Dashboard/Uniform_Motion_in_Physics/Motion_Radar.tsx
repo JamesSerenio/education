@@ -53,13 +53,11 @@ const Motion_Radar: React.FC = () => {
     wordProblem: 0,
     problemSolving: 0,
   });
-
   const [categoryPercent, setCategoryPercent] = useState({
     time: 0,
     wordProblem: 0,
     problemSolving: 0,
   });
-
   const [visible, setVisible] = useState(false);
   const [loading, setLoading] = useState(false);
   const [scores, setScores] = useState<ScoreWithQuizzes[]>([]);
@@ -98,8 +96,12 @@ const Motion_Radar: React.FC = () => {
 
       setPerformance({
         time: startValues.time + (newData.time - startValues.time) * progress,
-        wordProblem: startValues.wordProblem + (newData.wordProblem - startValues.wordProblem) * progress,
-        problemSolving: startValues.problemSolving + (newData.problemSolving - startValues.problemSolving) * progress,
+        wordProblem:
+          startValues.wordProblem +
+          (newData.wordProblem - startValues.wordProblem) * progress,
+        problemSolving:
+          startValues.problemSolving +
+          (newData.problemSolving - startValues.problemSolving) * progress,
       });
 
       if (currentStep >= steps) clearInterval(animate);
@@ -121,7 +123,8 @@ const Motion_Radar: React.FC = () => {
 
       if (scoresError) return;
 
-      const typedScores = (allScores ?? []).map(mapToScoreWithQuizzes);
+      const rawArray = (allScores ?? []) as Record<string, unknown>[];
+      const typedScores = rawArray.map(mapToScoreWithQuizzes);
       setScores(typedScores);
 
       const motionScores = typedScores.filter(
@@ -140,7 +143,6 @@ const Motion_Radar: React.FC = () => {
       const bestWordProblem = wordProblemScores.length > 0
         ? Math.max(...wordProblemScores.map((s) => s.score ?? 0))
         : 0;
-
       const bestProblemSolving = problemSolvingScores.length > 0
         ? Math.max(...problemSolvingScores.map((s) => s.score ?? 0))
         : 0;
@@ -173,7 +175,7 @@ const Motion_Radar: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (!radarRef.current) return;
+    if (!radarRef.current || selectedCategory) return;
     const ctx = radarRef.current.getContext("2d");
     if (!ctx) return;
 
@@ -190,7 +192,11 @@ const Motion_Radar: React.FC = () => {
         datasets: [
           {
             label: "🏆 Best Performance (Uniform Motion in Physics)",
-            data: [performance.time, performance.wordProblem, performance.problemSolving],
+            data: [
+              performance.time,
+              performance.wordProblem,
+              performance.problemSolving,
+            ],
             fill: true,
             backgroundColor: gradient,
             borderColor: "#36A2EB",
@@ -223,20 +229,7 @@ const Motion_Radar: React.FC = () => {
     });
 
     return () => chartInstance.current?.destroy();
-  }, []);
-
-  // ✅ Update chart whenever performance changes
-  useEffect(() => {
-    if (!chartInstance.current) return;
-
-    chartInstance.current.data.datasets[0].data = [
-      performance.time,
-      performance.wordProblem,
-      performance.problemSolving,
-    ];
-
-    chartInstance.current.update();
-  }, [performance]);
+  }, [performance, selectedCategory]);
 
   const getCategoryRecords = () => {
     const normalize = (txt: string | undefined) => txt?.trim().toLowerCase() ?? "";
@@ -283,7 +276,7 @@ const Motion_Radar: React.FC = () => {
         <AnimatePresence>
           {visible && (
             <motion.div
-              key="motion-radar-root"
+              key="radar-root"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -292,7 +285,14 @@ const Motion_Radar: React.FC = () => {
             >
               {!selectedCategory ? (
                 <>
-                  <motion.h2 className="radar-title">🏅 Best Performance Overview</motion.h2>
+                  <motion.h2
+                    initial={{ opacity: 0, y: -8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.6 }}
+                    className="radar-title"
+                  >
+                    🏅 Best Performance Overview
+                  </motion.h2>
 
                   <div className="radar-labels">
                     {labels.map((label) => (
@@ -306,13 +306,18 @@ const Motion_Radar: React.FC = () => {
                     ))}
                   </div>
 
-                  <motion.div className="radar-card">
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.96 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="radar-card"
+                  >
                     <canvas ref={radarRef} />
                   </motion.div>
 
                   <motion.button
                     onClick={fetchRadarData}
                     disabled={loading}
+                    whileTap={{ scale: 0.96 }}
                     className={`radar-refresh-btn ${loading ? "loading" : ""}`}
                   >
                     {loading ? "🔄 Refreshing..." : "🔄 Refresh"}
@@ -320,7 +325,9 @@ const Motion_Radar: React.FC = () => {
                 </>
               ) : (
                 <>
-                  <motion.h2 className="radar-title">📘 {selectedCategory.toUpperCase()} RECORDS</motion.h2>
+                  <motion.h2 className="radar-title">
+                    📘 {selectedCategory.toUpperCase()} RECORDS
+                  </motion.h2>
 
                   <p style={{ fontWeight: "bold", marginBottom: "12px" }}>
                     Total Percent:{" "}
@@ -344,13 +351,10 @@ const Motion_Radar: React.FC = () => {
                             marginBottom: "8px",
                           }}
                         >
-                          <strong>Score:</strong> {record.score ?? "N/A"} / {MAX_SCORE}
-                          <br />
+                          <strong>Score:</strong> {record.score ?? "N/A"} / {MAX_SCORE}<br />
                           <strong>Time Taken:</strong>{" "}
-                          {record.time_taken ? `${record.time_taken}s` : "N/A"}
-                          <br />
-                          <strong>Percent:</strong> {recordPercent(record).toFixed(1)}%
-                          <br />
+                          {record.time_taken ? `${record.time_taken}s` : "N/A"}<br />
+                          <strong>Percent:</strong> {recordPercent(record).toFixed(1)}%<br />
                           <small>{new Date(record.created_at).toLocaleString()}</small>
                         </div>
                       ))

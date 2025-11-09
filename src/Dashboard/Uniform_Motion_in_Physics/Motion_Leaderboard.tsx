@@ -2,7 +2,6 @@ import React, { useEffect, useState } from "react";
 import { IonPage, IonHeader, IonToolbar, IonTitle, IonContent } from "@ionic/react";
 import { Trophy } from "lucide-react";
 import { supabase } from "../../utils/supabaseClient";
-import { motion, AnimatePresence } from "framer-motion";
 
 interface Profile {
   lastname: string;
@@ -105,43 +104,34 @@ const UniformMotionLeaderboard: React.FC = () => {
   };
 
   const renderTable = (data: LeaderboardRow[]) => (
-    <table style={tableStyle}>
-      <thead style={theadStyle}>
-        <tr>
-          <th style={thStyle}>Place</th>
-          <th style={thStyle}>Lastname</th>
-          <th style={thStyle}>Score</th>
-          <th style={thStyle}>Time</th>
-        </tr>
-      </thead>
-      <tbody>
-        <AnimatePresence>
+    <div className="leaderboard-table-wrapper">
+      <table className="leaderboard-table">
+        <thead>
+          <tr>
+            <th>Place</th>
+            <th>Lastname</th>
+            <th>Score</th>
+            <th>Time</th>
+          </tr>
+        </thead>
+        <tbody>
           {data.length > 0 ? (
             data.map((row, index) => (
-              <motion.tr
-                key={row.profiles.lastname}
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 10 }}
-                transition={{ duration: 0.3, delay: index * 0.05 }}
-                style={{ borderBottom: "1px solid #e5e7eb" }}
-              >
-                <td style={tdStyle}>{index + 1}</td>
-                <td style={tdStyle}>{row.profiles.lastname || "-"}</td>
-                <td style={tdStyle}>{row.score}</td>
-                <td style={tdStyle}>{formatTime(row.time_taken)}</td>
-              </motion.tr>
+              <tr key={index}>
+                <td>{index + 1}</td>
+                <td>{row.profiles.lastname || "-"}</td>
+                <td>{row.score}</td>
+                <td>{formatTime(row.time_taken)}</td>
+              </tr>
             ))
           ) : (
             <tr>
-              <td style={tdStyle} colSpan={4}>
-                No data found.
-              </td>
+              <td colSpan={4}>No data found.</td>
             </tr>
           )}
-        </AnimatePresence>
-      </tbody>
-    </table>
+        </tbody>
+      </table>
+    </div>
   );
 
   return (
@@ -153,17 +143,17 @@ const UniformMotionLeaderboard: React.FC = () => {
       </IonHeader>
 
       <IonContent className="ion-padding">
-        <div style={cardStyle}>
-          <h2 style={blackTitle}>Word Problem Leaderboard</h2>
-          <div style={iconWrapper}>
+        <div className="leaderboard-card">
+          <h2 className="leaderboard-title">Word Problem Leaderboard</h2>
+          <div className="trophy-icon">
             <Trophy size={20} color="#f59e0b" />
           </div>
           {loading ? <p>Loading...</p> : renderTable(wordProblemData)}
         </div>
 
-        <div style={{ ...cardStyle, marginTop: 20 }}>
-          <h2 style={blackTitle}>Problem Solving Leaderboard</h2>
-          <div style={iconWrapper}>
+        <div className="leaderboard-card">
+          <h2 className="leaderboard-title">Problem Solving Leaderboard</h2>
+          <div className="trophy-icon">
             <Trophy size={20} color="#3b82f6" />
           </div>
           {loading ? <p>Loading...</p> : renderTable(problemSolvingData)}
@@ -171,52 +161,6 @@ const UniformMotionLeaderboard: React.FC = () => {
       </IonContent>
     </IonPage>
   );
-};
-
-/* Styles */
-const cardStyle: React.CSSProperties = {
-  maxWidth: 720,
-  margin: "0 auto",
-  background: "#fff",
-  borderRadius: 16,
-  boxShadow: "0 6px 18px rgba(0,0,0,0.06)",
-  padding: 16,
-  border: "1px solid #e5e7eb",
-};
-
-const blackTitle: React.CSSProperties = {
-  textAlign: "center",
-  color: "#000",
-  fontSize: 22,
-  margin: 0,
-};
-
-const iconWrapper: React.CSSProperties = {
-  display: "flex",
-  justifyContent: "center",
-  margin: "8px 0",
-};
-
-const tableStyle: React.CSSProperties = {
-  width: "100%",
-  borderCollapse: "collapse",
-  marginTop: 12,
-};
-
-const theadStyle: React.CSSProperties = {
-  background: "#f3f4f6",
-};
-
-const thStyle: React.CSSProperties = {
-  padding: "8px 10px",
-  border: "1px solid #e5e7eb",
-  textAlign: "center",
-};
-
-const tdStyle: React.CSSProperties = {
-  padding: "8px 10px",
-  border: "1px solid #eee",
-  textAlign: "center",
 };
 
 export default UniformMotionLeaderboard;

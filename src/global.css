@@ -819,21 +819,18 @@ ion-content {
   }
 }
 
-
-
-/* --- Arithmetic Radar Section --- */
+/* --- Arithmetic Radar --- */
 .arithmetic-radar-container {
   background: linear-gradient(135deg, #fafffa, #fffde7);
   display: flex;
-  justify-content: center;       
-  align-items: center;          
-  flex-direction: column;    
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
   min-height: 100vh;
   padding: 40px 20px;
   overflow: hidden;
 }
 
-/* --- Main content wrapper --- */
 .radar-content {
   backdrop-filter: blur(15px);
   background: rgba(255, 255, 255, 0.85);
@@ -843,13 +840,9 @@ ion-content {
   text-align: center;
   max-width: 520px;
   width: 100%;
-  margin: 0 auto;                
+  margin: 0 auto;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
   transition: transform 0.4s ease, box-shadow 0.4s ease;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
 }
 
 .radar-content:hover {
@@ -857,9 +850,8 @@ ion-content {
   box-shadow: 0 15px 35px rgba(234, 179, 8, 0.3);
 }
 
-/* --- Title --- */
 .radar-title {
-  font-family: "Roboto", sans-serif;
+  font-family: "Poppins", sans-serif;
   font-size: 1.6rem;
   font-weight: 700;
   margin-bottom: 20px;
@@ -869,7 +861,6 @@ ion-content {
   -webkit-text-fill-color: transparent;
 }
 
-/* --- Label chips --- */
 .radar-labels {
   display: flex;
   justify-content: center;
@@ -893,7 +884,6 @@ ion-content {
   transform: scale(1.05);
 }
 
-/* --- Radar chart container --- */
 .radar-card {
   background: rgba(255, 255, 255, 0.9);
   border-radius: 16px;
@@ -902,22 +892,17 @@ ion-content {
   padding: 16px;
   width: 100%;
   max-width: 460px;
-  aspect-ratio: 1 / 1; /* ✅ Keeps perfect circle scaling */
+  aspect-ratio: 1 / 1;
   display: flex;
   justify-content: center;
   align-items: center;
-  overflow: hidden; /* ✅ Prevent chart overflow */
-  margin-left: auto;
-  margin-right: auto;
 }
 
 .radar-card canvas {
-  width: 95% !important; /* ✅ Prevent overflow */
+  width: 95% !important;
   height: 95% !important;
-  object-fit: contain;
 }
 
-/* --- Refresh button --- */
 .radar-refresh-btn {
   background: linear-gradient(90deg, #65a30d, #eab308);
   border: none;
@@ -944,38 +929,26 @@ ion-content {
   cursor: not-allowed;
 }
 
-/* --- Responsive layout --- */
 @media (max-width: 768px) {
   .radar-content {
-    max-width: 100%;
     padding: 12px;
   }
 
   .radar-title {
     font-size: 1.2rem;
-    text-align: center;
   }
 
   .radar-card {
-    max-width: 340px; /* ✅ Smaller width for mobile */
-    width: 100%;
-    height: auto;
-    aspect-ratio: 1 / 1;
+    max-width: 340px;
     padding: 10px;
-  }
-
-  .radar-card canvas {
-    width: 100% !important;
-    height: auto !important;
-    transition: all 0.25s ease-in-out;
   }
 
   .radar-refresh-btn {
     font-size: 14px;
     padding: 8px 16px;
-    max-width: 180px;
   }
 }
+
 
 /* --- Arithmetic Quiz Section --- */
 .quiz-container {

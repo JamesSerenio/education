@@ -18,7 +18,6 @@ import {
 import ChartDataLabels from "chartjs-plugin-datalabels";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "../../utils/supabaseClient";
-import "../../global.css";
 
 ChartJS.register(
   RadialLinearScale,
@@ -160,9 +159,7 @@ const Arithmetic_Radar: React.FC = () => {
         problemSolving: (bestProblemSolving / MAX_SCORE) * 100,
       };
 
-      // Save total percentages for display
       setCategoryPercent(newPerformance);
-
       animateRadarUpdate(newPerformance);
     } catch (err) {
       console.error("Error fetching radar data:", err);

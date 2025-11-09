@@ -16,7 +16,7 @@ import {
 } from "@ionic/react";
 import { logOutOutline } from "ionicons/icons";
 import { useHistory } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion"; // ✅ Animation
+import { motion, AnimatePresence } from "framer-motion";
 
 import MotionHome from "./Motion_Home";
 import MotionModule from "./Motion_Module";
@@ -59,7 +59,6 @@ const Dashboard_Motion: React.FC = () => {
     }
   };
 
-  // ✅ Animation variants
   const listVariants = {
     hidden: { opacity: 0 },
     show: {
@@ -76,21 +75,20 @@ const Dashboard_Motion: React.FC = () => {
   return (
     <IonPage>
       <IonSplitPane contentId="main" when="(min-width: 768px)">
-        {/* ✅ Animated Side Menu */}
-        <IonMenu contentId="main">
+        {/* ✅ Sidebar Menu */}
+        <IonMenu contentId="main" className="arithmetic-menu">
           <IonHeader>
-            <IonToolbar>
-              <IonTitle>Menu</IonTitle>
+            <IonToolbar className="menu-toolbar">
+              <IonTitle className="menu-title">Menu</IonTitle>
             </IonToolbar>
           </IonHeader>
 
-          <IonContent>
+          <IonContent className="menu-content">
             <motion.div
               variants={listVariants}
               initial="hidden"
               animate="show"
               transition={{ duration: 0.4, ease: "easeOut" }}
-              style={{ paddingTop: "1rem" }}
             >
               {menuItems.map((item, index) => (
                 <motion.div key={index} variants={itemVariants}>
@@ -98,51 +96,24 @@ const Dashboard_Motion: React.FC = () => {
                     <IonItem
                       button
                       onClick={() => setActivePage(item.key)}
+                      className={`menu-item ${
+                        activePage === item.key ? "active" : ""
+                      }`}
                       lines="none"
                     >
-                      <img
-                        src={item.icon}
-                        alt={item.name}
-                        style={{
-                          width: "24px",
-                          height: "24px",
-                          borderRadius: "4px",
-                          marginRight: "8px",
-                        }}
-                      />
-                      <span
-                        style={{
-                          marginLeft: "8px",
-                          position: "relative",
-                          paddingBottom: "4px",
-                        }}
-                      >
-                        {item.name}
-                        {activePage === item.key && (
-                          <span
-                            style={{
-                              position: "absolute",
-                              left: 0,
-                              bottom: 0,
-                              width: "100%",
-                              height: "2px",
-                              backgroundColor: "#3b82f6",
-                              borderRadius: "2px",
-                            }}
-                          />
-                        )}
-                      </span>
+                      <img src={item.icon} alt={item.name} className="menu-icon" />
+                      <span className="menu-text">{item.name}</span>
                     </IonItem>
                   </IonMenuToggle>
                 </motion.div>
               ))}
 
-              {/* ✅ Logout Button Animation */}
-              <motion.div variants={itemVariants} style={{ marginTop: "1rem" }}>
+              {/* ✅ Logout Button */}
+              <motion.div variants={itemVariants} className="logout-container">
                 <IonMenuToggle autoHide={false}>
                   <IonButton
                     expand="block"
-                    color="primary"
+                    className="logout-button"
                     onClick={() => history.push("/home")}
                   >
                     <IonIcon icon={logOutOutline} slot="start" />
@@ -154,14 +125,14 @@ const Dashboard_Motion: React.FC = () => {
           </IonContent>
         </IonMenu>
 
-        {/* ✅ Animated Main Content */}
-        <IonPage id="main">
+        {/* ✅ Main Content */}
+        <IonPage id="main" className="dashboard-main">
           <IonHeader>
-            <IonToolbar>
+            <IonToolbar className="main-toolbar">
               <IonButtons slot="start">
                 <IonMenuButton />
               </IonButtons>
-              <IonTitle>
+              <IonTitle className="main-title">
                 {menuItems.find((m) => m.key === activePage)?.name ||
                   "Dashboard Motion"}
               </IonTitle>
@@ -176,6 +147,7 @@ const Dashboard_Motion: React.FC = () => {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
                 transition={{ duration: 0.3, ease: "easeOut" }}
+                className="main-content"
               >
                 {renderContent()}
               </motion.div>

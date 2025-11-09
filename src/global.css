@@ -314,7 +314,7 @@ input:-webkit-autofill:focus {
   object-fit: contain;
 }
 
-/* === Dashboard Motion Styling === */
+/* === Dashboard === */
 
 .arithmetic-menu {
   --background: transparent;
@@ -412,19 +412,20 @@ input:-webkit-autofill:focus {
 
 /* ✅ Fullscreen Motion Wrapper */
 .main-content-wrapper {
-  --background: transparent;
   display: flex;
   justify-content: center;
   align-items: flex-start;
   min-height: 100%;
-  width: 100%;
   overflow-y: auto;
+  padding: 2rem;
 }
+
 
 
 .main-motion-container {
   width: 100%;
   height: 100%;
+  padding: 20px;
   box-sizing: border-box;
   overflow: visible;
 }

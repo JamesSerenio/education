@@ -23,7 +23,7 @@ import MotionModule from "./Motion_Module";
 import MotionLeaderboard from "./Motion_Leaderboard";
 import MotionRadar from "./Motion_Radar";
 
-// Custom icons
+// ✅ Custom icons
 import iconHome from "../../assets/icon_home.gif";
 import iconModule from "../../assets/icon_module.gif";
 import iconLeaderboard from "../../assets/icon_leaderboard.gif";
@@ -51,7 +51,7 @@ const Dashboard_Motion: React.FC = () => {
       case "radar":
         return <MotionRadar />;
       default:
-        return <h2 className="motion-welcome">Welcome to Motion Dashboard</h2>;
+        return <h2 className="arithmetic-welcome">Welcome to Motion Dashboard</h2>;
     }
   };
 
@@ -69,20 +69,21 @@ const Dashboard_Motion: React.FC = () => {
   return (
     <IonPage>
       <IonSplitPane contentId="main" when="(min-width: 768px)">
-        {/* Sidebar */}
-        <IonMenu contentId="main" className="motion-menu">
+        {/* Sidebar Menu */}
+        <IonMenu contentId="main" className="arithmetic-menu">
           <IonHeader>
-            <IonToolbar className="motion-menu-toolbar">
-              <IonTitle className="motion-menu-title">Menu</IonTitle>
+            <IonToolbar className="menu-toolbar">
+              <IonTitle className="menu-title">Menu</IonTitle>
             </IonToolbar>
           </IonHeader>
 
-          <IonContent className="motion-menu-content">
+          <IonContent className="menu-content">
             <motion.div
               style={{ display: "flex", flexDirection: "column", height: "100%" }}
               variants={listVariants}
               initial="hidden"
               animate="show"
+              transition={{ duration: 0.4, ease: "easeOut" }}
             >
               {menuItems.map((item, index) => (
                 <motion.div key={index} variants={itemVariants}>
@@ -90,22 +91,22 @@ const Dashboard_Motion: React.FC = () => {
                     <IonItem
                       button
                       onClick={() => setActivePage(item.key)}
-                      className={`motion-menu-item ${activePage === item.key ? "active" : ""}`}
+                      className={`menu-item ${activePage === item.key ? "active" : ""}`}
                       lines="none"
                     >
-                      <img src={item.icon} alt={item.name} className="motion-menu-icon" />
-                      <span className="motion-menu-text">{item.name}</span>
+                      <img src={item.icon} alt={item.name} className="menu-icon" />
+                      <span className="menu-text">{item.name}</span>
                     </IonItem>
                   </IonMenuToggle>
                 </motion.div>
               ))}
 
-              {/* Logout */}
-              <motion.div variants={itemVariants} className="motion-logout-container">
+              {/* Logout Button at Bottom */}
+              <motion.div variants={itemVariants} className="logout-container">
                 <IonMenuToggle autoHide={false}>
                   <IonButton
                     expand="block"
-                    className="motion-logout-button"
+                    className="logout-button"
                     onClick={() => history.push("/home")}
                   >
                     <IonIcon icon={logOutOutline} slot="start" />
@@ -118,13 +119,13 @@ const Dashboard_Motion: React.FC = () => {
         </IonMenu>
 
         {/* Main Content */}
-        <IonPage id="main" className="motion-dashboard-main">
+        <IonPage id="main" className="dashboard-main">
           <IonHeader>
-            <IonToolbar className="motion-main-toolbar">
+            <IonToolbar className="main-toolbar">
               <IonButtons slot="start">
                 <IonMenuButton />
               </IonButtons>
-              <IonTitle className="motion-main-title">
+              <IonTitle className="main-title">
                 {menuItems.find((m) => m.key === activePage)?.name || "Dashboard Motion"}
               </IonTitle>
             </IonToolbar>
@@ -138,7 +139,7 @@ const Dashboard_Motion: React.FC = () => {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
                 transition={{ duration: 0.3, ease: "easeOut" }}
-                className="motion-main-content"
+                className="main-content"
               >
                 {renderContent()}
               </motion.div>

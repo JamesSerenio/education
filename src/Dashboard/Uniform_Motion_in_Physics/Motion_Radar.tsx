@@ -20,6 +20,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "../../utils/supabaseClient";
 import "../../global.css";
 
+// Register required Chart.js components
 ChartJS.register(
   RadialLinearScale,
   PointElement,
@@ -63,6 +64,7 @@ const Motion_Radar: React.FC = () => {
   const [scores, setScores] = useState<ScoreWithQuizzes[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
+  // 🧠 Helper for safe mapping
   const mapToScoreWithQuizzes = (rawData: Record<string, unknown>): ScoreWithQuizzes => {
     const quizzesRaw = rawData["quizzes"] as Record<string, unknown> | undefined;
     return {
@@ -81,6 +83,7 @@ const Motion_Radar: React.FC = () => {
     };
   };
 
+  // ✨ Animate radar transitions
   const animateRadarUpdate = (
     newData: { time: number; wordProblem: number; problemSolving: number },
     duration = 800
@@ -90,10 +93,9 @@ const Motion_Radar: React.FC = () => {
     let currentStep = 0;
     const startValues = { ...performance };
 
-    const animate = setInterval(() => {
+    const animation = setInterval(() => {
       currentStep++;
       const progress = currentStep / steps;
-
       setPerformance({
         time: startValues.time + (newData.time - startValues.time) * progress,
         wordProblem:
@@ -103,11 +105,11 @@ const Motion_Radar: React.FC = () => {
           startValues.problemSolving +
           (newData.problemSolving - startValues.problemSolving) * progress,
       });
-
-      if (currentStep >= steps) clearInterval(animate);
+      if (currentStep >= steps) clearInterval(animation);
     }, interval);
   };
 
+  // 📊 Fetch data from Supabase
   const fetchRadarData = async () => {
     setLoading(true);
     try {
@@ -123,8 +125,7 @@ const Motion_Radar: React.FC = () => {
 
       if (scoresError) return;
 
-      const rawArray = (allScores ?? []) as Record<string, unknown>[];
-      const typedScores = rawArray.map(mapToScoreWithQuizzes);
+      const typedScores = (allScores ?? []).map(mapToScoreWithQuizzes);
       setScores(typedScores);
 
       const motionScores = typedScores.filter(
@@ -140,15 +141,15 @@ const Motion_Radar: React.FC = () => {
         (s) => normalize(s.quizzes?.category) === "problem solving" && s.score !== null
       );
 
-      const bestWordProblem = wordProblemScores.length > 0
+      const bestWordProblem = wordProblemScores.length
         ? Math.max(...wordProblemScores.map((s) => s.score ?? 0))
         : 0;
-      const bestProblemSolving = problemSolvingScores.length > 0
+      const bestProblemSolving = problemSolvingScores.length
         ? Math.max(...problemSolvingScores.map((s) => s.score ?? 0))
         : 0;
 
       const validTimes = motionScores.filter((s) => s.time_taken !== null);
-      const bestTime = validTimes.length > 0
+      const bestTime = validTimes.length
         ? Math.min(...validTimes.map((s) => s.time_taken ?? MAX_TIME))
         : MAX_TIME;
 
@@ -169,21 +170,31 @@ const Motion_Radar: React.FC = () => {
     }
   };
 
+  // 🎬 Initialize on mount
   useEffect(() => {
     setVisible(true);
     void fetchRadarData();
   }, []);
 
+  // 🌀 Render radar only once
   useEffect(() => {
-    if (!radarRef.current || selectedCategory) return;
+    if (!radarRef.current || !visible || selectedCategory) return;
     const ctx = radarRef.current.getContext("2d");
     if (!ctx) return;
 
-    chartInstance.current?.destroy();
+    if (chartInstance.current) {
+      chartInstance.current.data.datasets[0].data = [
+        performance.time,
+        performance.wordProblem,
+        performance.problemSolving,
+      ];
+      chartInstance.current.update();
+      return;
+    }
 
     const gradient = ctx.createLinearGradient(0, 0, 0, 500);
-    gradient.addColorStop(0, "rgba(54, 162, 235, 0.35)");
-    gradient.addColorStop(1, "rgba(236, 72, 153, 0.35)");
+    gradient.addColorStop(0, "rgba(54, 162, 235, 0.4)");
+    gradient.addColorStop(1, "rgba(236, 72, 153, 0.4)");
 
     chartInstance.current = new ChartJS(ctx, {
       type: "radar",
@@ -229,8 +240,9 @@ const Motion_Radar: React.FC = () => {
     });
 
     return () => chartInstance.current?.destroy();
-  }, [performance, selectedCategory]);
+  }, [performance, visible, selectedCategory]);
 
+  // 🧾 Category record filtering
   const getCategoryRecords = () => {
     const normalize = (txt: string | undefined) => txt?.trim().toLowerCase() ?? "";
     if (selectedCategory === "time") {
@@ -245,28 +257,25 @@ const Motion_Radar: React.FC = () => {
     );
   };
 
+  // 📈 Compute percentage per record
   const recordPercent = (record: ScoreWithQuizzes) => {
     if (selectedCategory === "time") {
       return record.time_taken ? ((MAX_TIME - record.time_taken) / MAX_TIME) * 100 : 0;
     }
-    if (selectedCategory === "word problem") {
-      return record.score ? (record.score / MAX_SCORE) * 100 : 0;
-    }
-    if (selectedCategory === "problem solving") {
+    if (selectedCategory === "word problem" || selectedCategory === "problem solving") {
       return record.score ? (record.score / MAX_SCORE) * 100 : 0;
     }
     return 0;
   };
 
   const labels = ["⏱ Time", "📘 Word Problem", "🧩 Problem Solving"];
-
   const handleLabelClick = (label: string) => {
-    const categoryMap: Record<string, string> = {
+    const map: Record<string, string> = {
       "⏱ Time": "time",
       "📘 Word Problem": "word problem",
       "🧩 Problem Solving": "problem solving",
     };
-    setSelectedCategory(categoryMap[label]);
+    setSelectedCategory(map[label]);
   };
 
   return (
@@ -276,7 +285,7 @@ const Motion_Radar: React.FC = () => {
         <AnimatePresence>
           {visible && (
             <motion.div
-              key="radar-root"
+              key="radar"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -286,9 +295,9 @@ const Motion_Radar: React.FC = () => {
               {!selectedCategory ? (
                 <>
                   <motion.h2
-                    initial={{ opacity: 0, y: -8 }}
+                    initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.6 }}
+                    transition={{ duration: 0.5 }}
                     className="radar-title"
                   >
                     🏅 Best Performance Overview
@@ -306,13 +315,9 @@ const Motion_Radar: React.FC = () => {
                     ))}
                   </div>
 
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.96 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    className="radar-card"
-                  >
+                  <div className="radar-card">
                     <canvas ref={radarRef} />
-                  </motion.div>
+                  </div>
 
                   <motion.button
                     onClick={fetchRadarData}

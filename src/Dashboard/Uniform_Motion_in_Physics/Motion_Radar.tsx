@@ -63,13 +63,12 @@ const Motion_Radar: React.FC = () => {
   const [scores, setScores] = useState<ScoreWithQuizzes[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
-  // ✅ Helper to map Supabase record to typed object
   const mapToScoreWithQuizzes = (rawData: Record<string, unknown>): ScoreWithQuizzes => {
     const quizzesRaw = rawData["quizzes"] as Record<string, unknown> | undefined;
     return {
       id: String(rawData["id"] ?? ""),
-      score: rawData["score"] == null ? null : Number(rawData["score"]),
-      time_taken: rawData["time_taken"] == null ? null : Number(rawData["time_taken"]),
+      score: rawData["score"] == null ? 0 : Number(rawData["score"]),
+      time_taken: rawData["time_taken"] == null ? MAX_TIME : Number(rawData["time_taken"]),
       created_at: String(rawData["created_at"] ?? new Date().toISOString()),
       quiz_id: String(rawData["quiz_id"] ?? ""),
       quizzes: quizzesRaw
@@ -82,7 +81,6 @@ const Motion_Radar: React.FC = () => {
     };
   };
 
-  // ✅ Smooth radar animation
   const animateRadarUpdate = (
     newData: { time: number; wordProblem: number; problemSolving: number },
     duration = 800
@@ -97,18 +95,13 @@ const Motion_Radar: React.FC = () => {
       const progress = currentStep / steps;
       setPerformance({
         time: startValues.time + (newData.time - startValues.time) * progress,
-        wordProblem:
-          startValues.wordProblem +
-          (newData.wordProblem - startValues.wordProblem) * progress,
-        problemSolving:
-          startValues.problemSolving +
-          (newData.problemSolving - startValues.problemSolving) * progress,
+        wordProblem: startValues.wordProblem + (newData.wordProblem - startValues.wordProblem) * progress,
+        problemSolving: startValues.problemSolving + (newData.problemSolving - startValues.problemSolving) * progress,
       });
       if (currentStep >= steps) clearInterval(animate);
     }, interval);
   };
 
-  // ✅ Fetch Supabase radar data
   const fetchRadarData = async () => {
     setLoading(true);
     try {
@@ -124,39 +117,22 @@ const Motion_Radar: React.FC = () => {
 
       if (scoresError) return;
 
-      const rawArray = Array.isArray(allScores) ? allScores : [];
-      const typedScores = rawArray.map(mapToScoreWithQuizzes);
+      const typedScores = (allScores ?? []).map(mapToScoreWithQuizzes);
       setScores(typedScores);
 
       const motionScores = typedScores.filter(
         (s) => s.quizzes?.subject?.toLowerCase() === "uniform motion in physics"
       );
 
-      const normalize = (txt: string | undefined) => txt?.trim().toLowerCase() ?? "";
+      const wordProblemScores = motionScores.filter(s => s.quizzes?.category.toLowerCase() === "word problem");
+      const problemSolvingScores = motionScores.filter(s => s.quizzes?.category.toLowerCase() === "problem solving");
 
-      const wordProblemScores = motionScores.filter(
-        (s) => normalize(s.quizzes?.category) === "word problem" && s.score !== null
-      );
-      const problemSolvingScores = motionScores.filter(
-        (s) => normalize(s.quizzes?.category) === "problem solving" && s.score !== null
-      );
-
-      const bestWordProblem = wordProblemScores.length > 0
-        ? Math.max(...wordProblemScores.map((s) => s.score ?? 0))
-        : 0;
-      const bestProblemSolving = problemSolvingScores.length > 0
-        ? Math.max(...problemSolvingScores.map((s) => s.score ?? 0))
-        : 0;
-
-      const validTimes = motionScores.filter((s) => s.time_taken !== null);
-      const bestTime = validTimes.length > 0
-        ? Math.min(...validTimes.map((s) => s.time_taken ?? MAX_TIME))
-        : MAX_TIME;
-
-      const timePercent = ((MAX_TIME - bestTime) / MAX_TIME) * 100;
+      const bestWordProblem = wordProblemScores.length ? Math.max(...wordProblemScores.map(s => s.score ?? 0)) : 0;
+      const bestProblemSolving = problemSolvingScores.length ? Math.max(...problemSolvingScores.map(s => s.score ?? 0)) : 0;
+      const bestTime = motionScores.length ? Math.min(...motionScores.map(s => s.time_taken ?? MAX_TIME)) : MAX_TIME;
 
       const newPerformance = {
-        time: Math.max(0, Math.min(100, parseFloat(timePercent.toFixed(2)))),
+        time: ((MAX_TIME - bestTime) / MAX_TIME) * 100,
         wordProblem: (bestWordProblem / MAX_SCORE) * 100,
         problemSolving: (bestProblemSolving / MAX_SCORE) * 100,
       };
@@ -164,32 +140,37 @@ const Motion_Radar: React.FC = () => {
       setCategoryPercent(newPerformance);
       animateRadarUpdate(newPerformance);
     } catch (err) {
-      console.error("Error fetching radar data:", err);
+      console.error(err);
     } finally {
       setTimeout(() => setLoading(false), 600);
     }
   };
 
-  // ✅ Initial load
+  // Initial load
   useEffect(() => {
     setVisible(true);
     fetchRadarData();
   }, []);
 
-  // ✅ Chart rendering fix (recreate when performance changes)
+  // Chart.js update
   useEffect(() => {
-    if (!radarRef.current || selectedCategory) return;
+    if (!radarRef.current) return;
     const ctx = radarRef.current.getContext("2d");
     if (!ctx) return;
 
-    // 🧹 Always destroy old chart before creating a new one
     if (chartInstance.current) {
-      chartInstance.current.destroy();
+      chartInstance.current.data.datasets[0].data = [
+        performance.time,
+        performance.wordProblem,
+        performance.problemSolving,
+      ];
+      chartInstance.current.update();
+      return;
     }
 
     const gradient = ctx.createLinearGradient(0, 0, 0, 400);
-    gradient.addColorStop(0, "rgba(54, 162, 235, 0.4)");
-    gradient.addColorStop(1, "rgba(236, 72, 153, 0.4)");
+    gradient.addColorStop(0, "rgba(54,162,235,0.4)");
+    gradient.addColorStop(1, "rgba(236,72,153,0.4)");
 
     chartInstance.current = new ChartJS(ctx, {
       type: "radar",
@@ -215,12 +196,8 @@ const Motion_Radar: React.FC = () => {
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        animation: {
-          duration: 900,
-          easing: "easeOutQuart",
-        },
         plugins: {
-          legend: { display: true, labels: { color: "#333" } },
+          legend: { labels: { color: "#333" } },
           title: {
             display: true,
             text: "📊 Uniform Motion in Physics",
@@ -233,56 +210,31 @@ const Motion_Radar: React.FC = () => {
             formatter: (val: number) => `${val.toFixed(1)}%`,
           },
         },
-        scales: {
-          r: {
-            suggestedMin: 0,
-            suggestedMax: 100,
-            ticks: { display: false },
-            grid: { color: "rgba(0,0,0,0.1)" },
-            pointLabels: { color: "#111", font: { size: 13 } },
-          },
-        },
+        scales: { r: { suggestedMin: 0, suggestedMax: 100, ticks: { display: false } } },
       },
       plugins: [ChartDataLabels],
     });
+  }, [performance]);
 
-    return () => chartInstance.current?.destroy();
-  }, [performance, selectedCategory]);
+  const labels = ["⏱ Time", "📘 Word Problem", "🧩 Problem Solving"];
+  const handleLabelClick = (label: string) => {
+    const map: Record<string, string> = { "⏱ Time": "time", "📘 Word Problem": "word problem", "🧩 Problem Solving": "problem solving" };
+    setSelectedCategory(map[label]);
+  };
 
   const getCategoryRecords = () => {
-    const normalize = (txt: string | undefined) => txt?.trim().toLowerCase() ?? "";
-    if (selectedCategory === "time") {
-      return scores.filter(
-        (s) => s.quizzes?.subject?.toLowerCase() === "uniform motion in physics"
-      );
-    }
-    return scores.filter(
-      (s) =>
-        s.quizzes?.subject?.toLowerCase() === "uniform motion in physics" &&
-        normalize(s.quizzes?.category) === selectedCategory
+    const normalize = (txt?: string) => txt?.trim().toLowerCase() ?? "";
+    if (!selectedCategory) return [];
+    return scores.filter(s =>
+      s.quizzes?.subject?.toLowerCase() === "uniform motion in physics" &&
+      (selectedCategory === "time" || normalize(s.quizzes?.category) === selectedCategory)
     );
   };
 
   const recordPercent = (record: ScoreWithQuizzes) => {
-    if (selectedCategory === "time") {
-      return record.time_taken ? ((MAX_TIME - record.time_taken) / MAX_TIME) * 100 : 0;
-    }
-    if (selectedCategory === "word problem" || selectedCategory === "problem solving") {
-      return record.score ? (record.score / MAX_SCORE) * 100 : 0;
-    }
-    return 0;
+    if (selectedCategory === "time") return ((MAX_TIME - record.time_taken!) / MAX_TIME) * 100;
+    return (record.score! / MAX_SCORE) * 100;
   };
-
-  const handleLabelClick = (label: string) => {
-    const categoryMap: Record<string, string> = {
-      "⏱ Time": "time",
-      "📘 Word Problem": "word problem",
-      "🧩 Problem Solving": "problem solving",
-    };
-    setSelectedCategory(categoryMap[label]);
-  };
-
-  const labels = ["⏱ Time", "📘 Word Problem", "🧩 Problem Solving"];
 
   return (
     <IonPage>
@@ -290,100 +242,47 @@ const Motion_Radar: React.FC = () => {
       <IonContent fullscreen className="arithmetic-radar-container">
         <AnimatePresence>
           {visible && (
-            <motion.div
-              key="radar-root"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.5 }}
-              className="radar-content"
-            >
+            <motion.div key="radar-root" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.5 }} className="radar-content">
               {!selectedCategory ? (
                 <>
-                  <motion.h2
-                    initial={{ opacity: 0, y: -8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.6 }}
-                    className="radar-title"
-                  >
+                  <motion.h2 className="radar-title" initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
                     🏅 Best Performance Overview
                   </motion.h2>
 
                   <div className="radar-labels">
-                    {labels.map((label) => (
-                      <motion.div
-                        key={label}
-                        className="radar-label"
-                        onClick={() => handleLabelClick(label)}
-                      >
-                        {label}
-                      </motion.div>
-                    ))}
+                    {labels.map(label => <motion.div key={label} className="radar-label" onClick={() => handleLabelClick(label)}>{label}</motion.div>)}
                   </div>
 
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.96 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    className="radar-card"
-                  >
+                  <motion.div className="radar-card" initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }}>
                     <canvas ref={radarRef} />
                   </motion.div>
 
-                  <motion.button
-                    onClick={fetchRadarData}
-                    disabled={loading}
-                    whileTap={{ scale: 0.96 }}
-                    className={`radar-refresh-btn ${loading ? "loading" : ""}`}
-                  >
+                  <motion.button onClick={fetchRadarData} disabled={loading} whileTap={{ scale: 0.96 }} className={`radar-refresh-btn ${loading ? "loading" : ""}`}>
                     {loading ? "🔄 Refreshing..." : "🔄 Refresh"}
                   </motion.button>
                 </>
               ) : (
                 <>
-                  <motion.h2 className="radar-title">
-                    📘 {selectedCategory.toUpperCase()} RECORDS
-                  </motion.h2>
-
+                  <motion.h2 className="radar-title">📘 {selectedCategory.toUpperCase()} RECORDS</motion.h2>
                   <p style={{ fontWeight: "bold", marginBottom: "12px" }}>
                     Total Percent:{" "}
-                    {selectedCategory === "time"
-                      ? categoryPercent.time.toFixed(1)
-                      : selectedCategory === "word problem"
-                      ? categoryPercent.wordProblem.toFixed(1)
-                      : categoryPercent.problemSolving.toFixed(1)}
-                    %
+                    {selectedCategory === "time" ? categoryPercent.time.toFixed(1) :
+                     selectedCategory === "word problem" ? categoryPercent.wordProblem.toFixed(1) :
+                     categoryPercent.problemSolving.toFixed(1)}%
                   </p>
 
                   <div style={{ textAlign: "left", marginTop: "15px" }}>
-                    {getCategoryRecords().length > 0 ? (
-                      getCategoryRecords().map((record) => (
-                        <div
-                          key={record.id}
-                          style={{
-                            background: "#f8fafc",
-                            padding: "10px",
-                            borderRadius: "10px",
-                            marginBottom: "8px",
-                          }}
-                        >
-                          <strong>Score:</strong> {record.score ?? "N/A"} / {MAX_SCORE}<br />
-                          <strong>Time Taken:</strong>{" "}
-                          {record.time_taken ? `${record.time_taken}s` : "N/A"}<br />
-                          <strong>Percent:</strong> {recordPercent(record).toFixed(1)}%<br />
-                          <small>{new Date(record.created_at).toLocaleString()}</small>
-                        </div>
-                      ))
-                    ) : (
-                      <p>No records found.</p>
-                    )}
+                    {getCategoryRecords().length ? getCategoryRecords().map(record => (
+                      <div key={record.id} style={{ background: "#f8fafc", padding: "10px", borderRadius: "10px", marginBottom: "8px" }}>
+                        <strong>Score:</strong> {record.score} / {MAX_SCORE}<br />
+                        <strong>Time Taken:</strong> {record.time_taken}s<br />
+                        <strong>Percent:</strong> {recordPercent(record).toFixed(1)}%<br />
+                        <small>{new Date(record.created_at).toLocaleString()}</small>
+                      </div>
+                    )) : <p>No records found.</p>}
                   </div>
 
-                  <motion.button
-                    onClick={() => setSelectedCategory(null)}
-                    whileTap={{ scale: 0.95 }}
-                    className="radar-refresh-btn"
-                    style={{ marginTop: "20px" }}
-                  >
+                  <motion.button onClick={() => setSelectedCategory(null)} whileTap={{ scale: 0.95 }} className="radar-refresh-btn" style={{ marginTop: "20px" }}>
                     ⬅ Back to Radar
                   </motion.button>
                 </>

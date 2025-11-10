@@ -62,76 +62,77 @@ const Arithmetic_Radar: React.FC = () => {
   const [scores, setScores] = useState<ScoreWithQuizzes[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
-  const mapToScoreWithQuizzes = (rawData: Record<string, unknown>): ScoreWithQuizzes => {
-    const quizzesRaw = rawData["quizzes"] as Record<string, unknown> | undefined;
+  // ✅ Normalize helper
+  const normalize = (txt: string | undefined) =>
+    txt?.trim().toLowerCase() ?? "";
+
+  // ✅ Map raw Supabase data to typed structure
+  const mapToScoreWithQuizzes = (raw: Record<string, unknown>): ScoreWithQuizzes => {
+    const quiz = raw["quizzes"] || {};
     return {
-      id: String(rawData["id"] ?? ""),
-      score: rawData["score"] == null ? null : Number(rawData["score"]),
-      time_taken: rawData["time_taken"] == null ? null : Number(rawData["time_taken"]),
-      created_at: String(rawData["created_at"] ?? new Date().toISOString()),
-      quiz_id: String(rawData["quiz_id"] ?? ""),
-      quizzes: quizzesRaw
-        ? {
-            id: String(quizzesRaw["id"] ?? ""),
-            category: String(quizzesRaw["category"] ?? ""),
-            subject: quizzesRaw["subject"] ? String(quizzesRaw["subject"]) : undefined,
-          }
-        : null,
+      id: String(raw["id"] ?? ""),
+      score: raw["score"] == null ? null : Number(raw["score"]),
+      time_taken: raw["time_taken"] == null ? null : Number(raw["time_taken"]),
+      created_at: String(raw["created_at"] ?? new Date().toISOString()),
+      quiz_id: String(raw["quiz_id"] ?? ""),
+      quizzes: {
+        id: String(quiz["id"] ?? ""),
+        category: String(quiz["category"] ?? ""),
+        subject: quiz["subject"] ? String(quiz["subject"]) : undefined,
+      },
     };
   };
 
+  // ✅ Smooth animated radar transitions
   const animateRadarUpdate = (
     newData: { time: number; wordProblem: number; problemSolving: number },
     duration = 800
   ) => {
     const steps = 30;
     const interval = duration / steps;
-    let currentStep = 0;
-    const startValues = { ...performance };
+    let step = 0;
+    const start = { ...performance };
 
-    const animate = setInterval(() => {
-      currentStep++;
-      const progress = currentStep / steps;
-
+    const timer = setInterval(() => {
+      step++;
+      const progress = step / steps;
       setPerformance({
-        time: startValues.time + (newData.time - startValues.time) * progress,
+        time: start.time + (newData.time - start.time) * progress,
         wordProblem:
-          startValues.wordProblem +
-          (newData.wordProblem - startValues.wordProblem) * progress,
+          start.wordProblem +
+          (newData.wordProblem - start.wordProblem) * progress,
         problemSolving:
-          startValues.problemSolving +
-          (newData.problemSolving - startValues.problemSolving) * progress,
+          start.problemSolving +
+          (newData.problemSolving - start.problemSolving) * progress,
       });
-
-      if (currentStep >= steps) clearInterval(animate);
+      if (step >= steps) clearInterval(timer);
     }, interval);
   };
 
+  // ✅ Fetch radar data
   const fetchRadarData = async () => {
     setLoading(true);
     try {
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
-      if (userError || !user) return;
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
 
-      const { data: allScores, error: scoresError } = await supabase
+      const { data, error } = await supabase
         .from("scores")
         .select(`id, score, time_taken, created_at, quiz_id, quizzes!quiz_id(id, category, subject)`)
         .eq("user_id", user.id)
-        .order("created_at", { ascending: false })
-        .limit(100);
+        .order("created_at", { ascending: false });
 
-      if (scoresError) return;
+      if (error || !data) return;
 
-      const rawArray = (allScores ?? []) as Record<string, unknown>[];
-      const typedScores = rawArray.map(mapToScoreWithQuizzes);
-      setScores(typedScores);
+      const typed = data.map(mapToScoreWithQuizzes);
+      setScores(typed);
 
-      const arithmeticScores = typedScores.filter(
-        (s) => s.quizzes?.subject?.toLowerCase() === "arithmetic sequence"
+      // ✅ Filter for Arithmetic Sequence subject
+      const arithmeticScores = typed.filter(
+        (s) => normalize(s.quizzes?.subject) === "arithmetic sequence"
       );
 
-      const normalize = (txt: string | undefined) => txt?.trim().toLowerCase() ?? "";
-
+      // ✅ Filter by category
       const wordProblemScores = arithmeticScores.filter(
         (s) => normalize(s.quizzes?.category) === "word problem" && s.score !== null
       );
@@ -139,42 +140,46 @@ const Arithmetic_Radar: React.FC = () => {
         (s) => normalize(s.quizzes?.category) === "problem solving" && s.score !== null
       );
 
-      const bestWordProblem = wordProblemScores.length > 0
-        ? Math.max(...wordProblemScores.map((s) => s.score ?? 0))
-        : 0;
-      const bestProblemSolving = problemSolvingScores.length > 0
-        ? Math.max(...problemSolvingScores.map((s) => s.score ?? 0))
-        : 0;
+      // ✅ Compute best performance
+      const bestWordProblem =
+        wordProblemScores.length > 0
+          ? Math.max(...wordProblemScores.map((s) => s.score ?? 0))
+          : 0;
+      const bestProblemSolving =
+        problemSolvingScores.length > 0
+          ? Math.max(...problemSolvingScores.map((s) => s.score ?? 0))
+          : 0;
 
       const validTimes = arithmeticScores.filter((s) => s.time_taken !== null);
-      const bestTime = validTimes.length > 0
-        ? Math.min(...validTimes.map((s) => s.time_taken ?? MAX_TIME))
-        : MAX_TIME;
+      const bestTime =
+        validTimes.length > 0
+          ? Math.min(...validTimes.map((s) => s.time_taken ?? MAX_TIME))
+          : MAX_TIME;
 
       const timePercent = ((MAX_TIME - bestTime) / MAX_TIME) * 100;
 
       const newPerformance = {
-        time: Math.max(0, Math.min(100, parseFloat(timePercent.toFixed(2)))),
+        time: Math.max(0, Math.min(100, timePercent)),
         wordProblem: (bestWordProblem / MAX_SCORE) * 100,
         problemSolving: (bestProblemSolving / MAX_SCORE) * 100,
       };
 
-      // Save total percentages for display
       setCategoryPercent(newPerformance);
-
       animateRadarUpdate(newPerformance);
     } catch (err) {
-      console.error("Error fetching radar data:", err);
+      console.error("❌ Error fetching radar data:", err);
     } finally {
       setTimeout(() => setLoading(false), 600);
     }
   };
 
+  // ✅ Initial load
   useEffect(() => {
     setVisible(true);
-    void fetchRadarData();
+    fetchRadarData();
   }, []);
 
+  // ✅ Chart rendering
   useEffect(() => {
     if (!radarRef.current || selectedCategory) return;
     const ctx = radarRef.current.getContext("2d");
@@ -210,6 +215,10 @@ const Arithmetic_Radar: React.FC = () => {
       options: {
         responsive: true,
         maintainAspectRatio: false,
+        animation: {
+          duration: 900,
+          easing: "easeOutQuart",
+        },
         plugins: {
           legend: { display: true },
           title: {
@@ -224,7 +233,15 @@ const Arithmetic_Radar: React.FC = () => {
             formatter: (val: number) => `${val.toFixed(1)}%`,
           },
         },
-        scales: { r: { suggestedMin: 0, suggestedMax: 100, ticks: { display: false } } },
+        scales: {
+          r: {
+            suggestedMin: 0,
+            suggestedMax: 100,
+            ticks: { display: false },
+            grid: { color: "rgba(0,0,0,0.1)" },
+            pointLabels: { color: "#111", font: { size: 13 } },
+          },
+        },
       },
       plugins: [ChartDataLabels],
     });
@@ -232,42 +249,37 @@ const Arithmetic_Radar: React.FC = () => {
     return () => chartInstance.current?.destroy();
   }, [performance, selectedCategory]);
 
+  // ✅ Helper: Filter records by selected category
   const getCategoryRecords = () => {
-    const normalize = (txt: string | undefined) => txt?.trim().toLowerCase() ?? "";
     if (selectedCategory === "time") {
       return scores.filter(
-        (s) => s.quizzes?.subject?.toLowerCase() === "arithmetic sequence"
+        (s) => normalize(s.quizzes?.subject) === "arithmetic sequence"
       );
     }
     return scores.filter(
       (s) =>
-        s.quizzes?.subject?.toLowerCase() === "arithmetic sequence" &&
+        normalize(s.quizzes?.subject) === "arithmetic sequence" &&
         normalize(s.quizzes?.category) === selectedCategory
     );
   };
 
   const recordPercent = (record: ScoreWithQuizzes) => {
     if (selectedCategory === "time") {
-      return record.time_taken ? ((MAX_TIME - record.time_taken) / MAX_TIME) * 100 : 0;
+      return record.time_taken
+        ? ((MAX_TIME - record.time_taken) / MAX_TIME) * 100
+        : 0;
     }
-    if (selectedCategory === "word problem") {
-      return record.score ? (record.score / MAX_SCORE) * 100 : 0;
-    }
-    if (selectedCategory === "problem solving") {
-      return record.score ? (record.score / MAX_SCORE) * 100 : 0;
-    }
-    return 0;
+    return record.score ? (record.score / MAX_SCORE) * 100 : 0;
   };
 
   const labels = ["⏱ Time", "📘 Word Problem", "🧩 Problem Solving"];
-
   const handleLabelClick = (label: string) => {
-    const categoryMap: Record<string, string> = {
+    const map: Record<string, string> = {
       "⏱ Time": "time",
       "📘 Word Problem": "word problem",
       "🧩 Problem Solving": "problem solving",
     };
-    setSelectedCategory(categoryMap[label]);
+    setSelectedCategory(map[label]);
   };
 
   return (
@@ -352,11 +364,17 @@ const Arithmetic_Radar: React.FC = () => {
                             marginBottom: "8px",
                           }}
                         >
-                          <strong>Score:</strong> {record.score ?? "N/A"} / {MAX_SCORE}<br />
+                          <strong>Score:</strong> {record.score ?? "N/A"} / {MAX_SCORE}
+                          <br />
                           <strong>Time Taken:</strong>{" "}
-                          {record.time_taken ? `${record.time_taken}s` : "N/A"}<br />
-                          <strong>Percent:</strong> {recordPercent(record).toFixed(1)}%<br />
-                          <small>{new Date(record.created_at).toLocaleString()}</small>
+                          {record.time_taken ? `${record.time_taken}s` : "N/A"}
+                          <br />
+                          <strong>Percent:</strong>{" "}
+                          {recordPercent(record).toFixed(1)}%
+                          <br />
+                          <small>
+                            {new Date(record.created_at).toLocaleString()}
+                          </small>
                         </div>
                       ))
                     ) : (

@@ -48,7 +48,7 @@ const Arithmetic_Radar: React.FC = () => {
 
   const [performance, setPerformance] = useState({
     time: 0,
-    solving: 0,
+    wordProblem: 0, // Renamed from solving
     problemSolving: 0,
   });
 
@@ -79,7 +79,7 @@ const Arithmetic_Radar: React.FC = () => {
 
       if (userError || !user) {
         console.error("No user logged in:", userError);
-        setPerformance({ time: 0, solving: 0, problemSolving: 0 });
+        setPerformance({ time: 0, wordProblem: 0, problemSolving: 0 });
         return;
       }
 
@@ -96,14 +96,14 @@ const Arithmetic_Radar: React.FC = () => {
 
       if (scoresError) {
         console.error("Error fetching scores:", scoresError);
-        setPerformance({ time: 0, solving: 0, problemSolving: 0 });
+        setPerformance({ time: 0, wordProblem: 0, problemSolving: 0 });
         return;
       }
 
       const typedScores: ScoreWithQuizzes[] = (allScores || []).map(mapToScoreWithQuizzes);
 
       if (!typedScores.length) {
-        setPerformance({ time: 0, solving: 0, problemSolving: 0 });
+        setPerformance({ time: 0, wordProblem: 0, problemSolving: 0 });
         return;
       }
 
@@ -113,7 +113,7 @@ const Arithmetic_Radar: React.FC = () => {
       );
 
       let timePercent = 0;
-      let solvingPercent = 0;
+      let wordProblemPercent = 0;
       let problemSolvingPercent = 0;
 
       if (arithmeticScores.length > 0) {
@@ -125,15 +125,15 @@ const Arithmetic_Radar: React.FC = () => {
         const timeRaw = ((MAX_TIME - avgTime) / MAX_TIME) * 100;
         timePercent = Math.max(0, Math.min(100, parseFloat(timeRaw.toFixed(2))));
 
-        // ✅ SOLVING (whole number)
-        const solvingScores = arithmeticScores.filter(
-          (s) => s.quizzes?.category === "Solving" && s.score !== null
+        // ✅ WORD PROBLEM (whole number)
+        const wordProblemScores = arithmeticScores.filter(
+          (s) => s.quizzes?.category === "Word Problem" && s.score !== null
         );
-        if (solvingScores.length > 0) {
-          const avgSolving =
-            solvingScores.reduce((sum, s) => sum + (s.score || 0), 0) /
-            solvingScores.length;
-          solvingPercent = Math.floor((avgSolving / MAX_SCORE) * 100);
+        if (wordProblemScores.length > 0) {
+          const avgWordProblem =
+            wordProblemScores.reduce((sum, s) => sum + (s.score || 0), 0) /
+            wordProblemScores.length;
+          wordProblemPercent = Math.floor((avgWordProblem / MAX_SCORE) * 100);
         }
 
         // ✅ PROBLEM SOLVING (whole number)
@@ -150,12 +150,12 @@ const Arithmetic_Radar: React.FC = () => {
 
       setPerformance({
         time: timePercent,
-        solving: solvingPercent,
+        wordProblem: wordProblemPercent,
         problemSolving: problemSolvingPercent,
       });
     } catch (err) {
       console.error("Error in fetchRadarData:", err);
-      setPerformance({ time: 0, solving: 0, problemSolving: 0 });
+      setPerformance({ time: 0, wordProblem: 0, problemSolving: 0 });
     }
   };
 
@@ -174,11 +174,11 @@ const Arithmetic_Radar: React.FC = () => {
     chartInstance.current = new ChartJS(ctx, {
       type: "radar",
       data: {
-        labels: ["⏱ Time", "🧩 Problem Solving", "🧮 Solving"],
+        labels: ["⏱ Time", "🧩 Problem Solving", "🧮 Word Problem"], // Updated label
         datasets: [
           {
             label: "✨ My Performance (Arithmetic Sequence)",
-            data: [performance.time, performance.problemSolving, performance.solving],
+            data: [performance.time, performance.problemSolving, performance.wordProblem], // Updated data order to match labels
             fill: true,
             backgroundColor: gradient,
             borderColor: "rgb(54, 162, 235)",

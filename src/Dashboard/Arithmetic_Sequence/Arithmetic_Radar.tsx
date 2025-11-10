@@ -62,22 +62,19 @@ const Arithmetic_Radar: React.FC = () => {
   const [scores, setScores] = useState<ScoreWithQuizzes[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
-  // Map Supabase data properly
   const mapToScoreWithQuizzes = (rawData: Record<string, unknown>): ScoreWithQuizzes => {
-    const quizzesArray = rawData["quizzes"] as Record<string, unknown>[] | undefined;
-    const firstQuiz = quizzesArray && quizzesArray.length > 0 ? quizzesArray[0] : undefined;
-
+    const quizzesRaw = rawData["quizzes"] as Record<string, unknown> | undefined;
     return {
       id: String(rawData["id"] ?? ""),
       score: rawData["score"] == null ? null : Number(rawData["score"]),
       time_taken: rawData["time_taken"] == null ? null : Number(rawData["time_taken"]),
       created_at: String(rawData["created_at"] ?? new Date().toISOString()),
       quiz_id: String(rawData["quiz_id"] ?? ""),
-      quizzes: firstQuiz
+      quizzes: quizzesRaw
         ? {
-            id: String(firstQuiz["id"] ?? ""),
-            category: String(firstQuiz["category"] ?? ""),
-            subject: firstQuiz["subject"] ? String(firstQuiz["subject"]) : undefined,
+            id: String(quizzesRaw["id"] ?? ""),
+            category: String(quizzesRaw["category"] ?? ""),
+            subject: quizzesRaw["subject"] ? String(quizzesRaw["subject"]) : undefined,
           }
         : null,
     };
@@ -125,7 +122,8 @@ const Arithmetic_Radar: React.FC = () => {
 
       if (scoresError) return;
 
-      const typedScores = (allScores ?? []).map(mapToScoreWithQuizzes);
+      const rawArray = (allScores ?? []) as Record<string, unknown>[];
+      const typedScores = rawArray.map(mapToScoreWithQuizzes);
       setScores(typedScores);
 
       const arithmeticScores = typedScores.filter(
@@ -161,9 +159,10 @@ const Arithmetic_Radar: React.FC = () => {
         problemSolving: (bestProblemSolving / MAX_SCORE) * 100,
       };
 
+      // Save total percentages for display
       setCategoryPercent(newPerformance);
-      animateRadarUpdate(newPerformance);
 
+      animateRadarUpdate(newPerformance);
     } catch (err) {
       console.error("Error fetching radar data:", err);
     } finally {
@@ -261,6 +260,7 @@ const Arithmetic_Radar: React.FC = () => {
   };
 
   const labels = ["⏱ Time", "📘 Word Problem", "🧩 Problem Solving"];
+
   const handleLabelClick = (label: string) => {
     const categoryMap: Record<string, string> = {
       "⏱ Time": "time",

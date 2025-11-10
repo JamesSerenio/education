@@ -18,7 +18,6 @@ import {
 import ChartDataLabels from "chartjs-plugin-datalabels";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "../../utils/supabaseClient";
-
 ChartJS.register(
   RadialLinearScale,
   PointElement,
@@ -34,7 +33,7 @@ ChartJS.register(
 const MAX_SCORE = 15;
 const MAX_TIME = 525;
 
-interface QuizData {
+interface Quiz {
   id: string;
   category: string;
   subject?: string;
@@ -46,10 +45,10 @@ interface ScoreWithQuizzes {
   time_taken: number | null;
   created_at: string;
   quiz_id: string;
-  quizzes: QuizData | null;
+  quizzes: Quiz | null;
 }
 
-const UniformMotionRadar: React.FC = () => {
+const Arithmetic_Radar: React.FC = () => {
   const radarRef = useRef<HTMLCanvasElement | null>(null);
   const chartInstance = useRef<ChartJS | null>(null);
 
@@ -70,33 +69,19 @@ const UniformMotionRadar: React.FC = () => {
 
   const normalize = (txt?: string) => txt?.trim().toLowerCase() ?? "";
 
-  const mapToScoreWithQuizzes = (
-    raw: Record<string, unknown>
-  ): ScoreWithQuizzes => {
-    const quiz = raw["quizzes"] as Record<string, unknown> | undefined;
+  const mapToScoreWithQuizzes = (raw: Record<string, unknown>): ScoreWithQuizzes => {
+    const quizData = raw["quizzes"] as Record<string, unknown> | undefined;
     return {
       id: String(raw["id"] ?? ""),
-      score:
-        typeof raw["score"] === "number"
-          ? raw["score"]
-          : raw["score"] != null
-          ? Number(raw["score"])
-          : null,
-      time_taken:
-        typeof raw["time_taken"] === "number"
-          ? raw["time_taken"]
-          : raw["time_taken"] != null
-          ? Number(raw["time_taken"])
-          : null,
+      score: raw["score"] == null ? null : Number(raw["score"]),
+      time_taken: raw["time_taken"] == null ? null : Number(raw["time_taken"]),
       created_at: String(raw["created_at"] ?? new Date().toISOString()),
       quiz_id: String(raw["quiz_id"] ?? ""),
-      quizzes: quiz
+      quizzes: quizData
         ? {
-            id: String(quiz["id"] ?? ""),
-            category: String(quiz["category"] ?? ""),
-            subject: quiz["subject"]
-              ? String(quiz["subject"])
-              : undefined,
+            id: String(quizData["id"] ?? ""),
+            category: String(quizData["category"] ?? ""),
+            subject: quizData["subject"] ? String(quizData["subject"]) : undefined,
           }
         : null,
     };
@@ -117,11 +102,9 @@ const UniformMotionRadar: React.FC = () => {
       setPerformance({
         time: start.time + (newData.time - start.time) * progress,
         wordProblem:
-          start.wordProblem +
-          (newData.wordProblem - start.wordProblem) * progress,
+          start.wordProblem + (newData.wordProblem - start.wordProblem) * progress,
         problemSolving:
-          start.problemSolving +
-          (newData.problemSolving - start.problemSolving) * progress,
+          start.problemSolving + (newData.problemSolving - start.problemSolving) * progress,
       });
       if (step >= steps) clearInterval(timer);
     }, interval);
@@ -131,63 +114,66 @@ const UniformMotionRadar: React.FC = () => {
     setLoading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const { data, error } = await supabase
-        .from("scores")
-        .select(`id, score, time_taken, created_at, quiz_id, quizzes!quiz_id(id, category, subject)`)
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false });
-
-      if (error || !data) {
-        console.error(error);
+      if (!user) {
+        console.warn("No authenticated user found.");
         return;
       }
 
-      const typed = (data as Record<string, unknown>[]).map(mapToScoreWithQuizzes);
-      setScores(typed);
+      const { data, error } = await supabase
+        .from("scores")
+        .select(
+          `id, score, time_taken, created_at, quiz_id, quizzes!quiz_id(id, category, subject)`
+        )
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false });
 
-      // ✅ Filter for "Uniform Motion in Physics"
-      const physicsScores = typed.filter(
-        (s) => normalize(s.quizzes?.subject) === "uniform motion in physics"
+      if (error) {
+        console.error("Supabase error:", error);
+        return;
+      }
+
+      const mapped = (data ?? []).map(mapToScoreWithQuizzes);
+      setScores(mapped);
+
+      // ✅ Filter for subject = Arithmetic Sequence
+      const arithmeticScores = mapped.filter(
+        (s) => normalize(s.quizzes?.subject) === "arithmetic sequence"
       );
 
-      const wordProblemScores = physicsScores.filter(
+      if (arithmeticScores.length === 0) {
+        console.warn("No data found for subject: Arithmetic Sequence");
+      }
+
+      const wordProblem = arithmeticScores.filter(
         (s) => normalize(s.quizzes?.category) === "word problem" && s.score !== null
       );
-      const problemSolvingScores = physicsScores.filter(
+      const problemSolving = arithmeticScores.filter(
         (s) => normalize(s.quizzes?.category) === "problem solving" && s.score !== null
       );
 
-      const bestWordProblem =
-        wordProblemScores.length > 0
-          ? Math.max(...wordProblemScores.map((s) => s.score ?? 0))
-          : 0;
-      const bestProblemSolving =
-        problemSolvingScores.length > 0
-          ? Math.max(...problemSolvingScores.map((s) => s.score ?? 0))
-          : 0;
+      const bestWord = wordProblem.length > 0 ? Math.max(...wordProblem.map((s) => s.score ?? 0)) : 0;
+      const bestProblem = problemSolving.length > 0 ? Math.max(...problemSolving.map((s) => s.score ?? 0)) : 0;
 
-      const validTimes = physicsScores.filter((s) => s.time_taken !== null);
+      const bestTimeRecord = arithmeticScores.filter((s) => s.time_taken !== null);
       const bestTime =
-        validTimes.length > 0
-          ? Math.min(...validTimes.map((s) => s.time_taken ?? MAX_TIME))
+        bestTimeRecord.length > 0
+          ? Math.min(...bestTimeRecord.map((s) => s.time_taken ?? MAX_TIME))
           : MAX_TIME;
 
       const timePercent = ((MAX_TIME - bestTime) / MAX_TIME) * 100;
 
-      const newPerformance = {
+      const newData = {
         time: Math.max(0, Math.min(100, timePercent)),
-        wordProblem: (bestWordProblem / MAX_SCORE) * 100,
-        problemSolving: (bestProblemSolving / MAX_SCORE) * 100,
+        wordProblem: (bestWord / MAX_SCORE) * 100,
+        problemSolving: (bestProblem / MAX_SCORE) * 100,
       };
 
-      setCategoryPercent(newPerformance);
-      animateRadarUpdate(newPerformance);
+      setCategoryPercent(newData);
+      animateRadarUpdate(newData);
     } catch (err) {
-      console.error("❌ Error fetching radar data:", err);
+      console.error("❌ Radar fetch error:", err);
     } finally {
-      setTimeout(() => setLoading(false), 600);
+      setLoading(false);
     }
   };
 
@@ -204,8 +190,8 @@ const UniformMotionRadar: React.FC = () => {
     chartInstance.current?.destroy();
 
     const gradient = ctx.createLinearGradient(0, 0, 0, 500);
-    gradient.addColorStop(0, "rgba(37, 99, 235, 0.35)");
-    gradient.addColorStop(1, "rgba(59, 130, 246, 0.35)");
+    gradient.addColorStop(0, "rgba(101, 163, 13, 0.35)");
+    gradient.addColorStop(1, "rgba(234, 179, 8, 0.35)");
 
     chartInstance.current = new ChartJS(ctx, {
       type: "radar",
@@ -213,17 +199,13 @@ const UniformMotionRadar: React.FC = () => {
         labels: ["⏱ Time", "📘 Word Problem", "🧩 Problem Solving"],
         datasets: [
           {
-            label: "🏆 Best Performance (Uniform Motion in Physics)",
-            data: [
-              performance.time,
-              performance.wordProblem,
-              performance.problemSolving,
-            ],
+            label: "🏆 Best Performance (Arithmetic Sequence)",
+            data: [performance.time, performance.wordProblem, performance.problemSolving],
             fill: true,
             backgroundColor: gradient,
-            borderColor: "#2563eb",
+            borderColor: "#65a30d",
             borderWidth: 3,
-            pointBackgroundColor: "#60a5fa",
+            pointBackgroundColor: "#eab308",
             pointBorderColor: "#fff",
           },
         ],
@@ -231,12 +213,11 @@ const UniformMotionRadar: React.FC = () => {
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        animation: { duration: 900, easing: "easeOutQuart" },
         plugins: {
           legend: { display: true },
           title: {
             display: true,
-            text: "📊 Uniform Motion in Physics",
+            text: "📊 Arithmetic Sequence Performance",
             color: "#111",
             font: { size: 18, weight: "bold" },
           },
@@ -262,15 +243,25 @@ const UniformMotionRadar: React.FC = () => {
     return () => chartInstance.current?.destroy();
   }, [performance, selectedCategory]);
 
+  const labels = ["⏱ Time", "📘 Word Problem", "🧩 Problem Solving"];
+  const handleLabelClick = (label: string) => {
+    const map: Record<string, string> = {
+      "⏱ Time": "time",
+      "📘 Word Problem": "word problem",
+      "🧩 Problem Solving": "problem solving",
+    };
+    setSelectedCategory(map[label]);
+  };
+
   const getCategoryRecords = () => {
     if (selectedCategory === "time") {
       return scores.filter(
-        (s) => normalize(s.quizzes?.subject) === "uniform motion in physics"
+        (s) => normalize(s.quizzes?.subject) === "arithmetic sequence"
       );
     }
     return scores.filter(
       (s) =>
-        normalize(s.quizzes?.subject) === "uniform motion in physics" &&
+        normalize(s.quizzes?.subject) === "arithmetic sequence" &&
         normalize(s.quizzes?.category) === selectedCategory
     );
   };
@@ -282,16 +273,6 @@ const UniformMotionRadar: React.FC = () => {
         : 0;
     }
     return record.score ? (record.score / MAX_SCORE) * 100 : 0;
-  };
-
-  const labels = ["⏱ Time", "📘 Word Problem", "🧩 Problem Solving"];
-  const handleLabelClick = (label: string) => {
-    const map: Record<string, string> = {
-      "⏱ Time": "time",
-      "📘 Word Problem": "word problem",
-      "🧩 Problem Solving": "problem solving",
-    };
-    setSelectedCategory(map[label]);
   };
 
   return (
@@ -310,34 +291,23 @@ const UniformMotionRadar: React.FC = () => {
             >
               {!selectedCategory ? (
                 <>
-                  <motion.h2
-                    initial={{ opacity: 0, y: -8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.6 }}
-                    className="radar-title"
-                  >
-                    🏅 Best Performance Overview
-                  </motion.h2>
+                  <h2 className="radar-title">🏅 Best Performance Overview</h2>
 
                   <div className="radar-labels">
                     {labels.map((label) => (
-                      <motion.div
+                      <div
                         key={label}
                         className="radar-label"
                         onClick={() => handleLabelClick(label)}
                       >
                         {label}
-                      </motion.div>
+                      </div>
                     ))}
                   </div>
 
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.96 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    className="radar-card"
-                  >
+                  <div className="radar-card">
                     <canvas ref={radarRef} />
-                  </motion.div>
+                  </div>
 
                   <motion.button
                     onClick={fetchRadarData}
@@ -350,9 +320,9 @@ const UniformMotionRadar: React.FC = () => {
                 </>
               ) : (
                 <>
-                  <motion.h2 className="radar-title">
+                  <h2 className="radar-title">
                     📘 {selectedCategory.toUpperCase()} RECORDS
-                  </motion.h2>
+                  </h2>
 
                   <p style={{ fontWeight: "bold", marginBottom: "12px" }}>
                     Total Percent:{" "}
@@ -384,9 +354,7 @@ const UniformMotionRadar: React.FC = () => {
                           <strong>Percent:</strong>{" "}
                           {recordPercent(record).toFixed(1)}%
                           <br />
-                          <small>
-                            {new Date(record.created_at).toLocaleString()}
-                          </small>
+                          <small>{new Date(record.created_at).toLocaleString()}</small>
                         </div>
                       ))
                     ) : (
@@ -412,4 +380,4 @@ const UniformMotionRadar: React.FC = () => {
   );
 };
 
-export default UniformMotionRadar;
+export default Arithmetic_Radar;

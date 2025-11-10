@@ -1,4 +1,8 @@
-import { IonPage, IonHeader, IonContent } from "@ionic/react";
+import {
+  IonPage,
+  IonHeader,
+  IonContent,
+} from "@ionic/react";
 import { useEffect, useRef, useState } from "react";
 import {
   Chart as ChartJS,
@@ -30,19 +34,13 @@ ChartJS.register(
 const MAX_SCORE = 15;
 const MAX_TIME = 525;
 
-interface Quiz {
-  id: string;
-  category: string;
-  subject?: string;
-}
-
 interface ScoreWithQuizzes {
   id: string;
   score: number | null;
   time_taken: number | null;
   created_at: string;
   quiz_id: string;
-  quizzes: Quiz | null;
+  quizzes: { id: string; category: string; subject?: string } | null;
 }
 
 const Arithmetic_Radar: React.FC = () => {
@@ -64,21 +62,19 @@ const Arithmetic_Radar: React.FC = () => {
   const [scores, setScores] = useState<ScoreWithQuizzes[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
-  const normalize = (txt?: string) => txt?.trim().toLowerCase() ?? "";
-
-  const mapToScoreWithQuizzes = (raw: Record<string, unknown>): ScoreWithQuizzes => {
-    const quizData = raw["quizzes"] as Record<string, unknown> | undefined;
+  const mapToScoreWithQuizzes = (rawData: Record<string, unknown>): ScoreWithQuizzes => {
+    const quizzesRaw = rawData["quizzes"] as Record<string, unknown> | null;
     return {
-      id: String(raw["id"] ?? ""),
-      score: raw["score"] == null ? null : Number(raw["score"]),
-      time_taken: raw["time_taken"] == null ? null : Number(raw["time_taken"]),
-      created_at: String(raw["created_at"] ?? new Date().toISOString()),
-      quiz_id: String(raw["quiz_id"] ?? ""),
-      quizzes: quizData
+      id: String(rawData["id"] ?? ""),
+      score: rawData["score"] == null ? null : Number(rawData["score"]),
+      time_taken: rawData["time_taken"] == null ? null : Number(rawData["time_taken"]),
+      created_at: String(rawData["created_at"] ?? new Date().toISOString()),
+      quiz_id: String(rawData["quiz_id"] ?? ""),
+      quizzes: quizzesRaw
         ? {
-            id: String(quizData["id"] ?? ""),
-            category: String(quizData["category"] ?? ""),
-            subject: quizData["subject"] ? String(quizData["subject"]) : undefined,
+            id: String(quizzesRaw["id"] ?? ""),
+            category: String(quizzesRaw["category"] ?? ""),
+            subject: quizzesRaw["subject"] ? String(quizzesRaw["subject"]) : undefined,
           }
         : null,
     };
@@ -90,168 +86,176 @@ const Arithmetic_Radar: React.FC = () => {
   ) => {
     const steps = 30;
     const interval = duration / steps;
-    let step = 0;
-    const start = { ...performance };
+    let currentStep = 0;
+    const startValues = { ...performance };
 
-    const timer = setInterval(() => {
-      step++;
-      const progress = step / steps;
+    const animate = setInterval(() => {
+      currentStep++;
+      const progress = currentStep / steps;
+
       setPerformance({
-        time: start.time + (newData.time - start.time) * progress,
+        time: startValues.time + (newData.time - startValues.time) * progress,
         wordProblem:
-          start.wordProblem + (newData.wordProblem - start.wordProblem) * progress,
+          startValues.wordProblem +
+          (newData.wordProblem - startValues.wordProblem) * progress,
         problemSolving:
-          start.problemSolving + (newData.problemSolving - start.problemSolving) * progress,
+          startValues.problemSolving +
+          (newData.problemSolving - startValues.problemSolving) * progress,
       });
-      if (step >= steps) clearInterval(timer);
+
+      if (currentStep >= steps) clearInterval(animate);
     }, interval);
   };
 
   const fetchRadarData = async () => {
     setLoading(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError || !user) return;
 
-      const { data, error } = await supabase
+      const { data: allScores, error: scoresError } = await supabase
         .from("scores")
-        .select(
-          `id, score, time_taken, created_at, quiz_id, quizzes!quiz_id(id, category, subject)`
-        )
+        .select(`id, score, time_taken, created_at, quiz_id, quizzes!quiz_id(id, category, subject)`)
         .eq("user_id", user.id)
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false })
+        .limit(100);
 
-      if (error) {
-        console.error(error);
-        return;
-      }
+      if (scoresError) return;
 
-      const mapped = (data ?? []).map(mapToScoreWithQuizzes);
-      setScores(mapped);
+      const rawArray = (allScores ?? []) as Record<string, unknown>[];
+      const typedScores = rawArray.map(mapToScoreWithQuizzes);
+      setScores(typedScores);
 
-      const arithmeticScores = mapped.filter(
-        (s) => normalize(s.quizzes?.subject) === "arithmetic sequence"
+      const arithmeticScores = typedScores.filter(
+        (s) => s.quizzes?.subject?.toLowerCase() === "arithmetic sequence"
       );
 
-      const wordProblem = arithmeticScores.filter(
+      const normalize = (txt: string | undefined) => txt?.trim().toLowerCase() ?? "";
+
+      const wordProblemScores = arithmeticScores.filter(
         (s) => normalize(s.quizzes?.category) === "word problem" && s.score !== null
       );
-      const problemSolving = arithmeticScores.filter(
+      const problemSolvingScores = arithmeticScores.filter(
         (s) => normalize(s.quizzes?.category) === "problem solving" && s.score !== null
       );
 
-      const bestWord = wordProblem.length > 0 ? Math.max(...wordProblem.map((s) => s.score ?? 0)) : 0;
-      const bestProblem = problemSolving.length > 0 ? Math.max(...problemSolving.map((s) => s.score ?? 0)) : 0;
+      const bestWordProblem = wordProblemScores.length > 0
+        ? Math.max(...wordProblemScores.map((s) => s.score ?? 0))
+        : 0;
+      const bestProblemSolving = problemSolvingScores.length > 0
+        ? Math.max(...problemSolvingScores.map((s) => s.score ?? 0))
+        : 0;
 
-      const bestTimeRecord = arithmeticScores.filter((s) => s.time_taken !== null);
-      const bestTime =
-        bestTimeRecord.length > 0
-          ? Math.min(...bestTimeRecord.map((s) => s.time_taken ?? MAX_TIME))
-          : MAX_TIME;
+      const validTimes = arithmeticScores.filter((s) => s.time_taken !== null);
+      const bestTime = validTimes.length > 0
+        ? Math.min(...validTimes.map((s) => s.time_taken ?? MAX_TIME))
+        : MAX_TIME;
 
-      const newData = {
-        time: Math.max(0, Math.min(100, ((MAX_TIME - bestTime) / MAX_TIME) * 100)),
-        wordProblem: (bestWord / MAX_SCORE) * 100,
-        problemSolving: (bestProblem / MAX_SCORE) * 100,
+      const timePercent = ((MAX_TIME - bestTime) / MAX_TIME) * 100;
+
+      const newPerformance = {
+        time: Math.max(0, Math.min(100, parseFloat(timePercent.toFixed(2)))),
+        wordProblem: (bestWordProblem / MAX_SCORE) * 100,
+        problemSolving: (bestProblemSolving / MAX_SCORE) * 100,
       };
 
-      setCategoryPercent(newData);
-      animateRadarUpdate(newData);
+      // Save total percentages for display
+      setCategoryPercent(newPerformance);
+
+      animateRadarUpdate(newPerformance);
     } catch (err) {
-      console.error(err);
+      console.error("Error fetching radar data:", err);
     } finally {
-      setLoading(false);
+      setTimeout(() => setLoading(false), 600);
     }
   };
 
   useEffect(() => {
     setVisible(true);
-    fetchRadarData();
+    void fetchRadarData();
   }, []);
 
   useEffect(() => {
-    if (!radarRef.current || selectedCategory) return;
+    if (selectedCategory) {
+      chartInstance.current?.destroy();
+      chartInstance.current = null;
+      return;
+    }
+    if (!radarRef.current) return;
     const ctx = radarRef.current.getContext("2d");
     if (!ctx) return;
 
-    chartInstance.current?.destroy();
+    if (!chartInstance.current) {
+      const gradient = ctx.createLinearGradient(0, 0, 0, 500);
+      gradient.addColorStop(0, "rgba(101, 163, 13, 0.35)");
+      gradient.addColorStop(1, "rgba(234, 179, 8, 0.35)");
 
-    const gradient = ctx.createLinearGradient(0, 0, 0, 500);
-    gradient.addColorStop(0, "rgba(101, 163, 13, 0.35)");
-    gradient.addColorStop(1, "rgba(234, 179, 8, 0.35)");
-
-    chartInstance.current = new ChartJS(ctx, {
-      type: "radar",
-      data: {
-        labels: ["⏱ Time", "📘 Word Problem", "🧩 Problem Solving"],
-        datasets: [
-          {
-            label: "🏆 Best Performance",
-            data: [performance.time, performance.wordProblem, performance.problemSolving],
-            fill: true,
-            backgroundColor: gradient,
-            borderColor: "#65a30d",
-            borderWidth: 3,
-            pointBackgroundColor: "#eab308",
-            pointBorderColor: "#fff",
-          },
-        ],
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        scales: {
-          r: {
-            suggestedMin: 0,
-            suggestedMax: 100,
-            ticks: {
-              display: true,
-              callback: (val) => `${val}%`, // ✅ Show % on scale
+      chartInstance.current = new ChartJS(ctx, {
+        type: "radar",
+        data: {
+          labels: ["⏱ Time", "📘 Word Problem", "🧩 Problem Solving"],
+          datasets: [
+            {
+              label: "🏆 Best Performance (Arithmetic Sequence)",
+              data: [
+                performance.time,
+                performance.wordProblem,
+                performance.problemSolving,
+              ],
+              fill: true,
+              backgroundColor: gradient,
+              borderColor: "#65a30d",
+              borderWidth: 3,
+              pointBackgroundColor: "#eab308",
+              pointBorderColor: "#fff",
             },
-            grid: { color: "rgba(0,0,0,0.1)" },
-            pointLabels: { color: "#111", font: { size: 13 } },
-          },
+          ],
         },
-        plugins: {
-          legend: { display: true },
-          title: {
-            display: true,
-            text: "📊 Arithmetic Sequence Performance",
-            color: "#111",
-            font: { size: 18, weight: "bold" },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: true },
+            title: {
+              display: true,
+              text: "📊 Arithmetic Sequence",
+              color: "#111",
+              font: { size: 18, weight: "bold" },
+            },
+            datalabels: {
+              color: "#000",
+              font: { weight: "bold", size: 11 },
+              formatter: (val: number) => `${val.toFixed(1)}%`,
+            },
           },
-          datalabels: {
-            color: "#111",
-            font: { size: 12, weight: "bold" },
-            formatter: (val: number) => `${val.toFixed(1)}%`, // ✅ Show percent at each point
-          },
+          scales: { r: { suggestedMin: 0, suggestedMax: 100, ticks: { display: false } } },
         },
-      },
-      plugins: [ChartDataLabels],
-    });
+        plugins: [ChartDataLabels],
+      });
+    } else {
+      chartInstance.current.data.datasets[0].data = [
+        performance.time,
+        performance.wordProblem,
+        performance.problemSolving,
+      ];
+      chartInstance.current.update();
+    }
 
-    return () => chartInstance.current?.destroy();
+    return () => {
+      // Cleanup on unmount
+    };
   }, [performance, selectedCategory]);
 
-  const labels = ["⏱ Time", "📘 Word Problem", "🧩 Problem Solving"];
-  const handleLabelClick = (label: string) => {
-    const map: Record<string, string> = {
-      "⏱ Time": "time",
-      "📘 Word Problem": "word problem",
-      "🧩 Problem Solving": "problem solving",
-    };
-    setSelectedCategory(map[label]);
-  };
-
   const getCategoryRecords = () => {
+    const normalize = (txt: string | undefined) => txt?.trim().toLowerCase() ?? "";
     if (selectedCategory === "time") {
       return scores.filter(
-        (s) => normalize(s.quizzes?.subject) === "arithmetic sequence"
+        (s) => s.quizzes?.subject?.toLowerCase() === "arithmetic sequence"
       );
     }
     return scores.filter(
       (s) =>
-        normalize(s.quizzes?.subject) === "arithmetic sequence" &&
+        s.quizzes?.subject?.toLowerCase() === "arithmetic sequence" &&
         normalize(s.quizzes?.category) === selectedCategory
     );
   };
@@ -260,7 +264,24 @@ const Arithmetic_Radar: React.FC = () => {
     if (selectedCategory === "time") {
       return record.time_taken ? ((MAX_TIME - record.time_taken) / MAX_TIME) * 100 : 0;
     }
-    return record.score ? (record.score / MAX_SCORE) * 100 : 0;
+    if (selectedCategory === "word problem") {
+      return record.score ? (record.score / MAX_SCORE) * 100 : 0;
+    }
+    if (selectedCategory === "problem solving") {
+      return record.score ? (record.score / MAX_SCORE) * 100 : 0;
+    }
+    return 0;
+  };
+
+  const labels = ["⏱ Time", "📘 Word Problem", "🧩 Problem Solving"];
+
+  const handleLabelClick = (label: string) => {
+    const categoryMap: Record<string, string> = {
+      "⏱ Time": "time",
+      "📘 Word Problem": "word problem",
+      "🧩 Problem Solving": "problem solving",
+    };
+    setSelectedCategory(categoryMap[label]);
   };
 
   return (
@@ -279,23 +300,34 @@ const Arithmetic_Radar: React.FC = () => {
             >
               {!selectedCategory ? (
                 <>
-                  <h2 className="radar-title">🏅 Best Performance Overview</h2>
+                  <motion.h2
+                    initial={{ opacity: 0, y: -8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.6 }}
+                    className="radar-title"
+                  >
+                    🏅 Best Performance Overview
+                  </motion.h2>
 
                   <div className="radar-labels">
                     {labels.map((label) => (
-                      <div
+                      <motion.div
                         key={label}
                         className="radar-label"
                         onClick={() => handleLabelClick(label)}
                       >
                         {label}
-                      </div>
+                      </motion.div>
                     ))}
                   </div>
 
-                  <div className="radar-card">
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.96 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="radar-card"
+                  >
                     <canvas ref={radarRef} />
-                  </div>
+                  </motion.div>
 
                   <motion.button
                     onClick={fetchRadarData}
@@ -308,9 +340,9 @@ const Arithmetic_Radar: React.FC = () => {
                 </>
               ) : (
                 <>
-                  <h2 className="radar-title">
+                  <motion.h2 className="radar-title">
                     📘 {selectedCategory.toUpperCase()} RECORDS
-                  </h2>
+                  </motion.h2>
 
                   <p style={{ fontWeight: "bold", marginBottom: "12px" }}>
                     Total Percent:{" "}
@@ -334,13 +366,10 @@ const Arithmetic_Radar: React.FC = () => {
                             marginBottom: "8px",
                           }}
                         >
-                          <strong>Score:</strong> {record.score ?? "N/A"} / {MAX_SCORE}
-                          <br />
+                          <strong>Score:</strong> {record.score ?? "N/A"} / {MAX_SCORE}<br />
                           <strong>Time Taken:</strong>{" "}
-                          {record.time_taken ? `${record.time_taken}s` : "N/A"}
-                          <br />
-                          <strong>Percent:</strong> {recordPercent(record).toFixed(1)}%
-                          <br />
+                          {record.time_taken ? `${record.time_taken}s` : "N/A"}<br />
+                          <strong>Percent:</strong> {recordPercent(record).toFixed(1)}%<br />
                           <small>{new Date(record.created_at).toLocaleString()}</small>
                         </div>
                       ))

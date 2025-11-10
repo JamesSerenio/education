@@ -64,7 +64,7 @@ const Arithmetic_Radar: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
   const mapToScoreWithQuizzes = (rawData: Record<string, unknown>): ScoreWithQuizzes => {
-    const quizzesRaw = rawData["quizzes"] as Record<string, unknown> | undefined;
+    const quizzesRaw = rawData["quizzes"] as Record<string, unknown> | null; // Fixed: removed invalid "| ;" and replaced with "| null"
     return {
       id: String(rawData["id"] ?? ""),
       score: rawData["score"] == null ? null : Number(rawData["score"]),

@@ -819,8 +819,6 @@ ion-content {
   }
 }
 
-
-
 /* --- Arithmetic Radar Section --- */
 .arithmetic-radar-container {
   background: linear-gradient(135deg, #fafffa, #fffde7);
@@ -887,6 +885,7 @@ ion-content {
   font-size: 14px;
   box-shadow: 0 4px 10px rgba(250, 204, 21, 0.25);
   transition: transform 0.3s ease;
+  cursor: pointer; /* Added for better UX */
 }
 
 .radar-label:hover {
@@ -902,13 +901,14 @@ ion-content {
   padding: 16px;
   width: 100%;
   max-width: 460px;
-  height: 460px; /* FIXED HEIGHT */
+  height: 460px; /* FIXED HEIGHT for consistency */
   display: flex;
   justify-content: center;
   align-items: center;
   overflow: hidden;
   margin-left: auto;
   margin-right: auto;
+  position: relative; /* Added for better canvas positioning */
 }
 
 .radar-card canvas {
@@ -916,7 +916,6 @@ ion-content {
   height: 100% !important;
   object-fit: contain;
 }
-
 
 /* --- Refresh button --- */
 .radar-refresh-btn {
@@ -949,27 +948,13 @@ ion-content {
 @media (max-width: 768px) {
   .radar-card {
     max-width: 340px;
-    height: 340px;
+    height: 340px; /* FIXED HEIGHT for mobile to avoid sizing issues */
     padding: 10px;
   }
 
   .radar-title {
     font-size: 1.2rem;
     text-align: center;
-  }
-
-  .radar-card {
-    max-width: 340px; /* ✅ Smaller width for mobile */
-    width: 100%;
-    height: auto;
-    aspect-ratio: 1 / 1;
-    padding: 10px;
-  }
-
-  .radar-card canvas {
-    width: 100% !important;
-    height: auto !important;
-    transition: all 0.25s ease-in-out;
   }
 
   .radar-refresh-btn {

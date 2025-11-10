@@ -1,8 +1,4 @@
-import {
-  IonPage,
-  IonHeader,
-  IonContent,
-} from "@ionic/react";
+import { IonPage, IonHeader, IonContent } from "@ionic/react";
 import { useEffect, useRef, useState } from "react";
 import {
   Chart as ChartJS,
@@ -18,6 +14,7 @@ import {
 import ChartDataLabels from "chartjs-plugin-datalabels";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "../../utils/supabaseClient";
+
 ChartJS.register(
   RadialLinearScale,
   PointElement,
@@ -114,10 +111,7 @@ const Arithmetic_Radar: React.FC = () => {
     setLoading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        console.warn("No authenticated user found.");
-        return;
-      }
+      if (!user) return;
 
       const { data, error } = await supabase
         .from("scores")
@@ -128,21 +122,16 @@ const Arithmetic_Radar: React.FC = () => {
         .order("created_at", { ascending: false });
 
       if (error) {
-        console.error("Supabase error:", error);
+        console.error(error);
         return;
       }
 
       const mapped = (data ?? []).map(mapToScoreWithQuizzes);
       setScores(mapped);
 
-      // ✅ Filter for subject = Arithmetic Sequence
       const arithmeticScores = mapped.filter(
         (s) => normalize(s.quizzes?.subject) === "arithmetic sequence"
       );
-
-      if (arithmeticScores.length === 0) {
-        console.warn("No data found for subject: Arithmetic Sequence");
-      }
 
       const wordProblem = arithmeticScores.filter(
         (s) => normalize(s.quizzes?.category) === "word problem" && s.score !== null
@@ -160,10 +149,8 @@ const Arithmetic_Radar: React.FC = () => {
           ? Math.min(...bestTimeRecord.map((s) => s.time_taken ?? MAX_TIME))
           : MAX_TIME;
 
-      const timePercent = ((MAX_TIME - bestTime) / MAX_TIME) * 100;
-
       const newData = {
-        time: Math.max(0, Math.min(100, timePercent)),
+        time: Math.max(0, Math.min(100, ((MAX_TIME - bestTime) / MAX_TIME) * 100)),
         wordProblem: (bestWord / MAX_SCORE) * 100,
         problemSolving: (bestProblem / MAX_SCORE) * 100,
       };
@@ -171,7 +158,7 @@ const Arithmetic_Radar: React.FC = () => {
       setCategoryPercent(newData);
       animateRadarUpdate(newData);
     } catch (err) {
-      console.error("❌ Radar fetch error:", err);
+      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -199,7 +186,7 @@ const Arithmetic_Radar: React.FC = () => {
         labels: ["⏱ Time", "📘 Word Problem", "🧩 Problem Solving"],
         datasets: [
           {
-            label: "🏆 Best Performance (Arithmetic Sequence)",
+            label: "🏆 Best Performance",
             data: [performance.time, performance.wordProblem, performance.problemSolving],
             fill: true,
             backgroundColor: gradient,
@@ -213,6 +200,18 @@ const Arithmetic_Radar: React.FC = () => {
       options: {
         responsive: true,
         maintainAspectRatio: false,
+        scales: {
+          r: {
+            suggestedMin: 0,
+            suggestedMax: 100,
+            ticks: {
+              display: true,
+              callback: (val) => `${val}%`, // ✅ Show % on scale
+            },
+            grid: { color: "rgba(0,0,0,0.1)" },
+            pointLabels: { color: "#111", font: { size: 13 } },
+          },
+        },
         plugins: {
           legend: { display: true },
           title: {
@@ -222,18 +221,9 @@ const Arithmetic_Radar: React.FC = () => {
             font: { size: 18, weight: "bold" },
           },
           datalabels: {
-            color: "#000",
-            font: { weight: "bold", size: 11 },
-            formatter: (val: number) => `${val.toFixed(1)}%`,
-          },
-        },
-        scales: {
-          r: {
-            suggestedMin: 0,
-            suggestedMax: 100,
-            ticks: { display: false },
-            grid: { color: "rgba(0,0,0,0.1)" },
-            pointLabels: { color: "#111", font: { size: 13 } },
+            color: "#111",
+            font: { size: 12, weight: "bold" },
+            formatter: (val: number) => `${val.toFixed(1)}%`, // ✅ Show percent at each point
           },
         },
       },
@@ -268,9 +258,7 @@ const Arithmetic_Radar: React.FC = () => {
 
   const recordPercent = (record: ScoreWithQuizzes) => {
     if (selectedCategory === "time") {
-      return record.time_taken
-        ? ((MAX_TIME - record.time_taken) / MAX_TIME) * 100
-        : 0;
+      return record.time_taken ? ((MAX_TIME - record.time_taken) / MAX_TIME) * 100 : 0;
     }
     return record.score ? (record.score / MAX_SCORE) * 100 : 0;
   };
@@ -351,8 +339,7 @@ const Arithmetic_Radar: React.FC = () => {
                           <strong>Time Taken:</strong>{" "}
                           {record.time_taken ? `${record.time_taken}s` : "N/A"}
                           <br />
-                          <strong>Percent:</strong>{" "}
-                          {recordPercent(record).toFixed(1)}%
+                          <strong>Percent:</strong> {recordPercent(record).toFixed(1)}%
                           <br />
                           <small>{new Date(record.created_at).toLocaleString()}</small>
                         </div>

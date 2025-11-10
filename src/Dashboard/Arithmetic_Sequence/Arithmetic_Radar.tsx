@@ -49,7 +49,7 @@ interface ScoreWithQuizzes {
   quizzes: QuizData | null;
 }
 
-const Arithmetic_Radar: React.FC = () => {
+const UniformMotionRadar: React.FC = () => {
   const radarRef = useRef<HTMLCanvasElement | null>(null);
   const chartInstance = useRef<ChartJS | null>(null);
 
@@ -70,12 +70,10 @@ const Arithmetic_Radar: React.FC = () => {
 
   const normalize = (txt?: string) => txt?.trim().toLowerCase() ?? "";
 
-  // ✅ Strictly typed mapper (no any)
   const mapToScoreWithQuizzes = (
     raw: Record<string, unknown>
   ): ScoreWithQuizzes => {
     const quiz = raw["quizzes"] as Record<string, unknown> | undefined;
-
     return {
       id: String(raw["id"] ?? ""),
       score:
@@ -141,19 +139,23 @@ const Arithmetic_Radar: React.FC = () => {
         .eq("user_id", user.id)
         .order("created_at", { ascending: false });
 
-      if (error || !data) return;
+      if (error || !data) {
+        console.error(error);
+        return;
+      }
 
       const typed = (data as Record<string, unknown>[]).map(mapToScoreWithQuizzes);
       setScores(typed);
 
-      const arithmeticScores = typed.filter(
-        (s) => normalize(s.quizzes?.subject) === "arithmetic sequence"
+      // ✅ Filter for "Uniform Motion in Physics"
+      const physicsScores = typed.filter(
+        (s) => normalize(s.quizzes?.subject) === "uniform motion in physics"
       );
 
-      const wordProblemScores = arithmeticScores.filter(
+      const wordProblemScores = physicsScores.filter(
         (s) => normalize(s.quizzes?.category) === "word problem" && s.score !== null
       );
-      const problemSolvingScores = arithmeticScores.filter(
+      const problemSolvingScores = physicsScores.filter(
         (s) => normalize(s.quizzes?.category) === "problem solving" && s.score !== null
       );
 
@@ -166,7 +168,7 @@ const Arithmetic_Radar: React.FC = () => {
           ? Math.max(...problemSolvingScores.map((s) => s.score ?? 0))
           : 0;
 
-      const validTimes = arithmeticScores.filter((s) => s.time_taken !== null);
+      const validTimes = physicsScores.filter((s) => s.time_taken !== null);
       const bestTime =
         validTimes.length > 0
           ? Math.min(...validTimes.map((s) => s.time_taken ?? MAX_TIME))
@@ -202,8 +204,8 @@ const Arithmetic_Radar: React.FC = () => {
     chartInstance.current?.destroy();
 
     const gradient = ctx.createLinearGradient(0, 0, 0, 500);
-    gradient.addColorStop(0, "rgba(101, 163, 13, 0.35)");
-    gradient.addColorStop(1, "rgba(234, 179, 8, 0.35)");
+    gradient.addColorStop(0, "rgba(37, 99, 235, 0.35)");
+    gradient.addColorStop(1, "rgba(59, 130, 246, 0.35)");
 
     chartInstance.current = new ChartJS(ctx, {
       type: "radar",
@@ -211,7 +213,7 @@ const Arithmetic_Radar: React.FC = () => {
         labels: ["⏱ Time", "📘 Word Problem", "🧩 Problem Solving"],
         datasets: [
           {
-            label: "🏆 Best Performance (Arithmetic Sequence)",
+            label: "🏆 Best Performance (Uniform Motion in Physics)",
             data: [
               performance.time,
               performance.wordProblem,
@@ -219,9 +221,9 @@ const Arithmetic_Radar: React.FC = () => {
             ],
             fill: true,
             backgroundColor: gradient,
-            borderColor: "#65a30d",
+            borderColor: "#2563eb",
             borderWidth: 3,
-            pointBackgroundColor: "#eab308",
+            pointBackgroundColor: "#60a5fa",
             pointBorderColor: "#fff",
           },
         ],
@@ -234,7 +236,7 @@ const Arithmetic_Radar: React.FC = () => {
           legend: { display: true },
           title: {
             display: true,
-            text: "📊 Arithmetic Sequence",
+            text: "📊 Uniform Motion in Physics",
             color: "#111",
             font: { size: 18, weight: "bold" },
           },
@@ -263,12 +265,12 @@ const Arithmetic_Radar: React.FC = () => {
   const getCategoryRecords = () => {
     if (selectedCategory === "time") {
       return scores.filter(
-        (s) => normalize(s.quizzes?.subject) === "arithmetic sequence"
+        (s) => normalize(s.quizzes?.subject) === "uniform motion in physics"
       );
     }
     return scores.filter(
       (s) =>
-        normalize(s.quizzes?.subject) === "arithmetic sequence" &&
+        normalize(s.quizzes?.subject) === "uniform motion in physics" &&
         normalize(s.quizzes?.category) === selectedCategory
     );
   };
@@ -410,4 +412,4 @@ const Arithmetic_Radar: React.FC = () => {
   );
 };
 
-export default Arithmetic_Radar;
+export default UniformMotionRadar;

@@ -18,6 +18,7 @@ import {
 import ChartDataLabels from "chartjs-plugin-datalabels";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "../../utils/supabaseClient";
+
 ChartJS.register(
   RadialLinearScale,
   PointElement,
@@ -99,13 +100,26 @@ const Arithmetic_Radar: React.FC = () => {
     const timer = setInterval(() => {
       step++;
       const progress = step / steps;
-      setPerformance({
+      const updated = {
         time: start.time + (newData.time - start.time) * progress,
         wordProblem:
           start.wordProblem + (newData.wordProblem - start.wordProblem) * progress,
         problemSolving:
-          start.problemSolving + (newData.problemSolving - start.problemSolving) * progress,
-      });
+          start.problemSolving +
+          (newData.problemSolving - start.problemSolving) * progress,
+      };
+      setPerformance(updated);
+
+      // 🔥 Update radar chart dynamically
+      if (chartInstance.current) {
+        chartInstance.current.data.datasets[0].data = [
+          updated.time,
+          updated.wordProblem,
+          updated.problemSolving,
+        ];
+        chartInstance.current.update();
+      }
+
       if (step >= steps) clearInterval(timer);
     }, interval);
   };
@@ -135,13 +149,13 @@ const Arithmetic_Radar: React.FC = () => {
       const mapped = (data ?? []).map(mapToScoreWithQuizzes);
       setScores(mapped);
 
-      // ✅ Filter for subject = Arithmetic Sequence
+      // ✅ Filter only Arithmetic Sequence subject
       const arithmeticScores = mapped.filter(
         (s) => normalize(s.quizzes?.subject) === "arithmetic sequence"
       );
 
       if (arithmeticScores.length === 0) {
-        console.warn("No data found for subject: Arithmetic Sequence");
+        console.warn("No data found for Arithmetic Sequence.");
       }
 
       const wordProblem = arithmeticScores.filter(
@@ -182,14 +196,15 @@ const Arithmetic_Radar: React.FC = () => {
     fetchRadarData();
   }, []);
 
+  // 🔧 Radar Chart initialization
   useEffect(() => {
-    if (!radarRef.current || selectedCategory) return;
+    if (!radarRef.current) return;
     const ctx = radarRef.current.getContext("2d");
     if (!ctx) return;
 
     chartInstance.current?.destroy();
 
-    const gradient = ctx.createLinearGradient(0, 0, 0, 500);
+    const gradient = ctx.createLinearGradient(0, 0, 0, 400);
     gradient.addColorStop(0, "rgba(101, 163, 13, 0.35)");
     gradient.addColorStop(1, "rgba(234, 179, 8, 0.35)");
 
@@ -199,8 +214,8 @@ const Arithmetic_Radar: React.FC = () => {
         labels: ["⏱ Time", "📘 Word Problem", "🧩 Problem Solving"],
         datasets: [
           {
-            label: "🏆 Best Performance (Arithmetic Sequence)",
-            data: [performance.time, performance.wordProblem, performance.problemSolving],
+            label: "🏆 Arithmetic Sequence Performance",
+            data: [0, 0, 0],
             fill: true,
             backgroundColor: gradient,
             borderColor: "#65a30d",
@@ -213,6 +228,7 @@ const Arithmetic_Radar: React.FC = () => {
       options: {
         responsive: true,
         maintainAspectRatio: false,
+        animation: false,
         plugins: {
           legend: { display: true },
           title: {
@@ -241,9 +257,10 @@ const Arithmetic_Radar: React.FC = () => {
     });
 
     return () => chartInstance.current?.destroy();
-  }, [performance, selectedCategory]);
+  }, []);
 
   const labels = ["⏱ Time", "📘 Word Problem", "🧩 Problem Solving"];
+
   const handleLabelClick = (label: string) => {
     const map: Record<string, string> = {
       "⏱ Time": "time",

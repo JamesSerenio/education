@@ -902,20 +902,21 @@ ion-content {
   padding: 16px;
   width: 100%;
   max-width: 460px;
-  aspect-ratio: 1 / 1; /* ✅ Keeps perfect circle scaling */
+  height: 460px; /* FIXED HEIGHT */
   display: flex;
   justify-content: center;
   align-items: center;
-  overflow: hidden; /* ✅ Prevent chart overflow */
+  overflow: hidden;
   margin-left: auto;
   margin-right: auto;
 }
 
 .radar-card canvas {
-  width: 95% !important; /* ✅ Prevent overflow */
-  height: 95% !important;
+  width: 100% !important;
+  height: 100% !important;
   object-fit: contain;
 }
+
 
 /* --- Refresh button --- */
 .radar-refresh-btn {
@@ -946,9 +947,10 @@ ion-content {
 
 /* --- Responsive layout --- */
 @media (max-width: 768px) {
-  .radar-content {
-    max-width: 100%;
-    padding: 12px;
+  .radar-card {
+    max-width: 340px;
+    height: 340px; /* Fixed square for mobile */
+    padding: 10px;
   }
 
   .radar-title {

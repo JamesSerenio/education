@@ -18,7 +18,6 @@ import {
 import ChartDataLabels from "chartjs-plugin-datalabels";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "../../utils/supabaseClient";
-import "../../global.css";
 
 ChartJS.register(
   RadialLinearScale,
@@ -63,9 +62,8 @@ const Motion_Radar: React.FC = () => {
   const [scores, setScores] = useState<ScoreWithQuizzes[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
-  // ✅ Helper to map Supabase record to typed object
   const mapToScoreWithQuizzes = (rawData: Record<string, unknown>): ScoreWithQuizzes => {
-    const quizzesRaw = rawData["quizzes"] as Record<string, unknown> | undefined;
+    const quizzesRaw = rawData["quizzes"] as Record<string, unknown> | null;
     return {
       id: String(rawData["id"] ?? ""),
       score: rawData["score"] == null ? null : Number(rawData["score"]),
@@ -82,7 +80,6 @@ const Motion_Radar: React.FC = () => {
     };
   };
 
-  // ✅ Smooth radar animation
   const animateRadarUpdate = (
     newData: { time: number; wordProblem: number; problemSolving: number },
     duration = 800
@@ -95,6 +92,7 @@ const Motion_Radar: React.FC = () => {
     const animate = setInterval(() => {
       currentStep++;
       const progress = currentStep / steps;
+
       setPerformance({
         time: startValues.time + (newData.time - startValues.time) * progress,
         wordProblem:
@@ -104,11 +102,11 @@ const Motion_Radar: React.FC = () => {
           startValues.problemSolving +
           (newData.problemSolving - startValues.problemSolving) * progress,
       });
+
       if (currentStep >= steps) clearInterval(animate);
     }, interval);
   };
 
-  // ✅ Fetch Supabase radar data
   const fetchRadarData = async () => {
     setLoading(true);
     try {
@@ -124,12 +122,13 @@ const Motion_Radar: React.FC = () => {
 
       if (scoresError) return;
 
-      const rawArray = Array.isArray(allScores) ? allScores : [];
+      const rawArray = (allScores ?? []) as Record<string, unknown>[];
       const typedScores = rawArray.map(mapToScoreWithQuizzes);
       setScores(typedScores);
 
+      // ✅ Only change the subject here
       const motionScores = typedScores.filter(
-        (s) => s.quizzes?.subject?.toLowerCase() === "uniform motion in physics"
+        (s) => s.quizzes?.subject?.trim().toLowerCase() === "uniform motion in physics"
       );
 
       const normalize = (txt: string | undefined) => txt?.trim().toLowerCase() ?? "";
@@ -170,26 +169,21 @@ const Motion_Radar: React.FC = () => {
     }
   };
 
-  // ✅ Initial load
   useEffect(() => {
     setVisible(true);
-    fetchRadarData();
+    void fetchRadarData();
   }, []);
 
-  // ✅ Chart rendering fix (recreate when performance changes)
   useEffect(() => {
     if (!radarRef.current || selectedCategory) return;
     const ctx = radarRef.current.getContext("2d");
     if (!ctx) return;
 
-    // 🧹 Always destroy old chart before creating a new one
-    if (chartInstance.current) {
-      chartInstance.current.destroy();
-    }
+    chartInstance.current?.destroy();
 
-    const gradient = ctx.createLinearGradient(0, 0, 0, 400);
-    gradient.addColorStop(0, "rgba(54, 162, 235, 0.4)");
-    gradient.addColorStop(1, "rgba(236, 72, 153, 0.4)");
+    const gradient = ctx.createLinearGradient(0, 0, 0, 500);
+    gradient.addColorStop(0, "rgba(54, 162, 235, 0.35)");
+    gradient.addColorStop(1, "rgba(236, 72, 153, 0.35)");
 
     chartInstance.current = new ChartJS(ctx, {
       type: "radar",
@@ -205,7 +199,7 @@ const Motion_Radar: React.FC = () => {
             ],
             fill: true,
             backgroundColor: gradient,
-            borderColor: "#2563eb",
+            borderColor: "#36a2eb",
             borderWidth: 3,
             pointBackgroundColor: "#ec4899",
             pointBorderColor: "#fff",
@@ -215,12 +209,8 @@ const Motion_Radar: React.FC = () => {
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        animation: {
-          duration: 900,
-          easing: "easeOutQuart",
-        },
         plugins: {
-          legend: { display: true, labels: { color: "#333" } },
+          legend: { display: true },
           title: {
             display: true,
             text: "📊 Uniform Motion in Physics",
@@ -233,15 +223,7 @@ const Motion_Radar: React.FC = () => {
             formatter: (val: number) => `${val.toFixed(1)}%`,
           },
         },
-        scales: {
-          r: {
-            suggestedMin: 0,
-            suggestedMax: 100,
-            ticks: { display: false },
-            grid: { color: "rgba(0,0,0,0.1)" },
-            pointLabels: { color: "#111", font: { size: 13 } },
-          },
-        },
+        scales: { r: { suggestedMin: 0, suggestedMax: 100, ticks: { display: false } } },
       },
       plugins: [ChartDataLabels],
     });
@@ -253,12 +235,12 @@ const Motion_Radar: React.FC = () => {
     const normalize = (txt: string | undefined) => txt?.trim().toLowerCase() ?? "";
     if (selectedCategory === "time") {
       return scores.filter(
-        (s) => s.quizzes?.subject?.toLowerCase() === "uniform motion in physics"
+        (s) => s.quizzes?.subject?.trim().toLowerCase() === "uniform motion in physics"
       );
     }
     return scores.filter(
       (s) =>
-        s.quizzes?.subject?.toLowerCase() === "uniform motion in physics" &&
+        s.quizzes?.subject?.trim().toLowerCase() === "uniform motion in physics" &&
         normalize(s.quizzes?.category) === selectedCategory
     );
   };
@@ -273,6 +255,8 @@ const Motion_Radar: React.FC = () => {
     return 0;
   };
 
+  const labels = ["⏱ Time", "📘 Word Problem", "🧩 Problem Solving"];
+
   const handleLabelClick = (label: string) => {
     const categoryMap: Record<string, string> = {
       "⏱ Time": "time",
@@ -281,8 +265,6 @@ const Motion_Radar: React.FC = () => {
     };
     setSelectedCategory(categoryMap[label]);
   };
-
-  const labels = ["⏱ Time", "📘 Word Problem", "🧩 Problem Solving"];
 
   return (
     <IonPage>

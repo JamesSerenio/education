@@ -34,13 +34,19 @@ ChartJS.register(
 const MAX_SCORE = 15;
 const MAX_TIME = 525;
 
+interface QuizData {
+  id: string;
+  category: string;
+  subject?: string;
+}
+
 interface ScoreWithQuizzes {
   id: string;
   score: number | null;
   time_taken: number | null;
   created_at: string;
   quiz_id: string;
-  quizzes: { id: string; category: string; subject?: string } | null;
+  quizzes: QuizData | null;
 }
 
 const Arithmetic_Radar: React.FC = () => {
@@ -62,28 +68,42 @@ const Arithmetic_Radar: React.FC = () => {
   const [scores, setScores] = useState<ScoreWithQuizzes[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
-  // ✅ Normalize helper
-  const normalize = (txt: string | undefined) =>
-    txt?.trim().toLowerCase() ?? "";
+  const normalize = (txt?: string) => txt?.trim().toLowerCase() ?? "";
 
-  // ✅ Map raw Supabase data to typed structure
-  const mapToScoreWithQuizzes = (raw: Record<string, unknown>): ScoreWithQuizzes => {
-    const quiz = raw["quizzes"] || {};
+  // ✅ Strictly typed mapper (no any)
+  const mapToScoreWithQuizzes = (
+    raw: Record<string, unknown>
+  ): ScoreWithQuizzes => {
+    const quiz = raw["quizzes"] as Record<string, unknown> | undefined;
+
     return {
       id: String(raw["id"] ?? ""),
-      score: raw["score"] == null ? null : Number(raw["score"]),
-      time_taken: raw["time_taken"] == null ? null : Number(raw["time_taken"]),
+      score:
+        typeof raw["score"] === "number"
+          ? raw["score"]
+          : raw["score"] != null
+          ? Number(raw["score"])
+          : null,
+      time_taken:
+        typeof raw["time_taken"] === "number"
+          ? raw["time_taken"]
+          : raw["time_taken"] != null
+          ? Number(raw["time_taken"])
+          : null,
       created_at: String(raw["created_at"] ?? new Date().toISOString()),
       quiz_id: String(raw["quiz_id"] ?? ""),
-      quizzes: {
-        id: String(quiz["id"] ?? ""),
-        category: String(quiz["category"] ?? ""),
-        subject: quiz["subject"] ? String(quiz["subject"]) : undefined,
-      },
+      quizzes: quiz
+        ? {
+            id: String(quiz["id"] ?? ""),
+            category: String(quiz["category"] ?? ""),
+            subject: quiz["subject"]
+              ? String(quiz["subject"])
+              : undefined,
+          }
+        : null,
     };
   };
 
-  // ✅ Smooth animated radar transitions
   const animateRadarUpdate = (
     newData: { time: number; wordProblem: number; problemSolving: number },
     duration = 800
@@ -109,7 +129,6 @@ const Arithmetic_Radar: React.FC = () => {
     }, interval);
   };
 
-  // ✅ Fetch radar data
   const fetchRadarData = async () => {
     setLoading(true);
     try {
@@ -124,15 +143,13 @@ const Arithmetic_Radar: React.FC = () => {
 
       if (error || !data) return;
 
-      const typed = data.map(mapToScoreWithQuizzes);
+      const typed = (data as Record<string, unknown>[]).map(mapToScoreWithQuizzes);
       setScores(typed);
 
-      // ✅ Filter for Arithmetic Sequence subject
       const arithmeticScores = typed.filter(
         (s) => normalize(s.quizzes?.subject) === "arithmetic sequence"
       );
 
-      // ✅ Filter by category
       const wordProblemScores = arithmeticScores.filter(
         (s) => normalize(s.quizzes?.category) === "word problem" && s.score !== null
       );
@@ -140,7 +157,6 @@ const Arithmetic_Radar: React.FC = () => {
         (s) => normalize(s.quizzes?.category) === "problem solving" && s.score !== null
       );
 
-      // ✅ Compute best performance
       const bestWordProblem =
         wordProblemScores.length > 0
           ? Math.max(...wordProblemScores.map((s) => s.score ?? 0))
@@ -173,13 +189,11 @@ const Arithmetic_Radar: React.FC = () => {
     }
   };
 
-  // ✅ Initial load
   useEffect(() => {
     setVisible(true);
     fetchRadarData();
   }, []);
 
-  // ✅ Chart rendering
   useEffect(() => {
     if (!radarRef.current || selectedCategory) return;
     const ctx = radarRef.current.getContext("2d");
@@ -215,10 +229,7 @@ const Arithmetic_Radar: React.FC = () => {
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        animation: {
-          duration: 900,
-          easing: "easeOutQuart",
-        },
+        animation: { duration: 900, easing: "easeOutQuart" },
         plugins: {
           legend: { display: true },
           title: {
@@ -249,7 +260,6 @@ const Arithmetic_Radar: React.FC = () => {
     return () => chartInstance.current?.destroy();
   }, [performance, selectedCategory]);
 
-  // ✅ Helper: Filter records by selected category
   const getCategoryRecords = () => {
     if (selectedCategory === "time") {
       return scores.filter(

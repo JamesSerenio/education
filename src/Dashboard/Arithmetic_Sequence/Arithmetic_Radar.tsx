@@ -1,35 +1,11 @@
-import {
-  IonPage,
-  IonHeader,
-  IonContent,
-} from "@ionic/react";
+import { IonPage, IonHeader, IonContent } from "@ionic/react";
 import { useEffect, useRef, useState } from "react";
-import {
-  Chart as ChartJS,
-  RadialLinearScale,
-  PointElement,
-  LineElement,
-  Filler,
-  Tooltip,
-  Legend,
-  RadarController,
-  Title,
-} from "chart.js";
+import { Chart, registerables } from "chart.js";
 import ChartDataLabels from "chartjs-plugin-datalabels";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "../../utils/supabaseClient";
 
-ChartJS.register(
-  RadialLinearScale,
-  PointElement,
-  LineElement,
-  Filler,
-  Tooltip,
-  Legend,
-  RadarController,
-  Title,
-  ChartDataLabels
-);
+Chart.register(...registerables, ChartDataLabels);
 
 const MAX_SCORE = 15;
 const MAX_TIME = 525;
@@ -51,22 +27,17 @@ interface ScoreWithQuizzes {
 
 const Arithmetic_Radar: React.FC = () => {
   const radarRef = useRef<HTMLCanvasElement | null>(null);
-  const chartInstance = useRef<ChartJS | null>(null);
+  const chartInstance = useRef<Chart | null>(null);
 
-  const [performance, setPerformance] = useState({
-    time: 0,
-    wordProblem: 0,
-    problemSolving: 0,
-  });
+  const [scores, setScores] = useState<ScoreWithQuizzes[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [categoryPercent, setCategoryPercent] = useState({
     time: 0,
     wordProblem: 0,
     problemSolving: 0,
   });
-  const [visible, setVisible] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [scores, setScores] = useState<ScoreWithQuizzes[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [visible, setVisible] = useState(false);
 
   const normalize = (txt?: string) => txt?.trim().toLowerCase() ?? "";
 
@@ -88,50 +59,11 @@ const Arithmetic_Radar: React.FC = () => {
     };
   };
 
-  const animateRadarUpdate = (
-    newData: { time: number; wordProblem: number; problemSolving: number },
-    duration = 800
-  ) => {
-    const steps = 30;
-    const interval = duration / steps;
-    let step = 0;
-    const start = { ...performance };
-
-    const timer = setInterval(() => {
-      step++;
-      const progress = step / steps;
-      const updated = {
-        time: start.time + (newData.time - start.time) * progress,
-        wordProblem:
-          start.wordProblem + (newData.wordProblem - start.wordProblem) * progress,
-        problemSolving:
-          start.problemSolving +
-          (newData.problemSolving - start.problemSolving) * progress,
-      };
-      setPerformance(updated);
-
-      // 🔥 Update radar chart dynamically
-      if (chartInstance.current) {
-        chartInstance.current.data.datasets[0].data = [
-          updated.time,
-          updated.wordProblem,
-          updated.problemSolving,
-        ];
-        chartInstance.current.update();
-      }
-
-      if (step >= steps) clearInterval(timer);
-    }, interval);
-  };
-
   const fetchRadarData = async () => {
     setLoading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        console.warn("No authenticated user found.");
-        return;
-      }
+      if (!user) return;
 
       const { data, error } = await supabase
         .from("scores")
@@ -142,21 +74,16 @@ const Arithmetic_Radar: React.FC = () => {
         .order("created_at", { ascending: false });
 
       if (error) {
-        console.error("Supabase error:", error);
+        console.error(error);
         return;
       }
 
       const mapped = (data ?? []).map(mapToScoreWithQuizzes);
       setScores(mapped);
 
-      // ✅ Filter only Arithmetic Sequence subject
       const arithmeticScores = mapped.filter(
         (s) => normalize(s.quizzes?.subject) === "arithmetic sequence"
       );
-
-      if (arithmeticScores.length === 0) {
-        console.warn("No data found for Arithmetic Sequence.");
-      }
 
       const wordProblem = arithmeticScores.filter(
         (s) => normalize(s.quizzes?.category) === "word problem" && s.score !== null
@@ -165,30 +92,32 @@ const Arithmetic_Radar: React.FC = () => {
         (s) => normalize(s.quizzes?.category) === "problem solving" && s.score !== null
       );
 
-      const bestWord = wordProblem.length > 0 ? Math.max(...wordProblem.map((s) => s.score ?? 0)) : 0;
-      const bestProblem = problemSolving.length > 0 ? Math.max(...problemSolving.map((s) => s.score ?? 0)) : 0;
-
-      const bestTimeRecord = arithmeticScores.filter((s) => s.time_taken !== null);
-      const bestTime =
-        bestTimeRecord.length > 0
-          ? Math.min(...bestTimeRecord.map((s) => s.time_taken ?? MAX_TIME))
-          : MAX_TIME;
-
-      const timePercent = ((MAX_TIME - bestTime) / MAX_TIME) * 100;
+      const bestWord = wordProblem.length > 0 ? Math.max(...wordProblem.map(s => s.score ?? 0)) : 0;
+      const bestProblem = problemSolving.length > 0 ? Math.max(...problemSolving.map(s => s.score ?? 0)) : 0;
+      const bestTimeRecord = arithmeticScores.filter(s => s.time_taken !== null);
+      const bestTime = bestTimeRecord.length > 0
+        ? Math.min(...bestTimeRecord.map(s => s.time_taken ?? MAX_TIME))
+        : MAX_TIME;
 
       const newData = {
-        time: Math.max(0, Math.min(100, timePercent)),
+        time: ((MAX_TIME - bestTime) / MAX_TIME) * 100,
         wordProblem: (bestWord / MAX_SCORE) * 100,
         problemSolving: (bestProblem / MAX_SCORE) * 100,
       };
 
       setCategoryPercent(newData);
-      animateRadarUpdate(newData);
+      updateRadarChart(newData);
     } catch (err) {
-      console.error("❌ Radar fetch error:", err);
+      console.error(err);
     } finally {
       setLoading(false);
     }
+  };
+
+  const updateRadarChart = (data: { time: number; wordProblem: number; problemSolving: number }) => {
+    if (!chartInstance.current) return;
+    chartInstance.current.data.datasets[0].data = [data.time, data.wordProblem, data.problemSolving];
+    chartInstance.current.update();
   };
 
   useEffect(() => {
@@ -196,25 +125,24 @@ const Arithmetic_Radar: React.FC = () => {
     fetchRadarData();
   }, []);
 
-  // 🔧 Radar Chart initialization
   useEffect(() => {
-    if (!radarRef.current) return;
+    if (!radarRef.current || selectedCategory) return;
     const ctx = radarRef.current.getContext("2d");
     if (!ctx) return;
 
     chartInstance.current?.destroy();
 
-    const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+    const gradient = ctx.createLinearGradient(0, 0, 0, 500);
     gradient.addColorStop(0, "rgba(101, 163, 13, 0.35)");
     gradient.addColorStop(1, "rgba(234, 179, 8, 0.35)");
 
-    chartInstance.current = new ChartJS(ctx, {
+    chartInstance.current = new Chart(ctx, {
       type: "radar",
       data: {
         labels: ["⏱ Time", "📘 Word Problem", "🧩 Problem Solving"],
         datasets: [
           {
-            label: "🏆 Arithmetic Sequence Performance",
+            label: "🏆 Best Performance",
             data: [0, 0, 0],
             fill: true,
             backgroundColor: gradient,
@@ -228,7 +156,6 @@ const Arithmetic_Radar: React.FC = () => {
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        animation: false,
         plugins: {
           legend: { display: true },
           title: {
@@ -253,14 +180,10 @@ const Arithmetic_Radar: React.FC = () => {
           },
         },
       },
-      plugins: [ChartDataLabels],
     });
-
-    return () => chartInstance.current?.destroy();
-  }, []);
+  }, [selectedCategory]);
 
   const labels = ["⏱ Time", "📘 Word Problem", "🧩 Problem Solving"];
-
   const handleLabelClick = (label: string) => {
     const map: Record<string, string> = {
       "⏱ Time": "time",
@@ -272,12 +195,10 @@ const Arithmetic_Radar: React.FC = () => {
 
   const getCategoryRecords = () => {
     if (selectedCategory === "time") {
-      return scores.filter(
-        (s) => normalize(s.quizzes?.subject) === "arithmetic sequence"
-      );
+      return scores.filter(s => normalize(s.quizzes?.subject) === "arithmetic sequence");
     }
     return scores.filter(
-      (s) =>
+      s =>
         normalize(s.quizzes?.subject) === "arithmetic sequence" &&
         normalize(s.quizzes?.category) === selectedCategory
     );
@@ -285,9 +206,7 @@ const Arithmetic_Radar: React.FC = () => {
 
   const recordPercent = (record: ScoreWithQuizzes) => {
     if (selectedCategory === "time") {
-      return record.time_taken
-        ? ((MAX_TIME - record.time_taken) / MAX_TIME) * 100
-        : 0;
+      return record.time_taken ? ((MAX_TIME - record.time_taken) / MAX_TIME) * 100 : 0;
     }
     return record.score ? (record.score / MAX_SCORE) * 100 : 0;
   };
@@ -368,8 +287,7 @@ const Arithmetic_Radar: React.FC = () => {
                           <strong>Time Taken:</strong>{" "}
                           {record.time_taken ? `${record.time_taken}s` : "N/A"}
                           <br />
-                          <strong>Percent:</strong>{" "}
-                          {recordPercent(record).toFixed(1)}%
+                          <strong>Percent:</strong> {recordPercent(record).toFixed(1)}%
                           <br />
                           <small>{new Date(record.created_at).toLocaleString()}</small>
                         </div>

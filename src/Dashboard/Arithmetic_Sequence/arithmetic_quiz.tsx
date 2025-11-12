@@ -59,6 +59,7 @@ const ArithmeticQuiz: React.FC = () => {
 
   const [showTransitionScreen, setShowTransitionScreen] = useState(false);
   const [transitionMessage, setTransitionMessage] = useState("");
+  const [showYesNo, setShowYesNo] = useState(false);
   const [countdown, setCountdown] = useState(3);
 
   const [delayTime, setDelayTime] = useState<number | null>(null);
@@ -200,39 +201,18 @@ const ArithmeticQuiz: React.FC = () => {
 
       if (nextDiff) {
         clearInterval(timerRef.current!);
-        const correctInLevel = userSolutions.filter(
-          (q) => q.difficulty === currentDifficulty && q.isCorrect
-        ).length;
-        const levelScore = correctInLevel + (isCorrect ? 1 : 0);
 
-        setShowTransitionScreen(true);
+        // Show Yes/No modal
+        const levelScore =
+          userSolutions.filter(
+            (q) => q.difficulty === currentDifficulty && q.isCorrect
+          ).length + (isCorrect ? 1 : 0);
+
         setTransitionMessage(
-          `✅ Good job! You already answered all ${currentDifficulty} questions.\nYour score: ${levelScore}/5\nDo you really want to proceed to the ${nextDiff} level?`
+          `✅ You completed all ${currentDifficulty} questions.\nYour score: ${levelScore}/5\nDo you want to proceed to the ${nextDiff} level?`
         );
-
-        setTimeout(() => {
-          setTransitionMessage(`⚡ Get ready for the ${nextDiff} level!`);
-          setCountdown(3);
-          const countdownInterval = setInterval(() => {
-            setCountdown((prev) => {
-              if (prev <= 1) {
-                clearInterval(countdownInterval);
-                const nextQuizIndex = quizQueue.findIndex(
-                  (q) => q.difficulty === nextDiff
-                );
-                if (nextQuizIndex !== -1) {
-                  setShowTransitionScreen(false);
-                  setCurrentQuizIndex(nextQuizIndex);
-                  setCurrentQuiz(quizQueue[nextQuizIndex]);
-                  setUserAnswer("");
-                  setDelayTime(15);
-                }
-              }
-              return prev - 1;
-            });
-            return countdown;
-          }, 1000);
-        }, 4000);
+        setShowTransitionScreen(true);
+        setShowYesNo(true);
       } else {
         clearInterval(timerRef.current!);
         setShowResultModal(true);
@@ -255,6 +235,32 @@ const ArithmeticQuiz: React.FC = () => {
     },
     [currentQuiz, currentQuizIndex, quizQueue, userAnswer, score, timeUsed, userSolutions]
   );
+
+  const proceedNextLevel = () => {
+    setShowYesNo(false);
+    const currentDiffIndex = difficultyOrder.indexOf(currentQuiz!.difficulty);
+    const nextDiff = difficultyOrder[currentDiffIndex + 1];
+
+    setTransitionMessage(`⚡ Get ready for the ${nextDiff} level!`);
+    setCountdown(3);
+
+    const countdownInterval = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(countdownInterval);
+          const nextQuizIndex = quizQueue.findIndex((q) => q.difficulty === nextDiff);
+          if (nextQuizIndex !== -1) {
+            setShowTransitionScreen(false);
+            setCurrentQuizIndex(nextQuizIndex);
+            setCurrentQuiz(quizQueue[nextQuizIndex]);
+            setUserAnswer("");
+            setDelayTime(15);
+          }
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  };
 
   const saveResult = async (finalScore: number, totalTimeUsed: number) => {
     try {
@@ -300,9 +306,32 @@ const ArithmeticQuiz: React.FC = () => {
         ) : showTransitionScreen ? (
           <div className="transition-screen">
             <div className="transition-card">
-              <h2 className="transition-heading">Good Job!</h2>
+              <h2 className="transition-heading">Level Complete!</h2>
               <p className="transition-text">{transitionMessage}</p>
-              {transitionMessage.includes("Get ready") && (
+
+              {showYesNo && (
+                <div className="transition-buttons">
+                  <IonButton color="success" onClick={proceedNextLevel}>
+                    Yes
+                  </IonButton>
+                  <IonButton
+                    color="danger"
+                    onClick={() => {
+                      setShowTransitionScreen(false);
+                      setSelectedCategory(null);
+                      setCurrentQuiz(null);
+                      setUserAnswer("");
+                      setUserSolutions([]);
+                      clearInterval(timerRef.current!);
+                      clearInterval(delayRef.current!);
+                    }}
+                  >
+                    No
+                  </IonButton>
+                </div>
+              )}
+
+              {!showYesNo && transitionMessage.includes("Get ready") && (
                 <h3 className="countdown-display">⏳ {countdown}</h3>
               )}
             </div>

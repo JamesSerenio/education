@@ -18,15 +18,21 @@ import { logOutOutline } from "ionicons/icons";
 import { useHistory } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 
+// Import pages
 import ArithmeticHome from "./Arithmetic_Home";
 import ArithmeticModule from "./Arithmetic_Module";
 import ArithmeticLeaderboard from "./Arithmetic_Leaderboard";
 import ArithmeticRadar from "./Arithmetic_Radar";
+import ArithmeticProgress from "./Arithmetic_Progress";
 
+// Import icons
 import iconHome from "../../assets/icon_home.gif";
 import iconModule from "../../assets/icon_module.gif";
 import iconLeaderboard from "../../assets/icon_leaderboard.gif";
+import iconProgress from "../../assets/progress.gif";
 import iconRadar from "../../assets/icon_radar.png";
+
+
 
 const Dashboard_Arithmetic: React.FC = () => {
   const history = useHistory();
@@ -37,6 +43,7 @@ const Dashboard_Arithmetic: React.FC = () => {
     { name: "Module", key: "module", icon: iconModule },
     { name: "Leaderboard", key: "leaderboard", icon: iconLeaderboard },
     { name: "Radar", key: "radar", icon: iconRadar },
+    { name: "Progress", key: "progress", icon: iconProgress }
   ];
 
   const renderContent = () => {
@@ -49,6 +56,8 @@ const Dashboard_Arithmetic: React.FC = () => {
         return <ArithmeticLeaderboard />;
       case "radar":
         return <ArithmeticRadar />;
+      case "progress":
+        return <ArithmeticProgress />; // new page
       default:
         return <h2 className="arithmetic-welcome">Welcome to Arithmetic Dashboard</h2>;
     }

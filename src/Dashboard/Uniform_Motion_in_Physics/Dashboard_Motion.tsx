@@ -22,11 +22,13 @@ import MotionHome from "./Motion_Home";
 import MotionModule from "./Motion_Module";
 import MotionLeaderboard from "./Motion_Leaderboard";
 import MotionRadar from "./Motion_Radar";
+import MotionProgress from "./Motion_Progress";
 
 import iconHome from "../../assets/icon_home.gif";
 import iconModule from "../../assets/icon_module.gif";
 import iconLeaderboard from "../../assets/icon_leaderboard.gif";
 import iconRadar from "../../assets/icon_radar.png";
+import iconProgress from "../../assets/progress.gif";
 
 const Dashboard_Motion: React.FC = () => {
   const history = useHistory();
@@ -37,6 +39,7 @@ const Dashboard_Motion: React.FC = () => {
     { name: "Module", key: "module", icon: iconModule },
     { name: "Leaderboard", key: "leaderboard", icon: iconLeaderboard },
     { name: "Radar", key: "radar", icon: iconRadar },
+    { name: "Progress", key: "progress", icon: iconProgress },
   ];
 
   const renderContent = () => {
@@ -49,6 +52,8 @@ const Dashboard_Motion: React.FC = () => {
         return <MotionLeaderboard />;
       case "radar":
         return <MotionRadar />;
+      case "progress":
+        return <MotionProgress />; // <-- added
       default:
         return <h2 className="motion-welcome">Welcome to Motion Dashboard</h2>;
     }
@@ -90,7 +95,9 @@ const Dashboard_Motion: React.FC = () => {
                       button
                       onClick={() => setActivePage(item.key)}
                       lines="none"
-                      className={`menu-item ${activePage === item.key ? "active" : ""}`}
+                      className={`menu-item ${
+                        activePage === item.key ? "active" : ""
+                      }`}
                     >
                       <img src={item.icon} alt={item.name} className="menu-icon" />
                       <span className="menu-text">{item.name}</span>
@@ -124,7 +131,8 @@ const Dashboard_Motion: React.FC = () => {
                 <IonMenuButton />
               </IonButtons>
               <IonTitle className="main-title">
-                {menuItems.find((m) => m.key === activePage)?.name || "Dashboard Motion"}
+                {menuItems.find((m) => m.key === activePage)?.name ||
+                  "Dashboard Motion"}
               </IonTitle>
             </IonToolbar>
           </IonHeader>

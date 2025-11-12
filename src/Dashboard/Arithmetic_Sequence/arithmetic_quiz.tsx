@@ -25,12 +25,12 @@ interface Quiz {
 }
 
 const DIFFICULTY_TIMERS: Record<Quiz["difficulty"], number> = {
-  Easy: 60,
-  Average: 180,
-  Difficult: 300,
+  Easy: 60,      // 60s per question, 5 questions
+  Average: 180,  // 180s per question, 5 questions
+  Difficult: 300, // 300s per question, 5 questions
 };
 
-const QUESTIONS_PER_DIFFICULTY = 5;
+const QUESTIONS_PER_DIFFICULTY = 5; // 5 questions per difficulty
 const difficultyOrder: Quiz["difficulty"][] = ["Easy", "Average", "Difficult"];
 
 const ArithmeticQuiz: React.FC = () => {
@@ -180,18 +180,35 @@ const ArithmeticQuiz: React.FC = () => {
 
       setScore((prev) => (isCorrect ? prev + 1 : prev));
 
-      setUserSolutions((prev) => [
-        ...prev,
-        {
-          question: currentQuiz.question,
-          correct: currentQuiz.answer,
-          userAnswer: userAnswer || "(no answer)",
-          solution: currentQuiz.solution,
-          isCorrect,
-          timeUsed: timeUsedForThis,
-          difficulty: currentQuiz.difficulty,
-        },
-      ]);
+      // --- Check if quiz finished before updating userSolutions ---
+      const isLastQuestion = quizQueue.length === currentQuizIndex + 1;
+
+      if (isLastQuestion) {
+        // Calculate totalTime before updating userSolutions to avoid double-counting
+        const totalScore =
+          userSolutions.filter((s) => s.isCorrect).length + (isCorrect ? 1 : 0);
+        const totalTime =
+          userSolutions.reduce((sum, s) => sum + (s.timeUsed || 0), 0) +
+          timeUsedForThis;
+
+        // Now update userSolutions
+        setUserSolutions((prev) => [
+          ...prev,
+          {
+            question: currentQuiz.question,
+            correct: currentQuiz.answer,
+            userAnswer: userAnswer || "(no answer)",
+            solution: currentQuiz.solution,
+            isCorrect,
+            timeUsed: timeUsedForThis,
+            difficulty: currentQuiz.difficulty,
+          },
+        ]);
+
+        saveResult(totalScore, totalTime);
+        setShowResultModal(true);
+        return;
+      }
 
       // --- Move to next question ---
       const remaining = quizQueue
@@ -205,35 +222,38 @@ const ArithmeticQuiz: React.FC = () => {
         setUserAnswer("");
         setTimeUsed(0);
         setDelayTime(15);
-        return;
-      }
-
-      // --- Move to next difficulty or finish ---
-      const nextDiffIndex = difficultyOrder.indexOf(currentQuiz.difficulty) + 1;
-      const nextDiff = difficultyOrder[nextDiffIndex];
-
-      if (nextDiff) {
-        const levelScore =
-          userSolutions.filter(
-            (q) => q.difficulty === currentQuiz.difficulty && q.isCorrect
-          ).length + (isCorrect ? 1 : 0);
-
-        setTransitionMessage(
-          `✅ You completed all ${currentQuiz.difficulty} questions.\nYour score: ${levelScore}/5\nDo you want to proceed to the ${nextDiff} level?`
-        );
-        setShowTransitionScreen(true);
-        setShowYesNo(true);
       } else {
-        // --- Quiz finished ---
-        const totalScore =
-          userSolutions.filter((s) => s.isCorrect).length + (isCorrect ? 1 : 0);
-        const totalTime =
-          userSolutions.reduce((sum, s) => sum + (s.timeUsed || 0), 0) +
-          timeUsedForThis;
+        // --- Move to next difficulty ---
+        const nextDiffIndex = difficultyOrder.indexOf(currentQuiz.difficulty) + 1;
+        const nextDiff = difficultyOrder[nextDiffIndex];
 
-        saveResult(totalScore, totalTime);
-        setShowResultModal(true);
+        if (nextDiff) {
+          const levelScore =
+            userSolutions.filter(
+              (q) => q.difficulty === currentQuiz.difficulty && q.isCorrect
+            ).length + (isCorrect ? 1 : 0);
+
+          setTransitionMessage(
+            `✅ You completed all ${currentQuiz.difficulty} questions.\nYour score: ${levelScore}/5\nDo you want to proceed to the ${nextDiff} level?`
+          );
+          setShowTransitionScreen(true);
+          setShowYesNo(true);
+        }
       }
+
+      // Update userSolutions for non-last questions
+      setUserSolutions((prev) => [
+        ...prev,
+        {
+          question: currentQuiz.question,
+          correct: currentQuiz.answer,
+          userAnswer: userAnswer || "(no answer)",
+          solution: currentQuiz.solution,
+          isCorrect,
+          timeUsed: timeUsedForThis,
+          difficulty: currentQuiz.difficulty,
+        },
+      ]);
     },
     [currentQuiz, currentQuizIndex, quizQueue, userAnswer, userSolutions, timeUsed, delayTime]
   );
@@ -283,7 +303,7 @@ const ArithmeticQuiz: React.FC = () => {
       const average = userSolutions.filter((s) => s.difficulty === "Average" && s.isCorrect).length;
       const difficult = userSolutions.filter((s) => s.difficulty === "Difficult" && s.isCorrect).length;
 
-      // Insert into scores table, time_taken is connected to totalTimeUsed (integer, max 2700)
+      // Insert into scores table, time_taken is the sum of all timeUsed (max 2700: 5*60 + 5*180 + 5*300)
       const { error } = await supabase.from("scores").insert([
         {
           user_id: userId,
@@ -291,7 +311,7 @@ const ArithmeticQuiz: React.FC = () => {
           easy,
           average,
           difficult,
-          time_taken: Math.floor(totalTimeUsed), // Ensure it's an integer for the SQL table
+          time_taken: Math.floor(totalTimeUsed), // Ensure integer, sum of full timers for wrong + actual for correct
         },
       ]);
 

@@ -168,10 +168,10 @@ const ArithmeticQuiz: React.FC = () => {
       const isCorrect =
         normalizedAnswer === correctAnswer || alternates.includes(normalizedAnswer);
 
-      // ✅ Fix logic for timeUsed:
+      // ✅ Reversed logic for timeUsed: if answered during reading time, use full timer (not 0)
       let timeUsedForThis = 0;
       if (isDuringReadingTime) {
-        timeUsedForThis = 0; // answered during reading phase
+        timeUsedForThis = DIFFICULTY_TIMERS[currentQuiz.difficulty]; // Full time if answered during reading phase
       } else if (auto || !isCorrect) {
         timeUsedForThis = DIFFICULTY_TIMERS[currentQuiz.difficulty]; // full time if timeout or wrong
       } else {
@@ -303,8 +303,8 @@ const ArithmeticQuiz: React.FC = () => {
       const average = userSolutions.filter((s) => s.difficulty === "Average" && s.isCorrect).length;
       const difficult = userSolutions.filter((s) => s.difficulty === "Difficult" && s.isCorrect).length;
 
-      // Connect time_taken to the SQL table: sum of timeUsed for all questions (full timer for wrong/timeout, actual for correct)
-      // Max: 2700 (5*60 + 5*180 + 5*300)
+      // Connect time_taken to the SQL table: sum of timeUsed for all questions (full timer for wrong/timeout/reading, actual for correct)
+      // Max: 2700 (5*60 + 5*180 + 5*300), never 0
       const { error } = await supabase.from("scores").insert([
         {
           user_id: userId,
@@ -312,7 +312,7 @@ const ArithmeticQuiz: React.FC = () => {
           easy,
           average,
           difficult,
-          time_taken: Math.floor(totalTimeUsed), // Connected to SQL table as integer
+          time_taken: Math.floor(totalTimeUsed), // Connected to SQL table as integer, accurate and non-zero
         },
       ]);
 

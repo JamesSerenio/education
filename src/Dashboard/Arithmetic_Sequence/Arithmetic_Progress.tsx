@@ -8,19 +8,8 @@ import {
   IonSelect,
   IonSelectOption,
 } from "@ionic/react";
+import ReactApexChart from "react-apexcharts";
 import { supabase } from "../../utils/supabaseClient";
-import { Bar } from "react-chartjs-2";
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  Title,
-  Tooltip,
-  Legend,
-} from "chart.js";
-
-ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
 interface ScoreRow {
   user_id: string;
@@ -32,7 +21,7 @@ interface ScoreRow {
   difficult_total: number;
   overall_total: number;
   quizzes_taken: number;
-  subject: string; // Focus on Arithmetic Sequence
+  subject: string;
 }
 
 interface ProgressRow {
@@ -45,7 +34,7 @@ interface ProgressRow {
 
 const MAX_SCORE = 15;
 
-const ArithmeticProgress: React.FC = () => {
+const ArithmeticProgressLine: React.FC = () => {
   const [data, setData] = useState<ProgressRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<"Word Problem" | "Problem Solving">(
@@ -62,7 +51,7 @@ const ArithmeticProgress: React.FC = () => {
       const { data: fetchedData, error } = await supabase
         .from("student_scores_overview")
         .select("*")
-        .eq("subject", "Arithmetic Sequence"); // Only Arithmetic Sequence
+        .eq("subject", "Arithmetic Sequence");
 
       if (error) throw error;
 
@@ -71,8 +60,10 @@ const ArithmeticProgress: React.FC = () => {
         lastname: row.lastname,
         category: row.category,
         quizzes_taken: row.quizzes_taken,
-        // Use all difficulty scores in order
-        scores: [row.easy_total, row.average_total, row.difficult_total].slice(0, row.quizzes_taken),
+        scores: [row.easy_total, row.average_total, row.difficult_total].slice(
+          0,
+          row.quizzes_taken
+        ),
       }));
 
       setData(mappedData);
@@ -84,29 +75,36 @@ const ArithmeticProgress: React.FC = () => {
     }
   };
 
-  const chartData = () => {
+  const getChartSeries = () => {
     const filtered = data.filter((d) => d.category === selectedCategory);
-
-    const maxQuizzes = filtered.reduce((max, user) => Math.max(max, user.quizzes_taken), 0);
-
-    return {
-      labels: Array.from({ length: maxQuizzes }, (_, i) => `Quiz ${i + 1}`),
-      datasets: filtered.map((user, idx) => ({
-        label: user.lastname,
-        data: user.scores,
-        backgroundColor: `rgba(${(idx * 50) % 255}, ${(idx * 80) % 255}, ${(idx * 120) % 255}, 0.6)`,
-      })),
-    };
+    return filtered.map((user) => ({
+      name: user.lastname,
+      data: user.scores,
+    }));
   };
 
-  const options = {
-    responsive: true,
-    plugins: {
-      legend: { position: "top" as const },
-      title: { display: true, text: `Arithmetic Sequence Progress - ${selectedCategory}` },
+  const getChartCategories = () => {
+    const filtered = data.filter((d) => d.category === selectedCategory);
+    const maxQuizzes = filtered.reduce((max, user) => Math.max(max, user.quizzes_taken), 0);
+    return Array.from({ length: maxQuizzes }, (_, i) => `Quiz ${i + 1}`);
+  };
+
+  const chartOptions: ApexCharts.ApexOptions = {
+    chart: {
+      type: "line",
+      height: 350,
+      zoom: { enabled: false },
     },
-    scales: {
-      y: { beginAtZero: true, max: MAX_SCORE },
+    stroke: { curve: "straight" },
+    title: {
+      text: `Arithmetic Sequence Progress - ${selectedCategory}`,
+      align: "left",
+    },
+    xaxis: { categories: getChartCategories() },
+    yaxis: { max: MAX_SCORE, min: 0 },
+    dataLabels: { enabled: false },
+    grid: {
+      row: { colors: ["#f3f3f3", "transparent"], opacity: 0.5 },
     },
   };
 
@@ -118,12 +116,13 @@ const ArithmeticProgress: React.FC = () => {
         </IonToolbar>
       </IonHeader>
 
-      <IonContent className="ion-padding">
-        <div style={{ marginBottom: "1rem" }}>
+      <IonContent className="progress-page">
+        <div className="progress-filter">
           <label>Select Category:</label>
           <IonSelect
             value={selectedCategory}
             onIonChange={(e) => setSelectedCategory(e.detail.value)}
+            className="progress-select"
           >
             <IonSelectOption value="Word Problem">Word Problem</IonSelectOption>
             <IonSelectOption value="Problem Solving">Problem Solving</IonSelectOption>
@@ -131,13 +130,20 @@ const ArithmeticProgress: React.FC = () => {
         </div>
 
         {loading ? (
-          <p>Loading...</p>
+          <div className="progress-loading">Loading...</div>
         ) : (
-          <Bar data={chartData()} options={options} />
+          <div className="progress-chart-card">
+            <ReactApexChart
+              options={chartOptions}
+              series={getChartSeries()}
+              type="line"
+              height={350}
+            />
+          </div>
         )}
       </IonContent>
     </IonPage>
   );
 };
 
-export default ArithmeticProgress;
+export default ArithmeticProgressLine;

@@ -25,12 +25,12 @@ interface Quiz {
 }
 
 const DIFFICULTY_TIMERS: Record<Quiz["difficulty"], number> = {
-  Easy: 15,
-  Average: 30,
-  Difficult: 60,
+  Easy: 60,      // 60s per question, 5 questions
+  Average: 180,  // 180s per question, 5 questions
+  Difficult: 300, // 300s per question, 5 questions
 };
 
-const QUESTIONS_PER_DIFFICULTY = 5;
+const QUESTIONS_PER_DIFFICULTY = 5; // 5 questions per difficulty
 const difficultyOrder: Quiz["difficulty"][] = ["Easy", "Average", "Difficult"];
 
 const MotionQuiz: React.FC = () => {
@@ -53,25 +53,26 @@ const MotionQuiz: React.FC = () => {
     }[]
   >([]);
   const [showResultModal, setShowResultModal] = useState(false);
-  const [timeLeft, setTimeLeft] = useState<number>(0);
   const [timeUsed, setTimeUsed] = useState<number>(0);
+  const [timeLeft, setTimeLeft] = useState<number>(0);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-
   const [showTransitionScreen, setShowTransitionScreen] = useState(false);
   const [transitionMessage, setTransitionMessage] = useState("");
   const [showYesNo, setShowYesNo] = useState(false);
   const [countdown, setCountdown] = useState(3);
-
   const [delayTime, setDelayTime] = useState<number | null>(null);
-  const delayRef = useRef<NodeJS.Timeout | null>(null);
+
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const delayRef = useRef<NodeJS.Timeout | null>(null);
 
   const clearAllTimers = () => {
     if (timerRef.current) clearInterval(timerRef.current);
     if (delayRef.current) clearInterval(delayRef.current);
+    timerRef.current = null;
+    delayRef.current = null;
   };
 
-  // Fetch quizzes
+  // --- Fetch quizzes ---
   useEffect(() => {
     const fetchQuizzes = async () => {
       const { data, error } = await supabase
@@ -80,48 +81,45 @@ const MotionQuiz: React.FC = () => {
         .eq("subject", "Uniform Motion in Physics")
         .in("category", ["Word Problem", "Problem Solving"]);
 
-      if (error) console.error("Error fetching motion quizzes:", error.message);
-      else setAllQuizzes(data || []);
+      if (error) console.error("Error fetching quizzes:", error.message);
+      else setAllQuizzes((data as Quiz[]) || []);
     };
     fetchQuizzes();
   }, []);
 
-  // Start quiz
+  // --- Start quiz ---
   const startQuiz = (category: string) => {
     setSelectedCategory(category);
-
     const categoryQuizzes = allQuizzes.filter((q) => q.category === category);
-
-    const buildQueue = difficultyOrder.flatMap((difficulty) => {
-      const filtered = categoryQuizzes
+    const buildQueue = difficultyOrder.flatMap((difficulty) =>
+      categoryQuizzes
         .filter((q) => q.difficulty === difficulty)
         .sort(() => Math.random() - 0.5)
-        .slice(0, QUESTIONS_PER_DIFFICULTY);
-      return filtered;
-    });
+        .slice(0, QUESTIONS_PER_DIFFICULTY)
+    );
 
     setQuizQueue(buildQueue);
     setCurrentQuizIndex(0);
     setCurrentQuiz(buildQueue[0] || null);
-    setScore(0);
     setUserSolutions([]);
     setUserAnswer("");
+    setScore(0);
     setTimeUsed(0);
     if (buildQueue[0]) setDelayTime(15);
   };
 
-  // Timer with reading delay
+  // --- Timer logic ---
   useEffect(() => {
     if (!currentQuiz) return;
-
     clearAllTimers();
-    setDelayTime(15);
     setTimeLeft(0);
     setTimeUsed(0);
+    setDelayTime(15);
 
+    // Countdown before the actual timer starts
     delayRef.current = setInterval(() => {
       setDelayTime((prev) => {
-        if (prev === null) return null;
+        if (!prev) return null;
         if (prev <= 1) {
           clearInterval(delayRef.current!);
           setDelayTime(null);
@@ -133,7 +131,7 @@ const MotionQuiz: React.FC = () => {
             setTimeLeft((prev) => {
               if (prev <= 1) {
                 clearInterval(timerRef.current!);
-                handleNext(true);
+                handleNext(true); // auto-submit on timeout
                 return 0;
               }
               return prev - 1;
@@ -148,15 +146,18 @@ const MotionQuiz: React.FC = () => {
     return () => clearAllTimers();
   }, [currentQuiz]);
 
+  // --- Next question / level ---
   const handleNext = useCallback(
-    async (auto = false) => {
+    (auto = false) => {
       if (!currentQuiz) return;
+
+      // ✅ if reading time (delayTime still active)
+      const isDuringReadingTime = delayTime !== null;
 
       if (!auto && !userAnswer.trim()) {
         setErrorMessage("⚠️ Please enter your answer before proceeding.");
         return;
       }
-
       setErrorMessage("");
 
       const normalizedAnswer = userAnswer.trim().toLowerCase();
@@ -167,75 +168,105 @@ const MotionQuiz: React.FC = () => {
       const isCorrect =
         normalizedAnswer === correctAnswer || alternates.includes(normalizedAnswer);
 
-      const timeUsedForThis = isCorrect
-        ? timeUsed
-        : DIFFICULTY_TIMERS[currentQuiz.difficulty];
-
-      const newUserSolution = {
-        question: currentQuiz.question,
-        correct: currentQuiz.answer,
-        userAnswer: userAnswer || "(no answer)",
-        solution: currentQuiz.solution,
-        isCorrect,
-        timeUsed: timeUsedForThis,
-        difficulty: currentQuiz.difficulty,
-      };
+      // ✅ Accurate time logic:
+      // - During reading time: correct = 0, wrong = full time
+      // - After timer starts: correct = actual time (min 1), wrong/timeout = full time
+      let timeUsedForThis = 0;
+      if (isDuringReadingTime) {
+        if (isCorrect) {
+          timeUsedForThis = 0; // answered correctly during reading, no time penalty
+        } else {
+          timeUsedForThis = DIFFICULTY_TIMERS[currentQuiz.difficulty]; // wrong during reading, full time penalty
+        }
+      } else {
+        if (isCorrect) {
+          timeUsedForThis = Math.max(timeUsed, 1); // actual time for correct, min 1
+        } else {
+          timeUsedForThis = DIFFICULTY_TIMERS[currentQuiz.difficulty]; // full time for wrong or timeout
+        }
+      }
 
       setScore((prev) => (isCorrect ? prev + 1 : prev));
-      setUserSolutions((prev) => [...prev, newUserSolution]);
 
-      // Check if there are more questions in same difficulty
-      const remainingInSameDifficulty = quizQueue.filter(
-        (q, i) =>
-          q.difficulty === currentQuiz.difficulty && i > currentQuizIndex
-      );
+      // --- Check if quiz finished before updating userSolutions ---
+      const isLastQuestion = quizQueue.length === currentQuizIndex + 1;
 
-      if (remainingInSameDifficulty.length > 0) {
+      if (isLastQuestion) {
+        // Calculate totalTime before updating userSolutions to avoid double-counting
+        const totalScore =
+          userSolutions.filter((s) => s.isCorrect).length + (isCorrect ? 1 : 0);
+        const totalTime =
+          userSolutions.reduce((sum, s) => sum + (s.timeUsed || 0), 0) +
+          timeUsedForThis;
+
+        // Now update userSolutions
+        setUserSolutions((prev) => [
+          ...prev,
+          {
+            question: currentQuiz.question,
+            correct: currentQuiz.answer,
+            userAnswer: userAnswer || "(no answer)",
+            solution: currentQuiz.solution,
+            isCorrect,
+            timeUsed: timeUsedForThis,
+            difficulty: currentQuiz.difficulty,
+          },
+        ]);
+
+        saveResult(totalScore, totalTime);
+        setShowResultModal(true);
+        return;
+      }
+
+      // --- Move to next question ---
+      const remaining = quizQueue
+        .slice(currentQuizIndex + 1)
+        .filter((q) => q.difficulty === currentQuiz.difficulty);
+
+      if (remaining.length > 0) {
         const nextIndex = currentQuizIndex + 1;
         setCurrentQuizIndex(nextIndex);
         setCurrentQuiz(quizQueue[nextIndex]);
         setUserAnswer("");
-        setDelayTime(15);
         setTimeUsed(0);
-        return;
-      }
-
-      // Move to next difficulty or end
-      const currentDiffIndex = difficultyOrder.indexOf(currentQuiz.difficulty);
-      const nextDiff = difficultyOrder[currentDiffIndex + 1];
-
-      if (nextDiff) {
-        clearAllTimers();
-        const levelScore =
-          userSolutions.filter(
-            (q) => q.difficulty === currentQuiz.difficulty && q.isCorrect
-          ).length + (isCorrect ? 1 : 0);
-
-        setTransitionMessage(
-          `✅ You completed all ${currentQuiz.difficulty} questions.\nYour score: ${levelScore}/5\nDo you want to proceed to the ${nextDiff} level?`
-        );
-        setShowTransitionScreen(true);
-        setShowYesNo(true);
+        setDelayTime(15);
       } else {
-        // End of quiz
-        clearAllTimers();
-        setShowResultModal(true);
+        // --- Move to next difficulty ---
+        const nextDiffIndex = difficultyOrder.indexOf(currentQuiz.difficulty) + 1;
+        const nextDiff = difficultyOrder[nextDiffIndex];
 
-        const totalTimeUsed = [...userSolutions, newUserSolution].reduce(
-          (sum, q) => sum + q.timeUsed,
-          0
-        );
+        if (nextDiff) {
+          const levelScore =
+            userSolutions.filter(
+              (q) => q.difficulty === currentQuiz.difficulty && q.isCorrect
+            ).length + (isCorrect ? 1 : 0);
 
-        const finalScore =
-          userSolutions.filter((q) => q.isCorrect).length + (isCorrect ? 1 : 0);
-
-        await saveResult(finalScore, totalTimeUsed);
+          setTransitionMessage(
+            `✅ You completed all ${currentQuiz.difficulty} questions.\nYour score: ${levelScore}/5\nDo you want to proceed to the ${nextDiff} level?`
+          );
+          setShowTransitionScreen(true);
+          setShowYesNo(true);
+        }
       }
+
+      // Update userSolutions for non-last questions
+      setUserSolutions((prev) => [
+        ...prev,
+        {
+          question: currentQuiz.question,
+          correct: currentQuiz.answer,
+          userAnswer: userAnswer || "(no answer)",
+          solution: currentQuiz.solution,
+          isCorrect,
+          timeUsed: timeUsedForThis,
+          difficulty: currentQuiz.difficulty,
+        },
+      ]);
     },
-    [currentQuiz, currentQuizIndex, quizQueue, userAnswer, userSolutions, timeUsed]
+    [currentQuiz, currentQuizIndex, quizQueue, userAnswer, userSolutions, timeUsed, delayTime]
   );
 
-  // Proceed to next level
+  // --- Proceed next level ---
   const proceedNextLevel = () => {
     setShowYesNo(false);
     const currentDiffIndex = difficultyOrder.indexOf(currentQuiz!.difficulty);
@@ -252,12 +283,12 @@ const MotionQuiz: React.FC = () => {
             (q) => q.difficulty === nextDiff
           );
           if (nextQuizIndex !== -1) {
-            setShowTransitionScreen(false);
             setCurrentQuizIndex(nextQuizIndex);
             setCurrentQuiz(quizQueue[nextQuizIndex]);
             setUserAnswer("");
-            setDelayTime(15);
             setTimeUsed(0);
+            setDelayTime(15);
+            setShowTransitionScreen(false);
           }
         }
         return prev - 1;
@@ -265,24 +296,39 @@ const MotionQuiz: React.FC = () => {
     }, 1000);
   };
 
+  // --- Save results ---
   const saveResult = async (finalScore: number, totalTimeUsed: number) => {
     try {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      if (!session) return;
-      const userId = session.user.id;
+      const { data: sessionData } = await supabase.auth.getSession();
+      const session = sessionData.session;
+      if (!session) {
+        console.warn("No user session found.");
+        return;
+      }
 
-      await supabase.from("scores").insert([
+      const userId = session.user.id;
+      const easy = userSolutions.filter((s) => s.difficulty === "Easy" && s.isCorrect).length;
+      const average = userSolutions.filter((s) => s.difficulty === "Average" && s.isCorrect).length;
+      const difficult = userSolutions.filter((s) => s.difficulty === "Difficult" && s.isCorrect).length;
+
+      // Connect time_taken to the SQL table: accurate sum of timeUsed
+      // Example: Easy - 0s (correct during reading) + 60s (wrong) + 5s (correct after timer) + 60s (wrong) + 60s (wrong) = 185s
+      // Same for Average (180s per wrong) and Difficult (300s per wrong), total up to 2700s
+      const { error } = await supabase.from("scores").insert([
         {
           user_id: userId,
-          quiz_id: quizQueue[0]?.id || null,
-          score: finalScore,
-          time_taken: totalTimeUsed,
+          quiz_id: quizQueue[0]?.id ?? null,
+          easy,
+          average,
+          difficult,
+          time_taken: Math.floor(totalTimeUsed), // Accurate integer sum, connected to Supabase
         },
       ]);
+
+      if (error) console.error("❌ Error saving score:", error.message);
+      else console.log("✅ Score saved:", { easy, average, difficult, time_taken: Math.floor(totalTimeUsed) });
     } catch (err) {
-      console.error("Error saving score:", err);
+      console.error("❌ Unexpected error saving score:", err);
     }
   };
 
@@ -290,13 +336,12 @@ const MotionQuiz: React.FC = () => {
     <IonPage className="quiz-container">
       <IonHeader>
         <IonToolbar color="light">
-          <IonTitle className="quiz-title">
-            Uniform Motion in Physics Quiz
-          </IonTitle>
+          <IonTitle className="quiz-title">Uniform Motion in Physics Quiz</IonTitle>
         </IonToolbar>
       </IonHeader>
 
       <IonContent fullscreen>
+        {/* Category Selection */}
         {!selectedCategory ? (
           <div className="quiz-category">
             <h2 className="quiz-heading">Select Category</h2>
@@ -315,8 +360,8 @@ const MotionQuiz: React.FC = () => {
               <p className="transition-text">{transitionMessage}</p>
 
               {showYesNo && (
-                <div className="transition-buttons">
-                  <IonButton color="success" onClick={proceedNextLevel}>
+                <div className="quiz-category-buttons">
+                  <IonButton color="success" onClick={proceedNextLevel} className="quiz-btn">
                     Yes
                   </IonButton>
                   <IonButton
@@ -329,26 +374,24 @@ const MotionQuiz: React.FC = () => {
                       setUserAnswer("");
                       setUserSolutions([]);
                     }}
+                    className="quiz-btn"
                   >
                     No
                   </IonButton>
                 </div>
               )}
 
-              {!showYesNo && transitionMessage.includes("Get ready") && (
-                <h3 className="countdown-display">⏳ {countdown}</h3>
-              )}
+              {!showYesNo && <h3 className="countdown-display">⏳ {countdown}</h3>}
             </div>
           </div>
         ) : currentQuiz ? (
           <div className="quiz-content">
+            {/* Timers */}
             {delayTime !== null ? (
-              <div className={`quiz-delay ${delayTime <= 3 ? "almost-start" : ""}`}>
-                {delayTime > 3 ? (
-                  <>📖 Reading Time: <span className="countdown">{delayTime}s</span></>
-                ) : (
-                  <>⚡ Get Ready! The timer will start soon: <span className="countdown">{delayTime}s</span></>
-                )}
+              <div className={`quiz-timer ${delayTime <= 3 ? "critical" : ""}`}>
+                {delayTime > 3
+                  ? `📖 Reading Time: ${delayTime}s`
+                  : `⚡ Get Ready! ${delayTime}s`}
               </div>
             ) : (
               <div className={`quiz-timer ${timeLeft <= 5 ? "critical" : ""}`}>
@@ -356,7 +399,7 @@ const MotionQuiz: React.FC = () => {
               </div>
             )}
 
-            <h2 className="quiz-difficulty">{currentQuiz.difficulty}</h2>
+            <h3 className="quiz-difficulty">{currentQuiz.difficulty}</h3>
             <p className="quiz-question">{currentQuiz.question}</p>
 
             <IonItem className="quiz-input-item">
@@ -368,11 +411,7 @@ const MotionQuiz: React.FC = () => {
               />
             </IonItem>
 
-            {errorMessage && (
-              <IonText color="danger" className="quiz-error">
-                {errorMessage}
-              </IonText>
-            )}
+            {errorMessage && <IonText className="quiz-error">{errorMessage}</IonText>}
 
             <IonButton expand="block" onClick={() => handleNext(false)} className="quiz-next">
               Next
@@ -398,6 +437,7 @@ const MotionQuiz: React.FC = () => {
           <p className="quiz-loading">Loading...</p>
         )}
 
+        {/* Result Modal */}
         <IonModal isOpen={showResultModal} backdropDismiss={false}>
           <IonHeader>
             <IonToolbar color="light">

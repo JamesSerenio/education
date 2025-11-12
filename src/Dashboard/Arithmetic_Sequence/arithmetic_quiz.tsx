@@ -160,10 +160,15 @@ const ArithmeticQuiz: React.FC = () => {
 
       const normalizedAnswer = userAnswer.trim().toLowerCase();
       const correctAnswer = currentQuiz.answer.trim().toLowerCase();
-      const alternates = (currentQuiz.accepted_answers || []).map((a) => a.trim().toLowerCase());
-      const isCorrect = normalizedAnswer === correctAnswer || alternates.includes(normalizedAnswer);
+      const alternates = (currentQuiz.accepted_answers || []).map((a) =>
+        a.trim().toLowerCase()
+      );
+      const isCorrect =
+        normalizedAnswer === correctAnswer || alternates.includes(normalizedAnswer);
 
-      const timeUsedForThis = auto ? DIFFICULTY_TIMERS[currentQuiz.difficulty] : timeUsed;
+      const timeUsedForThis = auto
+        ? DIFFICULTY_TIMERS[currentQuiz.difficulty]
+        : Math.max(timeUsed, 1);
 
       setScore((prev) => (isCorrect ? prev + 1 : prev));
 
@@ -181,7 +186,9 @@ const ArithmeticQuiz: React.FC = () => {
       ]);
 
       // --- Move to next question ---
-      const remaining = quizQueue.slice(currentQuizIndex + 1).filter((q) => q.difficulty === currentQuiz.difficulty);
+      const remaining = quizQueue
+        .slice(currentQuizIndex + 1)
+        .filter((q) => q.difficulty === currentQuiz.difficulty);
 
       if (remaining.length > 0) {
         const nextIndex = currentQuizIndex + 1;
@@ -198,7 +205,10 @@ const ArithmeticQuiz: React.FC = () => {
       const nextDiff = difficultyOrder[nextDiffIndex];
 
       if (nextDiff) {
-        const levelScore = userSolutions.filter((q) => q.difficulty === currentQuiz.difficulty && q.isCorrect).length + (isCorrect ? 1 : 0);
+        const levelScore =
+          userSolutions.filter(
+            (q) => q.difficulty === currentQuiz.difficulty && q.isCorrect
+          ).length + (isCorrect ? 1 : 0);
 
         setTransitionMessage(
           `✅ You completed all ${currentQuiz.difficulty} questions.\nYour score: ${levelScore}/5\nDo you want to proceed to the ${nextDiff} level?`
@@ -207,8 +217,12 @@ const ArithmeticQuiz: React.FC = () => {
         setShowYesNo(true);
       } else {
         // --- Quiz finished ---
-        const totalScore = userSolutions.filter((s) => s.isCorrect).length + (isCorrect ? 1 : 0);
-        const totalTime = userSolutions.reduce((sum, s) => sum + s.timeUsed, 0) + timeUsedForThis;
+        const totalScore =
+          userSolutions.filter((s) => s.isCorrect).length + (isCorrect ? 1 : 0);
+        const totalTime =
+          userSolutions.reduce((sum, s) => sum + (s.timeUsed || 0), 0) +
+          timeUsedForThis;
+
         saveResult(totalScore, totalTime);
         setShowResultModal(true);
       }
@@ -229,7 +243,9 @@ const ArithmeticQuiz: React.FC = () => {
       setCountdown((prev) => {
         if (prev <= 1) {
           clearInterval(countdownInterval);
-          const nextQuizIndex = quizQueue.findIndex((q) => q.difficulty === nextDiff);
+          const nextQuizIndex = quizQueue.findIndex(
+            (q) => q.difficulty === nextDiff
+          );
           if (nextQuizIndex !== -1) {
             setCurrentQuizIndex(nextQuizIndex);
             setCurrentQuiz(quizQueue[nextQuizIndex]);
@@ -244,16 +260,24 @@ const ArithmeticQuiz: React.FC = () => {
     }, 1000);
   };
 
-  // --- Save results ---
+  // --- Save results (✅ fixed time_taken) ---
   const saveResult = async (finalScore: number, totalTimeUsed: number) => {
     try {
-      const session = await supabase.auth.getSession();
-      if (!session.data.session) return;
-      const userId = session.data.session.user.id;
+      const { data: sessionData } = await supabase.auth.getSession();
+      const session = sessionData.session;
+      if (!session) {
+        console.warn("No user session found.");
+        return;
+      }
 
+      const userId = session.user.id;
       const easy = userSolutions.filter((s) => s.difficulty === "Easy" && s.isCorrect).length;
       const average = userSolutions.filter((s) => s.difficulty === "Average" && s.isCorrect).length;
       const difficult = userSolutions.filter((s) => s.difficulty === "Difficult" && s.isCorrect).length;
+
+      const totalTime =
+        userSolutions.reduce((sum, s) => sum + (s.timeUsed || 0), 0) +
+        (totalTimeUsed || 0);
 
       const { error } = await supabase.from("scores").insert([
         {
@@ -262,13 +286,14 @@ const ArithmeticQuiz: React.FC = () => {
           easy,
           average,
           difficult,
-          time_taken: totalTimeUsed,
+          time_taken: totalTime,
         },
       ]);
 
-      if (error) console.error("Error saving score:", error.message);
+      if (error) console.error("❌ Error saving score:", error.message);
+      else console.log("✅ Score successfully saved:", { easy, average, difficult, totalTime });
     } catch (err) {
-      console.error("Unexpected error saving score:", err);
+      console.error("❌ Unexpected error saving score:", err);
     }
   };
 
@@ -281,7 +306,6 @@ const ArithmeticQuiz: React.FC = () => {
       </IonHeader>
 
       <IonContent fullscreen>
-        {/* --- Category Selection --- */}
         {!selectedCategory ? (
           <div className="quiz-category">
             <h2 className="quiz-heading">Select Category</h2>
@@ -328,7 +352,9 @@ const ArithmeticQuiz: React.FC = () => {
           <div className="quiz-content">
             {delayTime !== null ? (
               <div className={`quiz-timer ${delayTime <= 3 ? "critical" : ""}`}>
-                {delayTime > 3 ? `📖 Reading Time: ${delayTime}s` : `⚡ Get Ready! ${delayTime}s`}
+                {delayTime > 3
+                  ? `📖 Reading Time: ${delayTime}s`
+                  : `⚡ Get Ready! ${delayTime}s`}
               </div>
             ) : (
               <div className={`quiz-timer ${timeLeft <= 5 ? "critical" : ""}`}>
@@ -392,7 +418,9 @@ const ArithmeticQuiz: React.FC = () => {
                   <b>Q{i + 1}:</b> {res.question}
                   <br />
                   <b>Your Answer:</b>{" "}
-                  <span className={res.isCorrect ? "text-correct" : "text-wrong"}>{res.userAnswer}</span>
+                  <span className={res.isCorrect ? "text-correct" : "text-wrong"}>
+                    {res.userAnswer}
+                  </span>
                   <br />
                   <b>Correct Answer:</b> {res.correct}
                   <br />

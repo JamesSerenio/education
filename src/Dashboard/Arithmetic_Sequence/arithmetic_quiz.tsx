@@ -378,25 +378,6 @@ const ArithmeticQuiz: React.FC = () => {
             <IonButton expand="block" onClick={() => handleNext(false)} className="quiz-next">
               Next
             </IonButton>
-
-            <IonButton
-              expand="block"
-              fill="outline"
-              color="medium"
-              onClick={() => {
-                setSelectedCategory(null);
-                setCurrentQuiz(null);
-                setUserAnswer("");
-                setErrorMessage("");
-                setScore(0);
-                setUserSolutions([]);
-                clearInterval(timerRef.current!);
-                clearInterval(delayRef.current!);
-              }}
-              className="quiz-back"
-            >
-              Back to Categories
-            </IonButton>
           </div>
         ) : (
           <p className="quiz-loading">Loading...</p>

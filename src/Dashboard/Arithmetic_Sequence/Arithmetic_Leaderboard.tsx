@@ -24,8 +24,7 @@ interface LeaderboardRow {
 }
 
 const ArithmeticLeaderboard: React.FC = () => {
-  const [wordProblemData, setWordProblemData] = useState<LeaderboardRow[]>([]);
-  const [problemSolvingData, setProblemSolvingData] = useState<LeaderboardRow[]>([]);
+  const [data, setData] = useState<LeaderboardRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedDifficulty, setSelectedDifficulty] = useState<string>("All");
 
@@ -36,59 +35,48 @@ const ArithmeticLeaderboard: React.FC = () => {
   const fetchLeaderboards = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      const { data: fetchedData, error } = await supabase
         .from("student_scores_overview")
-        .select("*")
-        .order("overall_total", { ascending: false });
+        .select("*");
 
       if (error) {
         console.error("Error fetching leaderboard:", error);
-        setWordProblemData([]);
-        setProblemSolvingData([]);
+        setData([]);
         return;
       }
 
-      let rows = data as LeaderboardRow[];
+      let rows = (fetchedData as LeaderboardRow[]).filter(r => r.overall_total > 0);
 
-      // Only include users who have taken at least one quiz
-      rows = rows.filter((r) => r.overall_total > 0);
+      // Filter by difficulty
+      if (selectedDifficulty !== "All") {
+        rows = rows.filter(r => {
+          if (selectedDifficulty === "Easy") return r.easy_total > 0;
+          if (selectedDifficulty === "Average") return r.average_total > 0;
+          return r.difficult_total > 0;
+        });
+      }
 
-      // Filter by difficulty if selected
-      const filterByDifficulty = (row: LeaderboardRow) => {
-        if (selectedDifficulty === "All") return true;
-        if (selectedDifficulty === "Easy") return row.easy_total > 0;
-        if (selectedDifficulty === "Average") return row.average_total > 0;
-        return row.difficult_total > 0;
-      };
-
-      const sortByDifficulty = (a: LeaderboardRow, b: LeaderboardRow) => {
-        if (selectedDifficulty === "All") return b.overall_total - a.overall_total;
-        if (selectedDifficulty === "Easy") return b.easy_total - a.easy_total;
-        if (selectedDifficulty === "Average") return b.average_total - a.average_total;
-        return b.difficult_total - a.difficult_total;
-      };
-
-      const wordProblemRows = rows
-        .filter((r) => r.category === "Word Problem" && filterByDifficulty(r))
-        .sort(sortByDifficulty);
-
-      const problemSolvingRows = rows
-        .filter((r) => r.category === "Problem Solving" && filterByDifficulty(r))
-        .sort(sortByDifficulty);
-
-      setWordProblemData(wordProblemRows);
-      setProblemSolvingData(problemSolvingRows);
+      setData(rows);
     } catch (err) {
       console.error("Unexpected fetch error:", err);
-      setWordProblemData([]);
-      setProblemSolvingData([]);
+      setData([]);
     } finally {
       setLoading(false);
     }
   };
 
-  const renderTable = (data: LeaderboardRow[]) => {
+  const renderTable = (category: "Word Problem" | "Problem Solving") => {
+    const rows = data
+      .filter(r => r.category === category)
+      .sort((a, b) => {
+        if (selectedDifficulty === "All") return b.overall_total - a.overall_total;
+        if (selectedDifficulty === "Easy") return b.easy_total - a.easy_total;
+        if (selectedDifficulty === "Average") return b.average_total - a.average_total;
+        return b.difficult_total - a.difficult_total;
+      });
+
     const medals = ["🥇", "🥈", "🥉"];
+
     return (
       <div className="leaderboard-table-wrapper">
         <table className="leaderboard-table">
@@ -96,7 +84,7 @@ const ArithmeticLeaderboard: React.FC = () => {
             <tr>
               <th>Place</th>
               <th>Lastname</th>
-              {selectedDifficulty === "All" && (
+              {selectedDifficulty === "All" ? (
                 <>
                   <th>Easy</th>
                   <th>Average</th>
@@ -104,17 +92,18 @@ const ArithmeticLeaderboard: React.FC = () => {
                   <th>Overall</th>
                   <th>Quizzes Taken</th>
                 </>
+              ) : (
+                <th>Score</th>
               )}
-              {selectedDifficulty !== "All" && <th>Score</th>}
             </tr>
           </thead>
           <tbody>
-            {data.length > 0 ? (
-              data.map((row, index) => (
-                <tr key={row.user_id}>
+            {rows.length ? (
+              rows.map((row, index) => (
+                <tr key={`${row.user_id}-${row.category}`}>
                   <td>{medals[index] || index + 1}</td>
                   <td>{row.lastname}</td>
-                  {selectedDifficulty === "All" && (
+                  {selectedDifficulty === "All" ? (
                     <>
                       <td>{row.easy_total}</td>
                       <td>{row.average_total}</td>
@@ -122,8 +111,7 @@ const ArithmeticLeaderboard: React.FC = () => {
                       <td>{row.overall_total}</td>
                       <td>{row.quizzes_taken}</td>
                     </>
-                  )}
-                  {selectedDifficulty !== "All" && (
+                  ) : (
                     <td>
                       {selectedDifficulty === "Easy"
                         ? row.easy_total
@@ -174,7 +162,7 @@ const ArithmeticLeaderboard: React.FC = () => {
           <div className="trophy-icon">
             <Trophy size={20} color="#65a30d" />
           </div>
-          {loading ? <p>Loading...</p> : renderTable(wordProblemData)}
+          {loading ? <p>Loading...</p> : renderTable("Word Problem")}
         </div>
 
         <div className="leaderboard-card">
@@ -182,7 +170,7 @@ const ArithmeticLeaderboard: React.FC = () => {
           <div className="trophy-icon">
             <Trophy size={20} color="#eab308" />
           </div>
-          {loading ? <p>Loading...</p> : renderTable(problemSolvingData)}
+          {loading ? <p>Loading...</p> : renderTable("Problem Solving")}
         </div>
       </IonContent>
     </IonPage>

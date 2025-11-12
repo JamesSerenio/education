@@ -16,19 +16,37 @@ interface LeaderboardRow {
   firstname: string;
   lastname: string;
   category: "Word Problem" | "Problem Solving";
+  easy_total: number;
+  average_total: number;
+  difficult_total: number;
+  overall_total: number;
+  quizzes_taken: number;
+}
+
+// Type for Supabase fetch including relations
+interface ScoreWithRelations {
+  user_id: string;
+  quiz_id: string;
   easy: number;
   average: number;
   difficult: number;
   total_score: number;
-  quizzes_taken: number;
+  time_taken: number;
+  created_at: string;
+  profiles: {
+    firstname: string;
+    lastname: string;
+  };
+  quizzes: {
+    category: "Word Problem" | "Problem Solving";
+    subject: string;
+  };
 }
 
 const ArithmeticLeaderboard: React.FC = () => {
   const [data, setData] = useState<LeaderboardRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedDifficulty, setSelectedDifficulty] = useState<
-    "All" | "Easy" | "Average" | "Difficult"
-  >("All");
+  const [selectedDifficulty, setSelectedDifficulty] = useState<string>("All");
 
   useEffect(() => {
     fetchLeaderboards();
@@ -38,8 +56,14 @@ const ArithmeticLeaderboard: React.FC = () => {
     setLoading(true);
     try {
       const { data: fetchedData, error } = await supabase
-        .from("student_scores_overview")
-        .select("*");
+        .from("scores")
+        .select(`
+          *,
+          profiles (firstname, lastname),
+          quizzes (category, subject)
+        `)
+        .eq("quizzes.subject", "Arithmetic Sequence")
+        .in("quizzes.category", ["Word Problem", "Problem Solving"]);
 
       if (error) {
         console.error("Error fetching leaderboard:", error);
@@ -47,49 +71,30 @@ const ArithmeticLeaderboard: React.FC = () => {
         return;
       }
 
-      if (!fetchedData) {
-        setData([]);
-        return;
-      }
-
-      // Cast data to our interface
-      const typedData = fetchedData as unknown as LeaderboardRow[];
-
-      // Group by user + category to calculate quizzes_taken
-      const grouped: Record<string, LeaderboardRow> = {};
-
-      typedData.forEach((row) => {
-        const key = `${row.user_id}-${row.category}`;
-        if (!grouped[key]) {
-          grouped[key] = {
-            user_id: row.user_id,
-            firstname: row.firstname,
-            lastname: row.lastname,
-            category: row.category,
-            easy: row.easy,
-            average: row.average,
-            difficult: row.difficult,
-            total_score: row.total_score,
-            quizzes_taken: 1,
-          };
-        } else {
-          // Increment quizzes_taken but do NOT sum scores
-          grouped[key].quizzes_taken += 1;
-        }
-      });
-
-      let rows = Object.values(grouped);
+      // Safely map fetched data
+      const rows: LeaderboardRow[] = (fetchedData ?? []).map((row: ScoreWithRelations) => ({
+        user_id: row.user_id,
+        firstname: row.profiles.firstname,
+        lastname: row.profiles.lastname,
+        category: row.quizzes.category,
+        easy_total: row.easy,
+        average_total: row.average,
+        difficult_total: row.difficult,
+        overall_total: row.total_score,
+        quizzes_taken: 1,
+      }));
 
       // Filter by difficulty
+      let filteredRows = rows.filter(r => r.overall_total > 0);
       if (selectedDifficulty !== "All") {
-        rows = rows.filter((r) => {
-          if (selectedDifficulty === "Easy") return r.easy > 0;
-          if (selectedDifficulty === "Average") return r.average > 0;
-          return r.difficult > 0;
+        filteredRows = filteredRows.filter(r => {
+          if (selectedDifficulty === "Easy") return r.easy_total > 0;
+          if (selectedDifficulty === "Average") return r.average_total > 0;
+          return r.difficult_total > 0;
         });
       }
 
-      setData(rows);
+      setData(filteredRows);
     } catch (err) {
       console.error("Unexpected fetch error:", err);
       setData([]);
@@ -100,12 +105,12 @@ const ArithmeticLeaderboard: React.FC = () => {
 
   const renderTable = (category: "Word Problem" | "Problem Solving") => {
     const rows = data
-      .filter((r) => r.category === category)
+      .filter(r => r.category === category)
       .sort((a, b) => {
-        if (selectedDifficulty === "All") return b.total_score - a.total_score;
-        if (selectedDifficulty === "Easy") return b.easy - a.easy;
-        if (selectedDifficulty === "Average") return b.average - a.average;
-        return b.difficult - a.difficult;
+        if (selectedDifficulty === "All") return b.overall_total - a.overall_total;
+        if (selectedDifficulty === "Easy") return b.easy_total - a.easy_total;
+        if (selectedDifficulty === "Average") return b.average_total - a.average_total;
+        return b.difficult_total - a.difficult_total;
       });
 
     const medals = ["🥇", "🥈", "🥉"];
@@ -122,7 +127,7 @@ const ArithmeticLeaderboard: React.FC = () => {
                   <th>Easy</th>
                   <th>Average</th>
                   <th>Difficult</th>
-                  <th>Total</th>
+                  <th>Overall</th>
                   <th>Quizzes Taken</th>
                 </>
               ) : (
@@ -138,19 +143,19 @@ const ArithmeticLeaderboard: React.FC = () => {
                   <td>{row.lastname}</td>
                   {selectedDifficulty === "All" ? (
                     <>
-                      <td>{row.easy}</td>
-                      <td>{row.average}</td>
-                      <td>{row.difficult}</td>
-                      <td>{row.total_score}</td>
+                      <td>{row.easy_total}</td>
+                      <td>{row.average_total}</td>
+                      <td>{row.difficult_total}</td>
+                      <td>{row.overall_total}</td>
                       <td>{row.quizzes_taken}</td>
                     </>
                   ) : (
                     <td>
                       {selectedDifficulty === "Easy"
-                        ? row.easy
+                        ? row.easy_total
                         : selectedDifficulty === "Average"
-                        ? row.average
-                        : row.difficult}
+                        ? row.average_total
+                        : row.difficult_total}
                     </td>
                   )}
                 </tr>

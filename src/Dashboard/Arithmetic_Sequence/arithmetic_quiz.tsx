@@ -151,9 +151,10 @@ const ArithmeticQuiz: React.FC = () => {
     (auto = false) => {
       if (!currentQuiz) return;
 
+      // ✅ if reading time (delayTime still active)
       const isDuringReadingTime = delayTime !== null;
 
-      if (!auto && !userAnswer.trim() && !isDuringReadingTime) {
+      if (!auto && !userAnswer.trim()) {
         setErrorMessage("⚠️ Please enter your answer before proceeding.");
         return;
       }
@@ -167,10 +168,15 @@ const ArithmeticQuiz: React.FC = () => {
       const isCorrect =
         normalizedAnswer === correctAnswer || alternates.includes(normalizedAnswer);
 
+      // ✅ Fix logic for timeUsed:
       let timeUsedForThis = 0;
-      if (isDuringReadingTime) timeUsedForThis = 0;
-      else if (auto || !isCorrect) timeUsedForThis = DIFFICULTY_TIMERS[currentQuiz.difficulty];
-      else timeUsedForThis = Math.max(timeUsed, 1);
+      if (isDuringReadingTime) {
+        timeUsedForThis = 0; // answered during reading phase
+      } else if (auto || !isCorrect) {
+        timeUsedForThis = DIFFICULTY_TIMERS[currentQuiz.difficulty]; // full time if timeout or wrong
+      } else {
+        timeUsedForThis = Math.max(timeUsed, 1); // actual time if correct
+      }
 
       setScore((prev) => (isCorrect ? prev + 1 : prev));
 
@@ -218,10 +224,12 @@ const ArithmeticQuiz: React.FC = () => {
         setShowTransitionScreen(true);
         setShowYesNo(true);
       } else {
+        // --- Quiz finished ---
         const totalScore =
           userSolutions.filter((s) => s.isCorrect).length + (isCorrect ? 1 : 0);
         const totalTime =
-          userSolutions.reduce((sum, s) => sum + (s.timeUsed || 0), 0) + timeUsedForThis;
+          userSolutions.reduce((sum, s) => sum + (s.timeUsed || 0), 0) +
+          timeUsedForThis;
 
         saveResult(totalScore, totalTime);
         setShowResultModal(true);
@@ -243,7 +251,9 @@ const ArithmeticQuiz: React.FC = () => {
       setCountdown((prev) => {
         if (prev <= 1) {
           clearInterval(countdownInterval);
-          const nextQuizIndex = quizQueue.findIndex((q) => q.difficulty === nextDiff);
+          const nextQuizIndex = quizQueue.findIndex(
+            (q) => q.difficulty === nextDiff
+          );
           if (nextQuizIndex !== -1) {
             setCurrentQuizIndex(nextQuizIndex);
             setCurrentQuiz(quizQueue[nextQuizIndex]);
@@ -263,13 +273,17 @@ const ArithmeticQuiz: React.FC = () => {
     try {
       const { data: sessionData } = await supabase.auth.getSession();
       const session = sessionData.session;
-      if (!session) return;
+      if (!session) {
+        console.warn("No user session found.");
+        return;
+      }
 
       const userId = session.user.id;
       const easy = userSolutions.filter((s) => s.difficulty === "Easy" && s.isCorrect).length;
       const average = userSolutions.filter((s) => s.difficulty === "Average" && s.isCorrect).length;
       const difficult = userSolutions.filter((s) => s.difficulty === "Difficult" && s.isCorrect).length;
 
+      // Use totalTimeUsed directly (sum of all timeUsed, max 2700 if all full timers)
       const { error } = await supabase.from("scores").insert([
         {
           user_id: userId,
@@ -282,7 +296,7 @@ const ArithmeticQuiz: React.FC = () => {
       ]);
 
       if (error) console.error("❌ Error saving score:", error.message);
-      else console.log("✅ Score saved:", { easy, average, difficult, totalTimeUsed });
+      else console.log("✅ Score saved:", { easy, average, difficult, time_taken: totalTimeUsed });
     } catch (err) {
       console.error("❌ Unexpected error saving score:", err);
     }
@@ -351,7 +365,7 @@ const ArithmeticQuiz: React.FC = () => {
               </div>
             ) : (
               <div className={`quiz-timer ${timeLeft <= 5 ? "critical" : ""}`}>
-                ⏳ Time Left: {timeLeft}s
+                ⏳ Time Left: ${timeLeft}s
               </div>
             )}
 

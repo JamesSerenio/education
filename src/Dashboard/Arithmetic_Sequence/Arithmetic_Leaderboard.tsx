@@ -15,6 +15,7 @@ interface LeaderboardRow {
   user_id: string;
   firstname: string;
   lastname: string;
+  category: "Word Problem" | "Problem Solving";
   easy_total: number;
   average_total: number;
   difficult_total: number;
@@ -23,15 +24,16 @@ interface LeaderboardRow {
 }
 
 const ArithmeticLeaderboard: React.FC = () => {
-  const [leaderboardData, setLeaderboardData] = useState<LeaderboardRow[]>([]);
+  const [wordProblemData, setWordProblemData] = useState<LeaderboardRow[]>([]);
+  const [problemSolvingData, setProblemSolvingData] = useState<LeaderboardRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedDifficulty, setSelectedDifficulty] = useState<string>("All");
 
   useEffect(() => {
-    fetchLeaderboard();
+    fetchLeaderboards();
   }, [selectedDifficulty]);
 
-  const fetchLeaderboard = async () => {
+  const fetchLeaderboards = async () => {
     setLoading(true);
     try {
       const { data, error } = await supabase
@@ -41,7 +43,8 @@ const ArithmeticLeaderboard: React.FC = () => {
 
       if (error) {
         console.error("Error fetching leaderboard:", error);
-        setLeaderboardData([]);
+        setWordProblemData([]);
+        setProblemSolvingData([]);
         return;
       }
 
@@ -51,23 +54,34 @@ const ArithmeticLeaderboard: React.FC = () => {
       rows = rows.filter((r) => r.overall_total > 0);
 
       // Filter by difficulty if selected
-      if (selectedDifficulty !== "All") {
-        const col =
-          selectedDifficulty === "Easy"
-            ? "easy_total"
-            : selectedDifficulty === "Average"
-            ? "average_total"
-            : "difficult_total";
+      const filterByDifficulty = (row: LeaderboardRow) => {
+        if (selectedDifficulty === "All") return true;
+        if (selectedDifficulty === "Easy") return row.easy_total > 0;
+        if (selectedDifficulty === "Average") return row.average_total > 0;
+        return row.difficult_total > 0;
+      };
 
-        rows = rows
-          .filter((r) => r[col] > 0)
-          .sort((a, b) => b[col] - a[col]); // Sort descending by that difficulty
-      }
+      const sortByDifficulty = (a: LeaderboardRow, b: LeaderboardRow) => {
+        if (selectedDifficulty === "All") return b.overall_total - a.overall_total;
+        if (selectedDifficulty === "Easy") return b.easy_total - a.easy_total;
+        if (selectedDifficulty === "Average") return b.average_total - a.average_total;
+        return b.difficult_total - a.difficult_total;
+      };
 
-      setLeaderboardData(rows);
+      const wordProblemRows = rows
+        .filter((r) => r.category === "Word Problem" && filterByDifficulty(r))
+        .sort(sortByDifficulty);
+
+      const problemSolvingRows = rows
+        .filter((r) => r.category === "Problem Solving" && filterByDifficulty(r))
+        .sort(sortByDifficulty);
+
+      setWordProblemData(wordProblemRows);
+      setProblemSolvingData(problemSolvingRows);
     } catch (err) {
       console.error("Unexpected fetch error:", err);
-      setLeaderboardData([]);
+      setWordProblemData([]);
+      setProblemSolvingData([]);
     } finally {
       setLoading(false);
     }
@@ -75,7 +89,6 @@ const ArithmeticLeaderboard: React.FC = () => {
 
   const renderTable = (data: LeaderboardRow[]) => {
     const medals = ["🥇", "🥈", "🥉"];
-
     return (
       <div className="leaderboard-table-wrapper">
         <table className="leaderboard-table">
@@ -157,11 +170,19 @@ const ArithmeticLeaderboard: React.FC = () => {
         </div>
 
         <div className="leaderboard-card">
-          <h2 className="leaderboard-title">Leaderboard</h2>
+          <h2 className="leaderboard-title">Word Problem Leaderboard</h2>
           <div className="trophy-icon">
             <Trophy size={20} color="#65a30d" />
           </div>
-          {loading ? <p>Loading...</p> : renderTable(leaderboardData)}
+          {loading ? <p>Loading...</p> : renderTable(wordProblemData)}
+        </div>
+
+        <div className="leaderboard-card">
+          <h2 className="leaderboard-title">Problem Solving Leaderboard</h2>
+          <div className="trophy-icon">
+            <Trophy size={20} color="#eab308" />
+          </div>
+          {loading ? <p>Loading...</p> : renderTable(problemSolvingData)}
         </div>
       </IonContent>
     </IonPage>

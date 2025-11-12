@@ -84,8 +84,19 @@ const ArithmeticLeaderboard: React.FC = () => {
         quizzes_taken: 1,
       }));
 
+      // Aggregate to get the highest per user per category
+      const aggregated = new Map<string, LeaderboardRow>();
+      rows.forEach((row) => {
+        const key = `${row.user_id}-${row.category}`;
+        const existing = aggregated.get(key);
+        if (!existing || row.overall_total > existing.overall_total) {
+          aggregated.set(key, row);
+        }
+      });
+      const aggregatedRows = Array.from(aggregated.values());
+
       // Filter by difficulty
-      let filteredRows = rows.filter(r => r.overall_total > 0);
+      let filteredRows = aggregatedRows.filter(r => r.overall_total > 0);
       if (selectedDifficulty !== "All") {
         filteredRows = filteredRows.filter(r => {
           if (selectedDifficulty === "Easy") return r.easy_total > 0;

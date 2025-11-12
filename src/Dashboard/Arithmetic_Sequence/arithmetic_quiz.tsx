@@ -283,7 +283,7 @@ const ArithmeticQuiz: React.FC = () => {
       const average = userSolutions.filter((s) => s.difficulty === "Average" && s.isCorrect).length;
       const difficult = userSolutions.filter((s) => s.difficulty === "Difficult" && s.isCorrect).length;
 
-      // Use totalTimeUsed directly (sum of all timeUsed, max 2700 if all full timers)
+      // Insert into scores table, time_taken is connected to totalTimeUsed (integer, max 2700)
       const { error } = await supabase.from("scores").insert([
         {
           user_id: userId,
@@ -291,12 +291,12 @@ const ArithmeticQuiz: React.FC = () => {
           easy,
           average,
           difficult,
-          time_taken: totalTimeUsed,
+          time_taken: Math.floor(totalTimeUsed), // Ensure it's an integer for the SQL table
         },
       ]);
 
       if (error) console.error("❌ Error saving score:", error.message);
-      else console.log("✅ Score saved:", { easy, average, difficult, time_taken: totalTimeUsed });
+      else console.log("✅ Score saved:", { easy, average, difficult, time_taken: Math.floor(totalTimeUsed) });
     } catch (err) {
       console.error("❌ Unexpected error saving score:", err);
     }
@@ -365,7 +365,7 @@ const ArithmeticQuiz: React.FC = () => {
               </div>
             ) : (
               <div className={`quiz-timer ${timeLeft <= 5 ? "critical" : ""}`}>
-                ⏳ Time Left: ${timeLeft}s
+                ⏳ Time Left: {timeLeft}s
               </div>
             )}
 

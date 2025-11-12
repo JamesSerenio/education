@@ -1195,6 +1195,47 @@ ion-content {
     font-size: 14px;
   }
 }
+.transition-screen {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 70vh;
+  text-align: center;
+  padding: 20px;
+  animation: fadeIn 0.5s ease;
+}
+
+.transition-card {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 16px;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+  padding: 30px 25px;
+  max-width: 400px;
+  width: 100%;
+}
+
+.transition-heading {
+  font-size: 1.8rem;
+  font-weight: 700;
+  background: linear-gradient(90deg, #65a30d, #eab308);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin-bottom: 15px;
+}
+
+.transition-text {
+  white-space: pre-line;
+  font-size: 1.05rem;
+  color: #333;
+  margin-bottom: 15px;
+}
+
+.countdown-display {
+  font-size: 1.8rem;
+  font-weight: bold;
+  color: #dc2626;
+  animation: blink 1s infinite;
+}
 
 /* Arithmetic_Practice.css */
 .arithmetic-practice-page {

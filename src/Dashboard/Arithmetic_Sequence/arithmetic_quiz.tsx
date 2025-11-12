@@ -25,9 +25,9 @@ interface Quiz {
 }
 
 const DIFFICULTY_TIMERS: Record<Quiz["difficulty"], number> = {
-  Easy: 15,
-  Average: 30,
-  Difficult: 60,
+  Easy: 60,
+  Average: 180,
+  Difficult: 300,
 };
 
 const QUESTIONS_PER_DIFFICULTY = 5;
@@ -56,7 +56,6 @@ const ArithmeticQuiz: React.FC = () => {
   const [timeUsed, setTimeUsed] = useState<number>(0);
   const [timeLeft, setTimeLeft] = useState<number>(0);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-
   const [showTransitionScreen, setShowTransitionScreen] = useState(false);
   const [transitionMessage, setTransitionMessage] = useState("");
   const [showYesNo, setShowYesNo] = useState(false);
@@ -91,14 +90,13 @@ const ArithmeticQuiz: React.FC = () => {
   // --- Start quiz ---
   const startQuiz = (category: string) => {
     setSelectedCategory(category);
-
     const categoryQuizzes = allQuizzes.filter((q) => q.category === category);
-    const buildQueue = difficultyOrder.flatMap((difficulty) => {
-      return categoryQuizzes
+    const buildQueue = difficultyOrder.flatMap((difficulty) =>
+      categoryQuizzes
         .filter((q) => q.difficulty === difficulty)
         .sort(() => Math.random() - 0.5)
-        .slice(0, QUESTIONS_PER_DIFFICULTY);
-    });
+        .slice(0, QUESTIONS_PER_DIFFICULTY)
+    );
 
     setQuizQueue(buildQueue);
     setCurrentQuizIndex(0);
@@ -118,6 +116,7 @@ const ArithmeticQuiz: React.FC = () => {
     setTimeUsed(0);
     setDelayTime(15);
 
+    // Countdown before the actual timer starts
     delayRef.current = setInterval(() => {
       setDelayTime((prev) => {
         if (!prev) return null;
@@ -132,7 +131,7 @@ const ArithmeticQuiz: React.FC = () => {
             setTimeLeft((prev) => {
               if (prev <= 1) {
                 clearInterval(timerRef.current!);
-                handleNext(true);
+                handleNext(true); // auto-submit on timeout
                 return 0;
               }
               return prev - 1;
@@ -152,6 +151,9 @@ const ArithmeticQuiz: React.FC = () => {
     (auto = false) => {
       if (!currentQuiz) return;
 
+      // ✅ if reading time (delayTime still active)
+      const isDuringReadingTime = delayTime !== null;
+
       if (!auto && !userAnswer.trim()) {
         setErrorMessage("⚠️ Please enter your answer before proceeding.");
         return;
@@ -166,9 +168,15 @@ const ArithmeticQuiz: React.FC = () => {
       const isCorrect =
         normalizedAnswer === correctAnswer || alternates.includes(normalizedAnswer);
 
-      const timeUsedForThis = auto
-        ? DIFFICULTY_TIMERS[currentQuiz.difficulty]
-        : Math.max(timeUsed, 1);
+      // ✅ Fix logic for timeUsed:
+      let timeUsedForThis = 0;
+      if (isDuringReadingTime) {
+        timeUsedForThis = 0; // answered during reading phase
+      } else if (auto || !isCorrect) {
+        timeUsedForThis = DIFFICULTY_TIMERS[currentQuiz.difficulty]; // full time if timeout or wrong
+      } else {
+        timeUsedForThis = Math.max(timeUsed, 1); // actual time if correct
+      }
 
       setScore((prev) => (isCorrect ? prev + 1 : prev));
 
@@ -227,7 +235,7 @@ const ArithmeticQuiz: React.FC = () => {
         setShowResultModal(true);
       }
     },
-    [currentQuiz, currentQuizIndex, quizQueue, userAnswer, userSolutions, timeUsed]
+    [currentQuiz, currentQuizIndex, quizQueue, userAnswer, userSolutions, timeUsed, delayTime]
   );
 
   // --- Proceed next level ---
@@ -260,7 +268,7 @@ const ArithmeticQuiz: React.FC = () => {
     }, 1000);
   };
 
-  // --- Save results (✅ fixed time_taken) ---
+  // --- Save results ---
   const saveResult = async (finalScore: number, totalTimeUsed: number) => {
     try {
       const { data: sessionData } = await supabase.auth.getSession();
@@ -291,7 +299,7 @@ const ArithmeticQuiz: React.FC = () => {
       ]);
 
       if (error) console.error("❌ Error saving score:", error.message);
-      else console.log("✅ Score successfully saved:", { easy, average, difficult, totalTime });
+      else console.log("✅ Score saved:", { easy, average, difficult, totalTime });
     } catch (err) {
       console.error("❌ Unexpected error saving score:", err);
     }
@@ -306,6 +314,7 @@ const ArithmeticQuiz: React.FC = () => {
       </IonHeader>
 
       <IonContent fullscreen>
+        {/* Category Selection */}
         {!selectedCategory ? (
           <div className="quiz-category">
             <h2 className="quiz-heading">Select Category</h2>
@@ -350,6 +359,7 @@ const ArithmeticQuiz: React.FC = () => {
           </div>
         ) : currentQuiz ? (
           <div className="quiz-content">
+            {/* Timers */}
             {delayTime !== null ? (
               <div className={`quiz-timer ${delayTime <= 3 ? "critical" : ""}`}>
                 {delayTime > 3
@@ -400,7 +410,7 @@ const ArithmeticQuiz: React.FC = () => {
           <p className="quiz-loading">Loading...</p>
         )}
 
-        {/* --- Result Modal --- */}
+        {/* Result Modal */}
         <IonModal isOpen={showResultModal} backdropDismiss={false}>
           <IonHeader>
             <IonToolbar color="light">

@@ -80,7 +80,7 @@ const ArithmeticLeaderboard: React.FC = () => {
         easy_total: row.easy,
         average_total: row.average,
         difficult_total: row.difficult,
-        overall_total: row.total_score,
+        overall_total: row.total_score || (row.easy + row.average + row.difficult), // Fallback to sum if total_score is null
         quizzes_taken: 1,
       }));
 
@@ -95,8 +95,8 @@ const ArithmeticLeaderboard: React.FC = () => {
       });
       const aggregatedRows = Array.from(aggregated.values());
 
-      // Filter by difficulty
-      let filteredRows = aggregatedRows.filter(r => r.overall_total > 0);
+      // Filter by difficulty (remove strict >0 filter to show all data)
+      let filteredRows = aggregatedRows;
       if (selectedDifficulty !== "All") {
         filteredRows = filteredRows.filter(r => {
           if (selectedDifficulty === "Easy") return r.easy_total > 0;

@@ -16,6 +16,8 @@ interface Quiz { category: string; subject: string; difficulty: string }
 interface RawScoreRow { score: number; time_taken: number; profiles: Profile | Profile[]; quizzes: Quiz | Quiz[]; }
 interface LeaderboardRow { score: number; time_taken: number; profiles: { lastname: string }; quizzes: { category: string; subject: string; difficulty: string } }
 
+const QUESTIONS_PER_DIFFICULTY = 5; // only include full attempts
+
 const ArithmeticLeaderboard: React.FC = () => {
   const [wordProblemData, setWordProblemData] = useState<LeaderboardRow[]>([]);
   const [problemSolvingData, setProblemSolvingData] = useState<LeaderboardRow[]>([]);
@@ -26,30 +28,49 @@ const ArithmeticLeaderboard: React.FC = () => {
     fetchLeaderboards();
   }, [selectedDifficulty]);
 
-  // Convert raw Supabase row into a consistent format
   const normalizeRow = (r: RawScoreRow): LeaderboardRow => {
     const lastname = Array.isArray(r.profiles) ? r.profiles[0]?.lastname ?? "" : r.profiles?.lastname ?? "";
     const quiz = Array.isArray(r.quizzes) ? r.quizzes[0] : r.quizzes;
-    const category = quiz?.category ?? "";
-    const subject = quiz?.subject ?? "";
-    const difficulty = quiz?.difficulty ?? "";
-    return { score: Number(r.score ?? 0), time_taken: Number(r.time_taken ?? 0), profiles: { lastname }, quizzes: { category, subject, difficulty } };
+    return {
+      score: Number(r.score ?? 0),
+      time_taken: Number(r.time_taken ?? 0),
+      profiles: { lastname },
+      quizzes: { 
+        category: quiz?.category ?? "", 
+        subject: quiz?.subject ?? "", 
+        difficulty: quiz?.difficulty ?? "" 
+      }
+    };
   };
 
-  // Keep only the highest score per user
-  const filterHighestPerUser = (data: LeaderboardRow[]) => {
-    const map = new Map<string, LeaderboardRow>();
+  // Filter only users who completed all questions for that difficulty
+  const filterFullScoresPerDifficulty = (data: LeaderboardRow[]) => {
+    const map = new Map<string, LeaderboardRow[]>();
+
     data.forEach((row) => {
-      const key = row.profiles.lastname;
-      const existing = map.get(key);
-      if (!existing || row.score > existing.score || (row.score === existing.score && row.time_taken < existing.time_taken)) {
-        map.set(key, row);
+      const key = row.profiles.lastname + "_" + row.quizzes.difficulty;
+      if (!map.has(key)) map.set(key, []);
+      map.get(key)!.push(row);
+    });
+
+    const result: LeaderboardRow[] = [];
+    map.forEach((rows) => {
+      if (rows.length === QUESTIONS_PER_DIFFICULTY) {
+        const totalScore = rows.reduce((sum, r) => sum + r.score, 0);
+        const totalTime = rows.reduce((sum, r) => sum + r.time_taken, 0);
+        const first = rows[0];
+        result.push({
+          profiles: first.profiles,
+          quizzes: first.quizzes,
+          score: totalScore,
+          time_taken: totalTime,
+        });
       }
     });
-    return Array.from(map.values()).sort((a, b) => b.score - a.score || a.time_taken - b.time_taken);
+
+    return result.sort((a, b) => b.score - a.score || a.time_taken - b.time_taken);
   };
 
-  // Fetch only Arithmetic Sequence scores (Word Problem & Problem Solving)
   const fetchLeaderboards = async () => {
     setLoading(true);
     try {
@@ -65,19 +86,19 @@ const ArithmeticLeaderboard: React.FC = () => {
         }
 
         const { data, error } = await query;
-
         if (error) {
           console.error(`Error fetching ${category}:`, error);
           return [];
         }
+
         return (data as RawScoreRow[]).map(normalizeRow);
       };
 
       const wordProblemRaw = await fetchCategory("Word Problem");
       const problemSolvingRaw = await fetchCategory("Problem Solving");
 
-      setWordProblemData(filterHighestPerUser(wordProblemRaw));
-      setProblemSolvingData(filterHighestPerUser(problemSolvingRaw));
+      setWordProblemData(filterFullScoresPerDifficulty(wordProblemRaw));
+      setProblemSolvingData(filterFullScoresPerDifficulty(problemSolvingRaw));
     } catch (e) {
       console.error("Unexpected fetch error", e);
       setWordProblemData([]);

@@ -8,8 +8,21 @@ import {
   IonSelect,
   IonSelectOption,
 } from "@ionic/react";
-import ReactApexChart from "react-apexcharts";
 import { supabase } from "../../utils/supabaseClient";
+import { Bar } from "react-chartjs-2";
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend,
+  ChartOptions,
+} from "chart.js";
+
+
+ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
 interface ScoreRow {
   user_id: string;
@@ -34,7 +47,7 @@ interface ProgressRow {
 
 const MAX_SCORE = 15;
 
-const ArithmeticProgressLine: React.FC = () => {
+const ArithmeticProgress: React.FC = () => {
   const [data, setData] = useState<ProgressRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<
@@ -55,18 +68,16 @@ const ArithmeticProgressLine: React.FC = () => {
 
       if (error) throw error;
 
-      const mappedData: ProgressRow[] = (fetchedData as ScoreRow[]).map(
-        (row) => ({
-          user_id: row.user_id,
-          lastname: row.lastname,
-          category: row.category,
-          quizzes_taken: row.quizzes_taken,
-          scores: [row.easy_total, row.average_total, row.difficult_total].slice(
-            0,
-            row.quizzes_taken
-          ),
-        })
-      );
+      const mappedData: ProgressRow[] = (fetchedData as ScoreRow[]).map((row) => ({
+        user_id: row.user_id,
+        lastname: row.lastname,
+        category: row.category,
+        quizzes_taken: row.quizzes_taken,
+        scores: [row.easy_total, row.average_total, row.difficult_total].slice(
+          0,
+          row.quizzes_taken
+        ),
+      }));
 
       setData(mappedData);
     } catch (err) {
@@ -77,52 +88,41 @@ const ArithmeticProgressLine: React.FC = () => {
     }
   };
 
-  const getChartSeries = () => {
-    const filtered = data.filter((d) => d.category === selectedCategory);
-    return filtered.map((user) => ({
-      name: user.lastname,
-      data: user.scores,
-    }));
-  };
-
-  const getChartCategories = () => {
+  const chartData = () => {
     const filtered = data.filter((d) => d.category === selectedCategory);
     const maxQuizzes = filtered.reduce(
       (max, user) => Math.max(max, user.quizzes_taken),
       0
     );
-    return Array.from({ length: maxQuizzes }, (_, i) => `Quiz ${i + 1}`);
+
+    return {
+      labels: Array.from({ length: maxQuizzes }, (_, i) => `Quiz ${i + 1}`),
+      datasets: filtered.map((user, idx) => ({
+        label: user.lastname,
+        data: user.scores,
+        backgroundColor: `rgba(${(idx * 50) % 255}, ${
+          (idx * 80) % 255
+        }, ${(idx * 120) % 255}, 0.6)`,
+      })),
+    };
   };
 
-  const chartOptions: ApexCharts.ApexOptions = {
-    chart: {
-      type: "line",
-      height: 350,
-      zoom: { enabled: false },
-      toolbar: { show: false },
+  // ✅ Type-safe Chart.js options
+  const options: ChartOptions<"bar"> = {
+    responsive: true,
+    plugins: {
+      legend: { position: "top" },
+      title: {
+        display: true,
+        text: `Arithmetic Sequence Progress - ${selectedCategory}`,
+        font: { size: 16, weight: "bold" },
+      },
     },
-    stroke: { curve: "smooth", width: 4, colors: ["#008FFB"] },
-    title: {
-      text: `Arithmetic Sequence Progress - ${selectedCategory}`,
-      align: "left",
-    },
-    xaxis: {
-      categories: getChartCategories(),
-      title: { text: "Quizzes Taken" },
-    },
-    yaxis: {
-      max: MAX_SCORE,
-      min: 0,
-      title: { text: "Score" },
-    },
-    dataLabels: { enabled: false },
-    grid: {
-      row: { colors: ["#f3f3f3", "transparent"], opacity: 0.5 },
-    },
-    tooltip: {
-      theme: "light",
+    scales: {
       y: {
-        formatter: (val) => `${val} pts`,
+        beginAtZero: true,
+        max: MAX_SCORE,
+        ticks: { stepSize: 5 },
       },
     },
   };
@@ -130,41 +130,34 @@ const ArithmeticProgressLine: React.FC = () => {
   return (
     <IonPage>
       <IonHeader>
-        <IonToolbar>
-          <IonTitle>Arithmetic Sequence Progress</IonTitle>
+        <IonToolbar className="progress-toolbar">
+          <IonTitle className="progress-title">Arithmetic Sequence Progress</IonTitle>
         </IonToolbar>
       </IonHeader>
 
-      <IonContent className="progress-page">
-        <div className="progress-filter">
-          <label>Select Category:</label>
+      <IonContent className="ion-padding progress-content">
+        <div className="progress-select-container">
+          <label className="progress-label">Select Category:</label>
           <IonSelect
             value={selectedCategory}
             onIonChange={(e) => setSelectedCategory(e.detail.value)}
             className="progress-select"
           >
             <IonSelectOption value="Word Problem">Word Problem</IonSelectOption>
-            <IonSelectOption value="Problem Solving">
-              Problem Solving
-            </IonSelectOption>
+            <IonSelectOption value="Problem Solving">Problem Solving</IonSelectOption>
           </IonSelect>
         </div>
 
-        {loading ? (
-          <div className="progress-loading">Loading...</div>
-        ) : (
-          <div className="progress-chart-card">
-            <ReactApexChart
-              options={chartOptions}
-              series={getChartSeries()}
-              type="line"
-              height={350}
-            />
-          </div>
-        )}
+        <div className="progress-chart-container">
+          {loading ? (
+            <p className="progress-loading">Loading...</p>
+          ) : (
+            <Bar data={chartData()} options={options} />
+          )}
+        </div>
       </IonContent>
     </IonPage>
   );
 };
 
-export default ArithmeticProgressLine;
+export default ArithmeticProgress;

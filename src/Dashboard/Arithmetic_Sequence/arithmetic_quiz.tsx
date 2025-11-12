@@ -66,6 +66,19 @@ const ArithmeticQuiz: React.FC = () => {
   const delayRef = useRef<NodeJS.Timeout | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
+  // --- Clear all timers ---
+  const clearAllTimers = () => {
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+    if (delayRef.current) {
+      clearInterval(delayRef.current);
+      delayRef.current = null;
+    }
+  };
+
+  // --- Fetch quizzes ---
   useEffect(() => {
     const fetchQuizzes = async () => {
       const { data, error } = await supabase
@@ -80,6 +93,7 @@ const ArithmeticQuiz: React.FC = () => {
     fetchQuizzes();
   }, []);
 
+  // --- Start quiz ---
   const startQuiz = (category: string) => {
     setSelectedCategory(category);
 
@@ -102,11 +116,10 @@ const ArithmeticQuiz: React.FC = () => {
     if (buildQueue[0]) setDelayTime(15);
   };
 
+  // --- Timer logic ---
   useEffect(() => {
     if (!currentQuiz) return;
-
-    if (timerRef.current) clearInterval(timerRef.current);
-    if (delayRef.current) clearInterval(delayRef.current);
+    clearAllTimers();
 
     setDelayTime(15);
     setTimeLeft(0);
@@ -138,12 +151,10 @@ const ArithmeticQuiz: React.FC = () => {
       });
     }, 1000);
 
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-      if (delayRef.current) clearInterval(delayRef.current);
-    };
+    return () => clearAllTimers();
   }, [currentQuiz]);
 
+  // --- Next question / level ---
   const handleNext = useCallback(
     (auto = false) => {
       if (!currentQuiz) return;
@@ -152,7 +163,6 @@ const ArithmeticQuiz: React.FC = () => {
         setErrorMessage("⚠️ Please enter your answer before proceeding.");
         return;
       }
-
       setErrorMessage("");
 
       const normalizedAnswer = userAnswer.trim().toLowerCase();
@@ -200,9 +210,9 @@ const ArithmeticQuiz: React.FC = () => {
       const nextDiff = difficultyOrder[currentDiffIndex + 1];
 
       if (nextDiff) {
-        clearInterval(timerRef.current!);
+        clearAllTimers();
 
-        // Show Yes/No modal
+        // Show Yes/No modal for next level
         const levelScore =
           userSolutions.filter(
             (q) => q.difficulty === currentDifficulty && q.isCorrect
@@ -214,28 +224,18 @@ const ArithmeticQuiz: React.FC = () => {
         setShowTransitionScreen(true);
         setShowYesNo(true);
       } else {
-        clearInterval(timerRef.current!);
+        clearAllTimers();
         setShowResultModal(true);
-
-        const totalTimeUsed = [
-          ...userSolutions,
-          {
-            question: currentQuiz.question,
-            correct: currentQuiz.answer,
-            userAnswer: userAnswer || "(no answer)",
-            solution: currentQuiz.solution,
-            isCorrect,
-            timeUsed: timeUsedForThis,
-            difficulty: currentQuiz.difficulty,
-          },
-        ].reduce((sum, q) => sum + q.timeUsed, 0);
-
-        saveResult(score + (isCorrect ? 1 : 0), totalTimeUsed);
+        // Save final results
+        const totalScore = userSolutions.filter((s) => s.isCorrect).length + (isCorrect ? 1 : 0);
+        const totalTime = userSolutions.reduce((sum, s) => sum + s.timeUsed, 0) + timeUsedForThis;
+        saveResult(totalScore, totalTime);
       }
     },
-    [currentQuiz, currentQuizIndex, quizQueue, userAnswer, score, timeUsed, userSolutions]
+    [currentQuiz, currentQuizIndex, quizQueue, userAnswer, userSolutions, timeUsed]
   );
 
+  // --- Proceed to next level ---
   const proceedNextLevel = () => {
     setShowYesNo(false);
     const currentDiffIndex = difficultyOrder.indexOf(currentQuiz!.difficulty);
@@ -262,24 +262,25 @@ const ArithmeticQuiz: React.FC = () => {
     }, 1000);
   };
 
+  // --- Save result ---
   const saveResult = async (finalScore: number, totalTimeUsed: number) => {
     try {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
+      const sessionResponse = await supabase.auth.getSession();
+      const session = sessionResponse.data.session;
       if (!session) return;
       const userId = session.user.id;
 
-      await supabase.from("scores").insert([
+      const { error } = await supabase.from("scores").insert([
         {
           user_id: userId,
-          quiz_id: quizQueue[0]?.id || null,
+          quiz_id: currentQuiz?.id || null,
           score: finalScore,
           time_taken: totalTimeUsed,
         },
       ]);
+      if (error) console.error("Error saving score:", error.message);
     } catch (err) {
-      console.error("Error saving score:", err);
+      console.error("Unexpected error saving score:", err);
     }
   };
 
@@ -292,6 +293,7 @@ const ArithmeticQuiz: React.FC = () => {
       </IonHeader>
 
       <IonContent fullscreen>
+        {/* --- Category Selection --- */}
         {!selectedCategory ? (
           <div className="quiz-category">
             <h2 className="quiz-heading">Select Category</h2>
@@ -304,6 +306,7 @@ const ArithmeticQuiz: React.FC = () => {
             </div>
           </div>
         ) : showTransitionScreen ? (
+          // --- Transition Screen ---
           <div className="transition-screen">
             <div className="transition-card">
               <h2 className="transition-heading">Level Complete!</h2>
@@ -311,19 +314,16 @@ const ArithmeticQuiz: React.FC = () => {
 
               {showYesNo && (
                 <div className="transition-buttons">
-                  <IonButton color="success" onClick={proceedNextLevel}>
-                    Yes
-                  </IonButton>
+                  <IonButton color="success" onClick={proceedNextLevel}>Yes</IonButton>
                   <IonButton
                     color="danger"
                     onClick={() => {
+                      clearAllTimers();
                       setShowTransitionScreen(false);
                       setSelectedCategory(null);
                       setCurrentQuiz(null);
                       setUserAnswer("");
                       setUserSolutions([]);
-                      clearInterval(timerRef.current!);
-                      clearInterval(delayRef.current!);
                     }}
                   >
                     No
@@ -337,18 +337,14 @@ const ArithmeticQuiz: React.FC = () => {
             </div>
           </div>
         ) : currentQuiz ? (
+          // --- Quiz Content ---
           <div className="quiz-content">
             {delayTime !== null ? (
               <div className={`quiz-delay ${delayTime <= 3 ? "almost-start" : ""}`}>
                 {delayTime > 3 ? (
-                  <>
-                    📖 Reading Time: <span className="countdown">{delayTime}s</span>
-                  </>
+                  <>📖 Reading Time: <span className="countdown">{delayTime}s</span></>
                 ) : (
-                  <>
-                    ⚡ Get Ready! The timer will start soon:{" "}
-                    <span className="countdown">{delayTime}s</span>
-                  </>
+                  <>⚡ Get Ready! The timer will start soon: <span className="countdown">{delayTime}s</span></>
                 )}
               </div>
             ) : (
@@ -370,19 +366,34 @@ const ArithmeticQuiz: React.FC = () => {
             </IonItem>
 
             {errorMessage && (
-              <IonText color="danger" className="quiz-error">
-                {errorMessage}
-              </IonText>
+              <IonText color="danger" className="quiz-error">{errorMessage}</IonText>
             )}
 
             <IonButton expand="block" onClick={() => handleNext(false)} className="quiz-next">
               Next
+            </IonButton>
+
+            <IonButton
+              expand="block"
+              fill="outline"
+              color="medium"
+              onClick={() => {
+                clearAllTimers();
+                setSelectedCategory(null);
+                setCurrentQuiz(null);
+                setUserAnswer("");
+                setUserSolutions([]);
+              }}
+              className="quiz-back"
+            >
+              Back to Categories
             </IonButton>
           </div>
         ) : (
           <p className="quiz-loading">Loading...</p>
         )}
 
+        {/* --- Result Modal --- */}
         <IonModal isOpen={showResultModal} backdropDismiss={false}>
           <IonHeader>
             <IonToolbar color="light">
@@ -391,23 +402,15 @@ const ArithmeticQuiz: React.FC = () => {
           </IonHeader>
           <IonContent className="quiz-result-content">
             <h2>Quiz Completed!</h2>
-            <h3>
-              Score: {score}/{userSolutions.length}
-            </h3>
+            <h3>Score: {score}/{userSolutions.length}</h3>
             <ul className="quiz-result-list">
               {userSolutions.map((res, i) => (
                 <li key={i} className={`quiz-result-item ${res.isCorrect ? "correct" : "wrong"}`}>
-                  <b>Q{i + 1}:</b> {res.question}
-                  <br />
+                  <b>Q{i + 1}:</b> {res.question}<br/>
                   <b>Your Answer:</b>{" "}
-                  <span className={res.isCorrect ? "text-correct" : "text-wrong"}>
-                    {res.userAnswer}
-                  </span>
-                  <br />
-                  <b>Correct Answer:</b> {res.correct}
-                  <br />
-                  <b>Time Used:</b> {res.timeUsed}s
-                  <br />
+                  <span className={res.isCorrect ? "text-correct" : "text-wrong"}>{res.userAnswer}</span><br/>
+                  <b>Correct Answer:</b> {res.correct}<br/>
+                  <b>Time Used:</b> {res.timeUsed}s<br/>
                   <b>Solution:</b>
                   <pre>{res.solution || "No solution provided."}</pre>
                 </li>
@@ -416,6 +419,7 @@ const ArithmeticQuiz: React.FC = () => {
             <IonButton
               expand="block"
               onClick={() => {
+                clearAllTimers();
                 setShowResultModal(false);
                 setSelectedCategory(null);
                 setCurrentQuiz(null);

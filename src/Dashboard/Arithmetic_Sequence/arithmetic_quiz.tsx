@@ -53,29 +53,24 @@ const ArithmeticQuiz: React.FC = () => {
     }[]
   >([]);
   const [showResultModal, setShowResultModal] = useState(false);
-  const [timeLeft, setTimeLeft] = useState<number>(0);
   const [timeUsed, setTimeUsed] = useState<number>(0);
+  const [timeLeft, setTimeLeft] = useState<number>(0);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
   const [showTransitionScreen, setShowTransitionScreen] = useState(false);
   const [transitionMessage, setTransitionMessage] = useState("");
   const [showYesNo, setShowYesNo] = useState(false);
   const [countdown, setCountdown] = useState(3);
-
   const [delayTime, setDelayTime] = useState<number | null>(null);
-  const delayRef = useRef<NodeJS.Timeout | null>(null);
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // --- Clear all timers ---
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const delayRef = useRef<NodeJS.Timeout | null>(null);
+
   const clearAllTimers = () => {
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-      timerRef.current = null;
-    }
-    if (delayRef.current) {
-      clearInterval(delayRef.current);
-      delayRef.current = null;
-    }
+    if (timerRef.current) clearInterval(timerRef.current);
+    if (delayRef.current) clearInterval(delayRef.current);
+    timerRef.current = null;
+    delayRef.current = null;
   };
 
   // --- Fetch quizzes ---
@@ -88,7 +83,7 @@ const ArithmeticQuiz: React.FC = () => {
         .in("category", ["Word Problem", "Problem Solving"]);
 
       if (error) console.error("Error fetching quizzes:", error.message);
-      else setAllQuizzes(data || []);
+      else setAllQuizzes((data as Quiz[]) || []);
     };
     fetchQuizzes();
   }, []);
@@ -99,19 +94,18 @@ const ArithmeticQuiz: React.FC = () => {
 
     const categoryQuizzes = allQuizzes.filter((q) => q.category === category);
     const buildQueue = difficultyOrder.flatMap((difficulty) => {
-      const filtered = categoryQuizzes
+      return categoryQuizzes
         .filter((q) => q.difficulty === difficulty)
         .sort(() => Math.random() - 0.5)
         .slice(0, QUESTIONS_PER_DIFFICULTY);
-      return filtered;
     });
 
     setQuizQueue(buildQueue);
     setCurrentQuizIndex(0);
     setCurrentQuiz(buildQueue[0] || null);
-    setScore(0);
     setUserSolutions([]);
     setUserAnswer("");
+    setScore(0);
     setTimeUsed(0);
     if (buildQueue[0]) setDelayTime(15);
   };
@@ -120,14 +114,13 @@ const ArithmeticQuiz: React.FC = () => {
   useEffect(() => {
     if (!currentQuiz) return;
     clearAllTimers();
-
-    setDelayTime(15);
     setTimeLeft(0);
     setTimeUsed(0);
+    setDelayTime(15);
 
     delayRef.current = setInterval(() => {
       setDelayTime((prev) => {
-        if (prev === null) return null;
+        if (!prev) return null;
         if (prev <= 1) {
           clearInterval(delayRef.current!);
           setDelayTime(null);
@@ -167,15 +160,10 @@ const ArithmeticQuiz: React.FC = () => {
 
       const normalizedAnswer = userAnswer.trim().toLowerCase();
       const correctAnswer = currentQuiz.answer.trim().toLowerCase();
-      const alternates = (currentQuiz.accepted_answers || []).map((a) =>
-        a.trim().toLowerCase()
-      );
-      const isCorrect =
-        normalizedAnswer === correctAnswer || alternates.includes(normalizedAnswer);
+      const alternates = (currentQuiz.accepted_answers || []).map((a) => a.trim().toLowerCase());
+      const isCorrect = normalizedAnswer === correctAnswer || alternates.includes(normalizedAnswer);
 
-      const timeUsedForThis = isCorrect
-        ? timeUsed
-        : DIFFICULTY_TIMERS[currentQuiz.difficulty];
+      const timeUsedForThis = auto ? DIFFICULTY_TIMERS[currentQuiz.difficulty] : timeUsed;
 
       setScore((prev) => (isCorrect ? prev + 1 : prev));
 
@@ -192,50 +180,43 @@ const ArithmeticQuiz: React.FC = () => {
         },
       ]);
 
-      const currentDifficulty = currentQuiz.difficulty;
-      const remainingInSameDifficulty = quizQueue.filter(
-        (q, i) => q.difficulty === currentDifficulty && i > currentQuizIndex
-      );
+      // --- Move to next question ---
+      const remaining = quizQueue.slice(currentQuizIndex + 1).filter((q) => q.difficulty === currentQuiz.difficulty);
 
-      if (remainingInSameDifficulty.length > 0) {
+      if (remaining.length > 0) {
         const nextIndex = currentQuizIndex + 1;
         setCurrentQuizIndex(nextIndex);
         setCurrentQuiz(quizQueue[nextIndex]);
         setUserAnswer("");
+        setTimeUsed(0);
         setDelayTime(15);
         return;
       }
 
-      const currentDiffIndex = difficultyOrder.indexOf(currentDifficulty);
-      const nextDiff = difficultyOrder[currentDiffIndex + 1];
+      // --- Move to next difficulty or finish ---
+      const nextDiffIndex = difficultyOrder.indexOf(currentQuiz.difficulty) + 1;
+      const nextDiff = difficultyOrder[nextDiffIndex];
 
       if (nextDiff) {
-        clearAllTimers();
-
-        // Show Yes/No modal for next level
-        const levelScore =
-          userSolutions.filter(
-            (q) => q.difficulty === currentDifficulty && q.isCorrect
-          ).length + (isCorrect ? 1 : 0);
+        const levelScore = userSolutions.filter((q) => q.difficulty === currentQuiz.difficulty && q.isCorrect).length + (isCorrect ? 1 : 0);
 
         setTransitionMessage(
-          `✅ You completed all ${currentDifficulty} questions.\nYour score: ${levelScore}/5\nDo you want to proceed to the ${nextDiff} level?`
+          `✅ You completed all ${currentQuiz.difficulty} questions.\nYour score: ${levelScore}/5\nDo you want to proceed to the ${nextDiff} level?`
         );
         setShowTransitionScreen(true);
         setShowYesNo(true);
       } else {
-        clearAllTimers();
-        setShowResultModal(true);
-        // Save final results
+        // --- Quiz finished ---
         const totalScore = userSolutions.filter((s) => s.isCorrect).length + (isCorrect ? 1 : 0);
         const totalTime = userSolutions.reduce((sum, s) => sum + s.timeUsed, 0) + timeUsedForThis;
         saveResult(totalScore, totalTime);
+        setShowResultModal(true);
       }
     },
     [currentQuiz, currentQuizIndex, quizQueue, userAnswer, userSolutions, timeUsed]
   );
 
-  // --- Proceed to next level ---
+  // --- Proceed next level ---
   const proceedNextLevel = () => {
     setShowYesNo(false);
     const currentDiffIndex = difficultyOrder.indexOf(currentQuiz!.difficulty);
@@ -250,11 +231,12 @@ const ArithmeticQuiz: React.FC = () => {
           clearInterval(countdownInterval);
           const nextQuizIndex = quizQueue.findIndex((q) => q.difficulty === nextDiff);
           if (nextQuizIndex !== -1) {
-            setShowTransitionScreen(false);
             setCurrentQuizIndex(nextQuizIndex);
             setCurrentQuiz(quizQueue[nextQuizIndex]);
             setUserAnswer("");
+            setTimeUsed(0);
             setDelayTime(15);
+            setShowTransitionScreen(false);
           }
         }
         return prev - 1;
@@ -262,22 +244,29 @@ const ArithmeticQuiz: React.FC = () => {
     }, 1000);
   };
 
-  // --- Save result ---
+  // --- Save results ---
   const saveResult = async (finalScore: number, totalTimeUsed: number) => {
     try {
-      const sessionResponse = await supabase.auth.getSession();
-      const session = sessionResponse.data.session;
-      if (!session) return;
-      const userId = session.user.id;
+      const session = await supabase.auth.getSession();
+      if (!session.data.session) return;
+      const userId = session.data.session.user.id;
+
+      // Count correct answers per difficulty
+      const easy = userSolutions.filter((s) => s.difficulty === "Easy" && s.isCorrect).length;
+      const average = userSolutions.filter((s) => s.difficulty === "Average" && s.isCorrect).length;
+      const difficult = userSolutions.filter((s) => s.difficulty === "Difficult" && s.isCorrect).length;
 
       const { error } = await supabase.from("scores").insert([
         {
           user_id: userId,
-          quiz_id: currentQuiz?.id || null,
-          score: finalScore,
+          quiz_id: quizQueue[0]?.id ?? null, // You can choose a representative quiz_id or null
+          easy,
+          average,
+          difficult,
           time_taken: totalTimeUsed,
         },
       ]);
+
       if (error) console.error("Error saving score:", error.message);
     } catch (err) {
       console.error("Unexpected error saving score:", err);
@@ -287,137 +276,87 @@ const ArithmeticQuiz: React.FC = () => {
   return (
     <IonPage className="quiz-container">
       <IonHeader>
-        <IonToolbar color="light">
-          <IonTitle className="quiz-title">Arithmetic Quiz</IonTitle>
+        <IonToolbar>
+          <IonTitle>Arithmetic Quiz</IonTitle>
         </IonToolbar>
       </IonHeader>
-
       <IonContent fullscreen>
-        {/* --- Category Selection --- */}
         {!selectedCategory ? (
-          <div className="quiz-category">
-            <h2 className="quiz-heading">Select Category</h2>
-            <div className="quiz-category-buttons">
-              {["Word Problem", "Problem Solving"].map((cat) => (
-                <IonButton key={cat} onClick={() => startQuiz(cat)} className="quiz-btn">
-                  {cat}
-                </IonButton>
-              ))}
-            </div>
+          <div>
+            <h2>Select Category</h2>
+            {["Word Problem", "Problem Solving"].map((cat) => (
+              <IonButton key={cat} onClick={() => startQuiz(cat)}>
+                {cat}
+              </IonButton>
+            ))}
           </div>
         ) : showTransitionScreen ? (
-          // --- Transition Screen ---
-          <div className="transition-screen">
-            <div className="transition-card">
-              <h2 className="transition-heading">Level Complete!</h2>
-              <p className="transition-text">{transitionMessage}</p>
-
-              {showYesNo && (
-                <div className="transition-buttons">
-                  <IonButton color="success" onClick={proceedNextLevel}>Yes</IonButton>
-                  <IonButton
-                    color="danger"
-                    onClick={() => {
-                      clearAllTimers();
-                      setShowTransitionScreen(false);
-                      setSelectedCategory(null);
-                      setCurrentQuiz(null);
-                      setUserAnswer("");
-                      setUserSolutions([]);
-                    }}
-                  >
-                    No
-                  </IonButton>
-                </div>
-              )}
-
-              {!showYesNo && transitionMessage.includes("Get ready") && (
-                <h3 className="countdown-display">⏳ {countdown}</h3>
-              )}
-            </div>
-          </div>
-        ) : currentQuiz ? (
-          // --- Quiz Content ---
-          <div className="quiz-content">
-            {delayTime !== null ? (
-              <div className={`quiz-delay ${delayTime <= 3 ? "almost-start" : ""}`}>
-                {delayTime > 3 ? (
-                  <>📖 Reading Time: <span className="countdown">{delayTime}s</span></>
-                ) : (
-                  <>⚡ Get Ready! The timer will start soon: <span className="countdown">{delayTime}s</span></>
-                )}
-              </div>
-            ) : (
-              <div className={`quiz-timer ${timeLeft <= 5 ? "critical" : ""}`}>
-                ⏳ Time Left: {timeLeft}s
+          <div>
+            <h2>Level Complete!</h2>
+            <p>{transitionMessage}</p>
+            {showYesNo && (
+              <div>
+                <IonButton onClick={proceedNextLevel}>Yes</IonButton>
+                <IonButton
+                  onClick={() => {
+                    clearAllTimers();
+                    setSelectedCategory(null);
+                    setCurrentQuiz(null);
+                    setUserAnswer("");
+                    setUserSolutions([]);
+                  }}
+                >
+                  No
+                </IonButton>
               </div>
             )}
-
-            <h2 className="quiz-difficulty">{currentQuiz.difficulty}</h2>
-            <p className="quiz-question">{currentQuiz.question}</p>
-
-            <IonItem className="quiz-input-item">
+            {!showYesNo && <h3>⏳ {countdown}</h3>}
+          </div>
+        ) : currentQuiz ? (
+          <div>
+            {delayTime !== null ? (
+              <div>{delayTime > 3 ? `📖 Reading Time: ${delayTime}s` : `⚡ Get Ready! ${delayTime}s`}</div>
+            ) : (
+              <div>⏳ Time Left: {timeLeft}s</div>
+            )}
+            <h3>{currentQuiz.difficulty}</h3>
+            <p>{currentQuiz.question}</p>
+            <IonItem>
               <IonInput
                 value={userAnswer}
                 placeholder="Enter your answer"
                 onIonInput={(e) => setUserAnswer(e.detail.value ?? "")}
-                className="quiz-input"
               />
             </IonItem>
-
-            {errorMessage && (
-              <IonText color="danger" className="quiz-error">{errorMessage}</IonText>
-            )}
-
-            <IonButton expand="block" onClick={() => handleNext(false)} className="quiz-next">
-              Next
-            </IonButton>
-
-            <IonButton
-              expand="block"
-              fill="outline"
-              color="medium"
-              onClick={() => {
-                clearAllTimers();
-                setSelectedCategory(null);
-                setCurrentQuiz(null);
-                setUserAnswer("");
-                setUserSolutions([]);
-              }}
-              className="quiz-back"
-            >
-              Back to Categories
-            </IonButton>
+            {errorMessage && <IonText color="danger">{errorMessage}</IonText>}
+            <IonButton onClick={() => handleNext(false)}>Next</IonButton>
           </div>
         ) : (
-          <p className="quiz-loading">Loading...</p>
+          <p>Loading...</p>
         )}
 
-        {/* --- Result Modal --- */}
-        <IonModal isOpen={showResultModal} backdropDismiss={false}>
+        <IonModal isOpen={showResultModal}>
           <IonHeader>
-            <IonToolbar color="light">
+            <IonToolbar>
               <IonTitle>Results</IonTitle>
             </IonToolbar>
           </IonHeader>
-          <IonContent className="quiz-result-content">
+          <IonContent>
             <h2>Quiz Completed!</h2>
-            <h3>Score: {score}/{userSolutions.length}</h3>
-            <ul className="quiz-result-list">
+            <h3>
+              Score: {score}/{userSolutions.length}
+            </h3>
+            <ul>
               {userSolutions.map((res, i) => (
-                <li key={i} className={`quiz-result-item ${res.isCorrect ? "correct" : "wrong"}`}>
-                  <b>Q{i + 1}:</b> {res.question}<br/>
-                  <b>Your Answer:</b>{" "}
-                  <span className={res.isCorrect ? "text-correct" : "text-wrong"}>{res.userAnswer}</span><br/>
-                  <b>Correct Answer:</b> {res.correct}<br/>
-                  <b>Time Used:</b> {res.timeUsed}s<br/>
-                  <b>Solution:</b>
-                  <pre>{res.solution || "No solution provided."}</pre>
+                <li key={i}>
+                  <b>Q{i + 1}:</b> {res.question} <br />
+                  <b>Your Answer:</b> {res.userAnswer} <br />
+                  <b>Correct Answer:</b> {res.correct} <br />
+                  <b>Time Used:</b> {res.timeUsed}s
                 </li>
               ))}
             </ul>
             <IonButton
-              expand="block"
               onClick={() => {
                 clearAllTimers();
                 setShowResultModal(false);
@@ -426,7 +365,6 @@ const ArithmeticQuiz: React.FC = () => {
                 setUserAnswer("");
                 setUserSolutions([]);
               }}
-              className="quiz-finish-btn"
             >
               Back to Categories
             </IonButton>

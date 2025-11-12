@@ -47,6 +47,9 @@ const ArithmeticLeaderboard: React.FC = () => {
 
       let rows = data as LeaderboardRow[];
 
+      // Only include users who have taken at least one quiz
+      rows = rows.filter((r) => r.overall_total > 0);
+
       // Filter by difficulty if selected
       if (selectedDifficulty !== "All") {
         const col =
@@ -55,6 +58,7 @@ const ArithmeticLeaderboard: React.FC = () => {
             : selectedDifficulty === "Average"
             ? "average_total"
             : "difficult_total";
+
         rows = rows
           .filter((r) => r[col] > 0)
           .sort((a, b) => b[col] - a[col]); // Sort descending by that difficulty
@@ -79,8 +83,6 @@ const ArithmeticLeaderboard: React.FC = () => {
             <tr>
               <th>Place</th>
               <th>Lastname</th>
-              <th>Score</th>
-              {selectedDifficulty !== "All" && <th>Time</th>}
               {selectedDifficulty === "All" && (
                 <>
                   <th>Easy</th>
@@ -90,6 +92,7 @@ const ArithmeticLeaderboard: React.FC = () => {
                   <th>Quizzes Taken</th>
                 </>
               )}
+              {selectedDifficulty !== "All" && <th>Score</th>}
             </tr>
           </thead>
           <tbody>
@@ -98,9 +101,6 @@ const ArithmeticLeaderboard: React.FC = () => {
                 <tr key={row.user_id}>
                   <td>{medals[index] || index + 1}</td>
                   <td>{row.lastname}</td>
-                  {selectedDifficulty === "Easy" && <td>{row.easy_total}</td>}
-                  {selectedDifficulty === "Average" && <td>{row.average_total}</td>}
-                  {selectedDifficulty === "Difficult" && <td>{row.difficult_total}</td>}
                   {selectedDifficulty === "All" && (
                     <>
                       <td>{row.easy_total}</td>
@@ -110,12 +110,22 @@ const ArithmeticLeaderboard: React.FC = () => {
                       <td>{row.quizzes_taken}</td>
                     </>
                   )}
-                  {selectedDifficulty !== "All" && <td>-</td> /* Placeholder for time */}
+                  {selectedDifficulty !== "All" && (
+                    <td>
+                      {selectedDifficulty === "Easy"
+                        ? row.easy_total
+                        : selectedDifficulty === "Average"
+                        ? row.average_total
+                        : row.difficult_total}
+                    </td>
+                  )}
                 </tr>
               ))
             ) : (
               <tr>
-                <td colSpan={selectedDifficulty === "All" ? 8 : 4}>No data found.</td>
+                <td colSpan={selectedDifficulty === "All" ? 7 : 3}>
+                  No data found.
+                </td>
               </tr>
             )}
           </tbody>

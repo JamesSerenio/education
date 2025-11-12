@@ -151,6 +151,9 @@ const ArithmeticQuiz: React.FC = () => {
     (auto = false) => {
       if (!currentQuiz) return;
 
+      // ✅ if reading time (delayTime still active)
+      const isDuringReadingTime = delayTime !== null;
+
       if (!auto && !userAnswer.trim()) {
         setErrorMessage("⚠️ Please enter your answer before proceeding.");
         return;
@@ -165,12 +168,22 @@ const ArithmeticQuiz: React.FC = () => {
       const isCorrect =
         normalizedAnswer === correctAnswer || alternates.includes(normalizedAnswer);
 
-      // ✅ Accurate time logic: correct = actual time (at least 1), wrong/timeout = full difficulty time
+      // ✅ Accurate time logic:
+      // - During reading time: correct = 0, wrong = full time
+      // - After timer starts: correct = actual time (min 1), wrong/timeout = full time
       let timeUsedForThis = 0;
-      if (isCorrect) {
-        timeUsedForThis = Math.max(timeUsed, 1); // actual time for correct, min 1
+      if (isDuringReadingTime) {
+        if (isCorrect) {
+          timeUsedForThis = 0; // answered correctly during reading, no time penalty
+        } else {
+          timeUsedForThis = DIFFICULTY_TIMERS[currentQuiz.difficulty]; // wrong during reading, full time penalty
+        }
       } else {
-        timeUsedForThis = DIFFICULTY_TIMERS[currentQuiz.difficulty]; // full time for wrong or timeout
+        if (isCorrect) {
+          timeUsedForThis = Math.max(timeUsed, 1); // actual time for correct, min 1
+        } else {
+          timeUsedForThis = DIFFICULTY_TIMERS[currentQuiz.difficulty]; // full time for wrong or timeout
+        }
       }
 
       setScore((prev) => (isCorrect ? prev + 1 : prev));
@@ -250,7 +263,7 @@ const ArithmeticQuiz: React.FC = () => {
         },
       ]);
     },
-    [currentQuiz, currentQuizIndex, quizQueue, userAnswer, userSolutions, timeUsed]
+    [currentQuiz, currentQuizIndex, quizQueue, userAnswer, userSolutions, timeUsed, delayTime]
   );
 
   // --- Proceed next level ---
@@ -298,8 +311,8 @@ const ArithmeticQuiz: React.FC = () => {
       const average = userSolutions.filter((s) => s.difficulty === "Average" && s.isCorrect).length;
       const difficult = userSolutions.filter((s) => s.difficulty === "Difficult" && s.isCorrect).length;
 
-      // Connect time_taken to the SQL table: accurate sum of timeUsed (actual for correct, full for wrong/timeout)
-      // Example: Easy - 10s (correct) + 60s (wrong) + 5s (correct) + 60s (wrong) + 60s (wrong) = 195s
+      // Connect time_taken to the SQL table: accurate sum of timeUsed
+      // Example: Easy - 0s (correct during reading) + 60s (wrong) + 5s (correct after timer) + 60s (wrong) + 60s (wrong) = 185s
       // Same for Average (180s per wrong) and Difficult (300s per wrong), total up to 2700s
       const { error } = await supabase.from("scores").insert([
         {

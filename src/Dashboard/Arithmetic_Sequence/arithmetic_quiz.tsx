@@ -251,7 +251,6 @@ const ArithmeticQuiz: React.FC = () => {
       if (!session.data.session) return;
       const userId = session.data.session.user.id;
 
-      // Count correct answers per difficulty
       const easy = userSolutions.filter((s) => s.difficulty === "Easy" && s.isCorrect).length;
       const average = userSolutions.filter((s) => s.difficulty === "Average" && s.isCorrect).length;
       const difficult = userSolutions.filter((s) => s.difficulty === "Difficult" && s.isCorrect).length;
@@ -259,7 +258,7 @@ const ArithmeticQuiz: React.FC = () => {
       const { error } = await supabase.from("scores").insert([
         {
           user_id: userId,
-          quiz_id: quizQueue[0]?.id ?? null, // You can choose a representative quiz_id or null
+          quiz_id: quizQueue[0]?.id ?? null,
           easy,
           average,
           difficult,
@@ -276,87 +275,136 @@ const ArithmeticQuiz: React.FC = () => {
   return (
     <IonPage className="quiz-container">
       <IonHeader>
-        <IonToolbar>
-          <IonTitle>Arithmetic Quiz</IonTitle>
+        <IonToolbar color="light">
+          <IonTitle className="quiz-title">Arithmetic Quiz</IonTitle>
         </IonToolbar>
       </IonHeader>
+
       <IonContent fullscreen>
+        {/* --- Category Selection --- */}
         {!selectedCategory ? (
-          <div>
-            <h2>Select Category</h2>
-            {["Word Problem", "Problem Solving"].map((cat) => (
-              <IonButton key={cat} onClick={() => startQuiz(cat)}>
-                {cat}
-              </IonButton>
-            ))}
+          <div className="quiz-category">
+            <h2 className="quiz-heading">Select Category</h2>
+            <div className="quiz-category-buttons">
+              {["Word Problem", "Problem Solving"].map((cat) => (
+                <IonButton key={cat} onClick={() => startQuiz(cat)} className="quiz-btn">
+                  {cat}
+                </IonButton>
+              ))}
+            </div>
           </div>
         ) : showTransitionScreen ? (
-          <div>
-            <h2>Level Complete!</h2>
-            <p>{transitionMessage}</p>
-            {showYesNo && (
-              <div>
-                <IonButton onClick={proceedNextLevel}>Yes</IonButton>
-                <IonButton
-                  onClick={() => {
-                    clearAllTimers();
-                    setSelectedCategory(null);
-                    setCurrentQuiz(null);
-                    setUserAnswer("");
-                    setUserSolutions([]);
-                  }}
-                >
-                  No
-                </IonButton>
-              </div>
-            )}
-            {!showYesNo && <h3>⏳ {countdown}</h3>}
+          <div className="transition-screen">
+            <div className="transition-card">
+              <h2 className="transition-heading">Level Complete!</h2>
+              <p className="transition-text">{transitionMessage}</p>
+
+              {showYesNo && (
+                <div className="quiz-category-buttons">
+                  <IonButton color="success" onClick={proceedNextLevel} className="quiz-btn">
+                    Yes
+                  </IonButton>
+                  <IonButton
+                    color="danger"
+                    onClick={() => {
+                      clearAllTimers();
+                      setShowTransitionScreen(false);
+                      setSelectedCategory(null);
+                      setCurrentQuiz(null);
+                      setUserAnswer("");
+                      setUserSolutions([]);
+                    }}
+                    className="quiz-btn"
+                  >
+                    No
+                  </IonButton>
+                </div>
+              )}
+
+              {!showYesNo && <h3 className="countdown-display">⏳ {countdown}</h3>}
+            </div>
           </div>
         ) : currentQuiz ? (
-          <div>
+          <div className="quiz-content">
             {delayTime !== null ? (
-              <div>{delayTime > 3 ? `📖 Reading Time: ${delayTime}s` : `⚡ Get Ready! ${delayTime}s`}</div>
+              <div className={`quiz-timer ${delayTime <= 3 ? "critical" : ""}`}>
+                {delayTime > 3 ? `📖 Reading Time: ${delayTime}s` : `⚡ Get Ready! ${delayTime}s`}
+              </div>
             ) : (
-              <div>⏳ Time Left: {timeLeft}s</div>
+              <div className={`quiz-timer ${timeLeft <= 5 ? "critical" : ""}`}>
+                ⏳ Time Left: {timeLeft}s
+              </div>
             )}
-            <h3>{currentQuiz.difficulty}</h3>
-            <p>{currentQuiz.question}</p>
-            <IonItem>
+
+            <h3 className="quiz-difficulty">{currentQuiz.difficulty}</h3>
+            <p className="quiz-question">{currentQuiz.question}</p>
+
+            <IonItem className="quiz-input-item">
               <IonInput
                 value={userAnswer}
                 placeholder="Enter your answer"
                 onIonInput={(e) => setUserAnswer(e.detail.value ?? "")}
+                className="quiz-input"
               />
             </IonItem>
-            {errorMessage && <IonText color="danger">{errorMessage}</IonText>}
-            <IonButton onClick={() => handleNext(false)}>Next</IonButton>
+
+            {errorMessage && <IonText className="quiz-error">{errorMessage}</IonText>}
+
+            <IonButton expand="block" onClick={() => handleNext(false)} className="quiz-next">
+              Next
+            </IonButton>
+
+            <IonButton
+              expand="block"
+              fill="outline"
+              color="medium"
+              onClick={() => {
+                clearAllTimers();
+                setSelectedCategory(null);
+                setCurrentQuiz(null);
+                setUserAnswer("");
+                setUserSolutions([]);
+              }}
+              className="quiz-back"
+            >
+              Back to Categories
+            </IonButton>
           </div>
         ) : (
-          <p>Loading...</p>
+          <p className="quiz-loading">Loading...</p>
         )}
 
-        <IonModal isOpen={showResultModal}>
+        {/* --- Result Modal --- */}
+        <IonModal isOpen={showResultModal} backdropDismiss={false}>
           <IonHeader>
-            <IonToolbar>
+            <IonToolbar color="light">
               <IonTitle>Results</IonTitle>
             </IonToolbar>
           </IonHeader>
-          <IonContent>
+          <IonContent className="quiz-result-content">
             <h2>Quiz Completed!</h2>
             <h3>
               Score: {score}/{userSolutions.length}
             </h3>
-            <ul>
+            <ul className="quiz-result-list">
               {userSolutions.map((res, i) => (
-                <li key={i}>
-                  <b>Q{i + 1}:</b> {res.question} <br />
-                  <b>Your Answer:</b> {res.userAnswer} <br />
-                  <b>Correct Answer:</b> {res.correct} <br />
+                <li key={i} className={`quiz-result-item ${res.isCorrect ? "correct" : "wrong"}`}>
+                  <b>Q{i + 1}:</b> {res.question}
+                  <br />
+                  <b>Your Answer:</b>{" "}
+                  <span className={res.isCorrect ? "text-correct" : "text-wrong"}>{res.userAnswer}</span>
+                  <br />
+                  <b>Correct Answer:</b> {res.correct}
+                  <br />
                   <b>Time Used:</b> {res.timeUsed}s
+                  <br />
+                  <b>Solution:</b>
+                  <pre>{res.solution || "No solution provided."}</pre>
                 </li>
               ))}
             </ul>
             <IonButton
+              expand="block"
               onClick={() => {
                 clearAllTimers();
                 setShowResultModal(false);
@@ -365,6 +413,7 @@ const ArithmeticQuiz: React.FC = () => {
                 setUserAnswer("");
                 setUserSolutions([]);
               }}
+              className="quiz-finish-btn"
             >
               Back to Categories
             </IonButton>

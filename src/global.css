@@ -1999,3 +1999,35 @@ ion-content {
   }
 }
 
+.progress-page {
+  padding: 24px;
+  background: linear-gradient(135deg, #fafffa, #fffde7);
+}
+
+.progress-filter {
+  margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+}
+
+.progress-select {
+  max-width: 300px;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 12px;
+  padding: 8px 12px;
+  box-shadow: 0 4px 12px rgba(101, 163, 13, 0.15);
+}
+
+.progress-chart-card {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+  animation: fadeIn 0.5s ease;
+}
+
+.progress-loading {
+  text-align: center;
+  font-weight: 600;
+  color: #65a30d;
+}

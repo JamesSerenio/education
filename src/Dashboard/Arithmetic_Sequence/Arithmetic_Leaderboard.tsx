@@ -1,28 +1,39 @@
 import React, { useEffect, useState } from "react";
-import { IonPage, IonHeader, IonContent, IonTitle, IonToolbar } from "@ionic/react";
+import {
+  IonPage,
+  IonHeader,
+  IonContent,
+  IonTitle,
+  IonToolbar,
+  IonSelect,
+  IonSelectOption,
+} from "@ionic/react";
 import { Trophy } from "lucide-react";
 import { supabase } from "../../utils/supabaseClient";
 
 interface Profile { lastname: string; }
-interface Quiz { category: string; subject: string; }
+interface Quiz { category: string; subject: string; difficulty: string }
 interface RawScoreRow { score: number; time_taken: number; profiles: Profile | Profile[]; quizzes: Quiz | Quiz[]; }
-interface LeaderboardRow { score: number; time_taken: number; profiles: { lastname: string }; quizzes: { category: string; subject: string } }
+interface LeaderboardRow { score: number; time_taken: number; profiles: { lastname: string }; quizzes: { category: string; subject: string; difficulty: string } }
 
 const ArithmeticLeaderboard: React.FC = () => {
   const [wordProblemData, setWordProblemData] = useState<LeaderboardRow[]>([]);
   const [problemSolvingData, setProblemSolvingData] = useState<LeaderboardRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedDifficulty, setSelectedDifficulty] = useState<string>("All");
 
   useEffect(() => {
     fetchLeaderboards();
-  }, []);
+  }, [selectedDifficulty]);
 
   // Convert raw Supabase row into a consistent format
   const normalizeRow = (r: RawScoreRow): LeaderboardRow => {
     const lastname = Array.isArray(r.profiles) ? r.profiles[0]?.lastname ?? "" : r.profiles?.lastname ?? "";
-    const category = Array.isArray(r.quizzes) ? r.quizzes[0]?.category ?? "" : r.quizzes?.category ?? "";
-    const subject = Array.isArray(r.quizzes) ? r.quizzes[0]?.subject ?? "" : r.quizzes?.subject ?? "";
-    return { score: Number(r.score ?? 0), time_taken: Number(r.time_taken ?? 0), profiles: { lastname }, quizzes: { category, subject } };
+    const quiz = Array.isArray(r.quizzes) ? r.quizzes[0] : r.quizzes;
+    const category = quiz?.category ?? "";
+    const subject = quiz?.subject ?? "";
+    const difficulty = quiz?.difficulty ?? "";
+    return { score: Number(r.score ?? 0), time_taken: Number(r.time_taken ?? 0), profiles: { lastname }, quizzes: { category, subject, difficulty } };
   };
 
   // Keep only the highest score per user
@@ -43,11 +54,17 @@ const ArithmeticLeaderboard: React.FC = () => {
     setLoading(true);
     try {
       const fetchCategory = async (category: string) => {
-        const { data, error } = await supabase
+        let query = supabase
           .from("scores")
-          .select("score,time_taken,profiles!inner(lastname),quizzes!inner(category,subject)")
-          .eq("quizzes.subject", "Arithmetic Sequence") // Only Arithmetic scores
+          .select("score,time_taken,profiles!inner(lastname),quizzes!inner(category,subject,difficulty)")
+          .eq("quizzes.subject", "Arithmetic Sequence")
           .eq("quizzes.category", category);
+
+        if (selectedDifficulty !== "All") {
+          query = query.eq("quizzes.difficulty", selectedDifficulty);
+        }
+
+        const { data, error } = await query;
 
         if (error) {
           console.error(`Error fetching ${category}:`, error);
@@ -88,6 +105,7 @@ const ArithmeticLeaderboard: React.FC = () => {
               <th>Lastname</th>
               <th>Score</th>
               <th>Time</th>
+              <th>Difficulty</th>
             </tr>
           </thead>
           <tbody>
@@ -97,9 +115,10 @@ const ArithmeticLeaderboard: React.FC = () => {
                 <td>{row.profiles.lastname || "-"}</td>
                 <td>{Math.round(row.score)}</td>
                 <td>{formatTime(row.time_taken)}</td>
+                <td>{row.quizzes.difficulty}</td>
               </tr>
             )) : (
-              <tr><td colSpan={4}>No data found.</td></tr>
+              <tr><td colSpan={5}>No data found.</td></tr>
             )}
           </tbody>
         </table>
@@ -116,6 +135,19 @@ const ArithmeticLeaderboard: React.FC = () => {
       </IonHeader>
 
       <IonContent className="ion-padding arithmetic-module-container">
+        <div style={{ marginBottom: "1rem" }}>
+          <label>Filter by Difficulty:</label>
+          <IonSelect
+            value={selectedDifficulty}
+            onIonChange={(e) => setSelectedDifficulty(e.detail.value)}
+          >
+            <IonSelectOption value="All">All</IonSelectOption>
+            <IonSelectOption value="Easy">Easy</IonSelectOption>
+            <IonSelectOption value="Average">Average</IonSelectOption>
+            <IonSelectOption value="Difficult">Difficult</IonSelectOption>
+          </IonSelect>
+        </div>
+
         <div className="leaderboard-card">
           <h2 className="leaderboard-title">Word Problem Leaderboard</h2>
           <div className="trophy-icon"><Trophy size={20} color="#65a30d" /></div>

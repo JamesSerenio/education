@@ -10,6 +10,7 @@ import {
   IonInput,
   IonText,
   IonModal,
+  IonAlert,
 } from "@ionic/react";
 import { supabase } from "../../utils/supabaseClient";
 
@@ -31,6 +32,8 @@ const DIFFICULTY_TIMERS: Record<Quiz["difficulty"], number> = {
 };
 
 const QUESTIONS_PER_DIFFICULTY = 5;
+
+const difficultyOrder: Quiz["difficulty"][] = ["Easy", "Average", "Difficult"];
 
 const ArithmeticQuiz: React.FC = () => {
   const [allQuizzes, setAllQuizzes] = useState<Quiz[]>([]);
@@ -54,6 +57,12 @@ const ArithmeticQuiz: React.FC = () => {
   const [timeLeft, setTimeLeft] = useState<number>(0);
   const [timeUsed, setTimeUsed] = useState<number>(0);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+
+  // new states for transition and alert
+  const [showLevelAlert, setShowLevelAlert] = useState(false);
+  const [nextDifficulty, setNextDifficulty] = useState<Quiz["difficulty"] | null>(null);
+  const [transitionMessage, setTransitionMessage] = useState<string | null>(null);
+  const [countdown, setCountdown] = useState<number>(3);
 
   // delay countdown before timer starts
   const [delayTime, setDelayTime] = useState<number | null>(null);
@@ -81,7 +90,7 @@ const ArithmeticQuiz: React.FC = () => {
 
     const categoryQuizzes = allQuizzes.filter((q) => q.category === category);
 
-    const buildQueue = ["Easy", "Average", "Difficult"].flatMap((difficulty) => {
+    const buildQueue = difficultyOrder.flatMap((difficulty) => {
       const filtered = categoryQuizzes
         .filter((q) => q.difficulty === difficulty)
         .sort(() => Math.random() - 0.5)
@@ -118,7 +127,6 @@ const ArithmeticQuiz: React.FC = () => {
           clearInterval(delayRef.current!);
           setDelayTime(null);
 
-          // After delay, start main timer
           const totalTime = DIFFICULTY_TIMERS[currentQuiz.difficulty];
           setTimeLeft(totalTime);
 
@@ -182,13 +190,31 @@ const ArithmeticQuiz: React.FC = () => {
         },
       ]);
 
-      if (currentQuizIndex < quizQueue.length - 1) {
+      const currentDifficulty = currentQuiz.difficulty;
+      const remainingInSameDifficulty = quizQueue.filter(
+        (q, i) => q.difficulty === currentDifficulty && i > currentQuizIndex
+      );
+
+      // if still same difficulty questions left
+      if (remainingInSameDifficulty.length > 0) {
         const nextIndex = currentQuizIndex + 1;
         setCurrentQuizIndex(nextIndex);
         setCurrentQuiz(quizQueue[nextIndex]);
         setUserAnswer("");
-        setDelayTime(15); // restart reading time
+        setDelayTime(15);
+        return;
+      }
+
+      // if finished this difficulty, check if next difficulty exists
+      const currentDiffIndex = difficultyOrder.indexOf(currentDifficulty);
+      const nextDiff = difficultyOrder[currentDiffIndex + 1];
+
+      if (nextDiff) {
+        // show confirmation alert
+        setNextDifficulty(nextDiff);
+        setShowLevelAlert(true);
       } else {
+        // last difficulty -> show result
         clearInterval(timerRef.current!);
         setShowResultModal(true);
 
@@ -231,6 +257,27 @@ const ArithmeticQuiz: React.FC = () => {
     }
   };
 
+  // transition countdown
+  useEffect(() => {
+    if (!transitionMessage) return;
+    if (countdown <= 0) {
+      setTransitionMessage(null);
+      if (nextDifficulty) {
+        const nextQuizIndex = quizQueue.findIndex((q) => q.difficulty === nextDifficulty);
+        if (nextQuizIndex !== -1) {
+          setCurrentQuizIndex(nextQuizIndex);
+          setCurrentQuiz(quizQueue[nextQuizIndex]);
+          setUserAnswer("");
+          setDelayTime(15);
+        }
+      }
+      return;
+    }
+
+    const t = setTimeout(() => setCountdown((prev) => prev - 1), 1000);
+    return () => clearTimeout(t);
+  }, [transitionMessage, countdown]);
+
   return (
     <IonPage className="quiz-container">
       <IonHeader>
@@ -250,6 +297,11 @@ const ArithmeticQuiz: React.FC = () => {
                 </IonButton>
               ))}
             </div>
+          </div>
+        ) : transitionMessage ? (
+          <div className="transition-screen">
+            <h2>{transitionMessage}</h2>
+            <p>Starting in {countdown}...</p>
           </div>
         ) : currentQuiz ? (
           <div className="quiz-content">
@@ -362,6 +414,31 @@ const ArithmeticQuiz: React.FC = () => {
             </IonButton>
           </IonContent>
         </IonModal>
+
+        {/* Level Alert */}
+        <IonAlert
+          isOpen={showLevelAlert}
+          header="Good Job!"
+          message={`You already answered all ${currentQuiz?.difficulty} questions. Do you want to proceed to the ${nextDifficulty} level?`}
+          buttons={[
+            {
+              text: "No",
+              role: "cancel",
+              handler: () => {
+                setShowResultModal(true);
+                setShowLevelAlert(false);
+              },
+            },
+            {
+              text: "Yes",
+              handler: () => {
+                setShowLevelAlert(false);
+                setTransitionMessage(`Get ready for the ${nextDifficulty} level!`);
+                setCountdown(3);
+              },
+            },
+          ]}
+        />
       </IonContent>
     </IonPage>
   );

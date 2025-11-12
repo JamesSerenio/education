@@ -22,7 +22,6 @@ import {
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
-// Matches your student_scores_overview view
 interface ScoreRow {
   user_id: string;
   firstname: string;
@@ -33,6 +32,7 @@ interface ScoreRow {
   difficult_total: number;
   overall_total: number;
   quizzes_taken: number;
+  subject: string; // Focus on Arithmetic Sequence
 }
 
 interface ProgressRow {
@@ -48,7 +48,9 @@ const MAX_SCORE = 15;
 const ArithmeticProgress: React.FC = () => {
   const [data, setData] = useState<ProgressRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedCategory, setSelectedCategory] = useState<"Word Problem" | "Problem Solving">("Word Problem");
+  const [selectedCategory, setSelectedCategory] = useState<"Word Problem" | "Problem Solving">(
+    "Word Problem"
+  );
 
   useEffect(() => {
     fetchProgress();
@@ -59,7 +61,8 @@ const ArithmeticProgress: React.FC = () => {
     try {
       const { data: fetchedData, error } = await supabase
         .from("student_scores_overview")
-        .select("*");
+        .select("*")
+        .eq("subject", "Arithmetic Sequence"); // Only Arithmetic Sequence
 
       if (error) throw error;
 
@@ -68,6 +71,7 @@ const ArithmeticProgress: React.FC = () => {
         lastname: row.lastname,
         category: row.category,
         quizzes_taken: row.quizzes_taken,
+        // Use all difficulty scores in order
         scores: [row.easy_total, row.average_total, row.difficult_total].slice(0, row.quizzes_taken),
       }));
 
@@ -99,7 +103,7 @@ const ArithmeticProgress: React.FC = () => {
     responsive: true,
     plugins: {
       legend: { position: "top" as const },
-      title: { display: true, text: `Progress - ${selectedCategory}` },
+      title: { display: true, text: `Arithmetic Sequence Progress - ${selectedCategory}` },
     },
     scales: {
       y: { beginAtZero: true, max: MAX_SCORE },
@@ -110,7 +114,7 @@ const ArithmeticProgress: React.FC = () => {
     <IonPage>
       <IonHeader>
         <IonToolbar>
-          <IonTitle>Arithmetic Progress</IonTitle>
+          <IonTitle>Arithmetic Sequence Progress</IonTitle>
         </IonToolbar>
       </IonHeader>
 

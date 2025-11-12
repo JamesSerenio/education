@@ -22,7 +22,6 @@ import {
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
-// Matches your student_scores_overview view
 interface ScoreRow {
   user_id: string;
   firstname: string;
@@ -48,7 +47,9 @@ const MAX_SCORE = 15;
 const ArithmeticProgress: React.FC = () => {
   const [data, setData] = useState<ProgressRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedCategory, setSelectedCategory] = useState<"Word Problem" | "Problem Solving">("Word Problem");
+  const [selectedCategory, setSelectedCategory] = useState<"Word Problem" | "Problem Solving">(
+    "Word Problem"
+  );
 
   useEffect(() => {
     fetchProgress();
@@ -68,7 +69,10 @@ const ArithmeticProgress: React.FC = () => {
         lastname: row.lastname,
         category: row.category,
         quizzes_taken: row.quizzes_taken,
-        scores: [row.easy_total, row.average_total, row.difficult_total].slice(0, row.quizzes_taken),
+        scores: [row.easy_total, row.average_total, row.difficult_total].slice(
+          0,
+          row.quizzes_taken
+        ),
       }));
 
       setData(mappedData);
@@ -107,30 +111,37 @@ const ArithmeticProgress: React.FC = () => {
   };
 
   return (
-    <IonPage>
-      <IonHeader>
+    <IonPage className="progress-page">
+      <IonHeader className="progress-toolbar">
         <IonToolbar>
-          <IonTitle>Arithmetic Progress</IonTitle>
+          <IonTitle className="progress-title">Arithmetic Progress</IonTitle>
         </IonToolbar>
       </IonHeader>
 
       <IonContent className="ion-padding">
-        <div style={{ marginBottom: "1rem" }}>
-          <label>Select Category:</label>
-          <IonSelect
-            value={selectedCategory}
-            onIonChange={(e) => setSelectedCategory(e.detail.value)}
-          >
-            <IonSelectOption value="Word Problem">Word Problem</IonSelectOption>
-            <IonSelectOption value="Problem Solving">Problem Solving</IonSelectOption>
-          </IonSelect>
-        </div>
+        <div className="progress-card">
+          <h2 className="progress-heading">Your Progress</h2>
 
-        {loading ? (
-          <p>Loading...</p>
-        ) : (
-          <Bar data={chartData()} options={options} />
-        )}
+          <div className="progress-category">
+            <label className="progress-label">Select Category:</label>
+            <IonSelect
+              className="progress-select"
+              value={selectedCategory}
+              onIonChange={(e) => setSelectedCategory(e.detail.value)}
+            >
+              <IonSelectOption value="Word Problem">Word Problem</IonSelectOption>
+              <IonSelectOption value="Problem Solving">Problem Solving</IonSelectOption>
+            </IonSelect>
+          </div>
+
+          {loading ? (
+            <p className="progress-loading">Loading...</p>
+          ) : (
+            <div className="progress-chart">
+              <Bar data={chartData()} options={options} />
+            </div>
+          )}
+        </div>
       </IonContent>
     </IonPage>
   );

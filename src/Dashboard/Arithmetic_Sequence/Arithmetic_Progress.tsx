@@ -37,9 +37,9 @@ const MAX_SCORE = 15;
 const ArithmeticProgressLine: React.FC = () => {
   const [data, setData] = useState<ProgressRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedCategory, setSelectedCategory] = useState<"Word Problem" | "Problem Solving">(
-    "Word Problem"
-  );
+  const [selectedCategory, setSelectedCategory] = useState<
+    "Word Problem" | "Problem Solving"
+  >("Word Problem");
 
   useEffect(() => {
     fetchProgress();
@@ -55,16 +55,18 @@ const ArithmeticProgressLine: React.FC = () => {
 
       if (error) throw error;
 
-      const mappedData: ProgressRow[] = (fetchedData as ScoreRow[]).map((row) => ({
-        user_id: row.user_id,
-        lastname: row.lastname,
-        category: row.category,
-        quizzes_taken: row.quizzes_taken,
-        scores: [row.easy_total, row.average_total, row.difficult_total].slice(
-          0,
-          row.quizzes_taken
-        ),
-      }));
+      const mappedData: ProgressRow[] = (fetchedData as ScoreRow[]).map(
+        (row) => ({
+          user_id: row.user_id,
+          lastname: row.lastname,
+          category: row.category,
+          quizzes_taken: row.quizzes_taken,
+          scores: [row.easy_total, row.average_total, row.difficult_total].slice(
+            0,
+            row.quizzes_taken
+          ),
+        })
+      );
 
       setData(mappedData);
     } catch (err) {
@@ -85,7 +87,10 @@ const ArithmeticProgressLine: React.FC = () => {
 
   const getChartCategories = () => {
     const filtered = data.filter((d) => d.category === selectedCategory);
-    const maxQuizzes = filtered.reduce((max, user) => Math.max(max, user.quizzes_taken), 0);
+    const maxQuizzes = filtered.reduce(
+      (max, user) => Math.max(max, user.quizzes_taken),
+      0
+    );
     return Array.from({ length: maxQuizzes }, (_, i) => `Quiz ${i + 1}`);
   };
 
@@ -94,17 +99,31 @@ const ArithmeticProgressLine: React.FC = () => {
       type: "line",
       height: 350,
       zoom: { enabled: false },
+      toolbar: { show: false },
     },
-    stroke: { curve: "straight" },
+    stroke: { curve: "smooth", width: 4, colors: ["#008FFB"] },
     title: {
       text: `Arithmetic Sequence Progress - ${selectedCategory}`,
       align: "left",
     },
-    xaxis: { categories: getChartCategories() },
-    yaxis: { max: MAX_SCORE, min: 0 },
+    xaxis: {
+      categories: getChartCategories(),
+      title: { text: "Quizzes Taken" },
+    },
+    yaxis: {
+      max: MAX_SCORE,
+      min: 0,
+      title: { text: "Score" },
+    },
     dataLabels: { enabled: false },
     grid: {
       row: { colors: ["#f3f3f3", "transparent"], opacity: 0.5 },
+    },
+    tooltip: {
+      theme: "light",
+      y: {
+        formatter: (val) => `${val} pts`,
+      },
     },
   };
 
@@ -125,7 +144,9 @@ const ArithmeticProgressLine: React.FC = () => {
             className="progress-select"
           >
             <IonSelectOption value="Word Problem">Word Problem</IonSelectOption>
-            <IonSelectOption value="Problem Solving">Problem Solving</IonSelectOption>
+            <IonSelectOption value="Problem Solving">
+              Problem Solving
+            </IonSelectOption>
           </IonSelect>
         </div>
 

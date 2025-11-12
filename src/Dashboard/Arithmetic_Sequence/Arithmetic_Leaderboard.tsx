@@ -11,111 +11,71 @@ import {
 import { Trophy } from "lucide-react";
 import { supabase } from "../../utils/supabaseClient";
 
-interface Profile { lastname: string; }
-interface Quiz { category: string; subject: string; difficulty: string }
-interface RawScoreRow { score: number; time_taken: number; profiles: Profile | Profile[]; quizzes: Quiz | Quiz[]; }
-interface LeaderboardRow { score: number; time_taken: number; profiles: { lastname: string }; quizzes: { category: string; subject: string; difficulty: string } }
-
-const QUESTIONS_PER_DIFFICULTY = 5; // only include full attempts
+// Define a type exactly matching your SQL view
+interface StudentScoreOverview {
+  user_id: string;
+  firstname: string;
+  lastname: string;
+  easy: number;
+  average: number;
+  difficult: number;
+  overall: number;
+  quizzes_taken: number;
+}
 
 const ArithmeticLeaderboard: React.FC = () => {
-  const [wordProblemData, setWordProblemData] = useState<LeaderboardRow[]>([]);
-  const [problemSolvingData, setProblemSolvingData] = useState<LeaderboardRow[]>([]);
+  const [leaderboardData, setLeaderboardData] = useState<StudentScoreOverview[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedDifficulty, setSelectedDifficulty] = useState<string>("All");
 
   useEffect(() => {
-    fetchLeaderboards();
+    fetchLeaderboard();
   }, [selectedDifficulty]);
 
-  const normalizeRow = (r: RawScoreRow): LeaderboardRow => {
-    const lastname = Array.isArray(r.profiles) ? r.profiles[0]?.lastname ?? "" : r.profiles?.lastname ?? "";
-    const quiz = Array.isArray(r.quizzes) ? r.quizzes[0] : r.quizzes;
-    return {
-      score: Number(r.score ?? 0),
-      time_taken: Number(r.time_taken ?? 0),
-      profiles: { lastname },
-      quizzes: { 
-        category: quiz?.category ?? "", 
-        subject: quiz?.subject ?? "", 
-        difficulty: quiz?.difficulty ?? "" 
-      }
-    };
-  };
-
-  // Filter only users who completed all questions for that difficulty
-  const filterFullScoresPerDifficulty = (data: LeaderboardRow[]) => {
-    const map = new Map<string, LeaderboardRow[]>();
-
-    data.forEach((row) => {
-      const key = row.profiles.lastname + "_" + row.quizzes.difficulty;
-      if (!map.has(key)) map.set(key, []);
-      map.get(key)!.push(row);
-    });
-
-    const result: LeaderboardRow[] = [];
-    map.forEach((rows) => {
-      if (rows.length === QUESTIONS_PER_DIFFICULTY) {
-        const totalScore = rows.reduce((sum, r) => sum + r.score, 0);
-        const totalTime = rows.reduce((sum, r) => sum + r.time_taken, 0);
-        const first = rows[0];
-        result.push({
-          profiles: first.profiles,
-          quizzes: first.quizzes,
-          score: totalScore,
-          time_taken: totalTime,
-        });
-      }
-    });
-
-    return result.sort((a, b) => b.score - a.score || a.time_taken - b.time_taken);
-  };
-
-  const fetchLeaderboards = async () => {
+  const fetchLeaderboard = async () => {
     setLoading(true);
     try {
-      const fetchCategory = async (category: string) => {
-        let query = supabase
-          .from("scores")
-          .select("score,time_taken,profiles!inner(lastname),quizzes!inner(category,subject,difficulty)")
-          .eq("quizzes.subject", "Arithmetic Sequence")
-          .eq("quizzes.category", category);
+      // Fetch leaderboard from the view without generic type
+      const { data, error } = await supabase
+        .from("student_scores_overview")
+        .select("*")
+        .order("overall", { ascending: false });
 
-        if (selectedDifficulty !== "All") {
-          query = query.eq("quizzes.difficulty", selectedDifficulty);
-        }
+      if (error) {
+        console.error("Error fetching leaderboard:", error);
+        setLeaderboardData([]);
+        return;
+      }
 
-        const { data, error } = await query;
-        if (error) {
-          console.error(`Error fetching ${category}:`, error);
-          return [];
-        }
+      let rows = (data || []) as StudentScoreOverview[];
 
-        return (data as RawScoreRow[]).map(normalizeRow);
-      };
+      // Filter by difficulty in JS
+      if (selectedDifficulty !== "All") {
+        rows = rows
+          .filter((r) => {
+            if (selectedDifficulty === "Easy") return r.easy > 0;
+            if (selectedDifficulty === "Average") return r.average > 0;
+            if (selectedDifficulty === "Difficult") return r.difficult > 0;
+            return true;
+          })
+          .sort((a, b) => {
+            if (selectedDifficulty === "Easy") return b.easy - a.easy;
+            if (selectedDifficulty === "Average") return b.average - a.average;
+            if (selectedDifficulty === "Difficult") return b.difficult - a.difficult;
+            return 0;
+          });
+      }
 
-      const wordProblemRaw = await fetchCategory("Word Problem");
-      const problemSolvingRaw = await fetchCategory("Problem Solving");
-
-      setWordProblemData(filterFullScoresPerDifficulty(wordProblemRaw));
-      setProblemSolvingData(filterFullScoresPerDifficulty(problemSolvingRaw));
+      setLeaderboardData(rows);
     } catch (e) {
-      console.error("Unexpected fetch error", e);
-      setWordProblemData([]);
-      setProblemSolvingData([]);
+      console.error("Unexpected fetch error:", e);
+      setLeaderboardData([]);
     } finally {
       setLoading(false);
     }
   };
 
-  const formatTime = (seconds: number) => {
-    if (!Number.isFinite(seconds)) return "0:00";
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${mins}:${secs < 10 ? "0" : ""}${secs}`;
-  };
-
-  const renderTable = (data: LeaderboardRow[]) => {
+  const renderTable = (data: StudentScoreOverview[]) => {
     const medals = ["🥇", "🥈", "🥉"];
     return (
       <div className="leaderboard-table-wrapper">
@@ -124,22 +84,30 @@ const ArithmeticLeaderboard: React.FC = () => {
             <tr>
               <th>Place</th>
               <th>Lastname</th>
-              <th>Score</th>
-              <th>Time</th>
-              <th>Difficulty</th>
+              <th>Easy</th>
+              <th>Average</th>
+              <th>Difficult</th>
+              <th>Overall</th>
+              <th>Quizzes Taken</th>
             </tr>
           </thead>
           <tbody>
-            {data.length > 0 ? data.map((row, index) => (
-              <tr key={index}>
-                <td>{medals[index] || index + 1}</td>
-                <td>{row.profiles.lastname || "-"}</td>
-                <td>{Math.round(row.score)}</td>
-                <td>{formatTime(row.time_taken)}</td>
-                <td>{row.quizzes.difficulty}</td>
+            {data.length > 0 ? (
+              data.map((row, index) => (
+                <tr key={row.user_id}>
+                  <td>{medals[index] || index + 1}</td>
+                  <td>{row.lastname}</td>
+                  <td>{row.easy}</td>
+                  <td>{row.average}</td>
+                  <td>{row.difficult}</td>
+                  <td>{row.overall}</td>
+                  <td>{row.quizzes_taken}</td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan={7}>No data found.</td>
               </tr>
-            )) : (
-              <tr><td colSpan={5}>No data found.</td></tr>
             )}
           </tbody>
         </table>
@@ -170,15 +138,11 @@ const ArithmeticLeaderboard: React.FC = () => {
         </div>
 
         <div className="leaderboard-card">
-          <h2 className="leaderboard-title">Word Problem Leaderboard</h2>
-          <div className="trophy-icon"><Trophy size={20} color="#65a30d" /></div>
-          {loading ? <p>Loading...</p> : renderTable(wordProblemData)}
-        </div>
-
-        <div className="leaderboard-card">
-          <h2 className="leaderboard-title">Problem Solving Leaderboard</h2>
-          <div className="trophy-icon"><Trophy size={20} color="#eab308" /></div>
-          {loading ? <p>Loading...</p> : renderTable(problemSolvingData)}
+          <h2 className="leaderboard-title">Leaderboard</h2>
+          <div className="trophy-icon">
+            <Trophy size={20} color="#65a30d" />
+          </div>
+          {loading ? <p>Loading...</p> : renderTable(leaderboardData)}
         </div>
       </IonContent>
     </IonPage>

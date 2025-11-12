@@ -11,20 +11,19 @@ import {
 import { Trophy } from "lucide-react";
 import { supabase } from "../../utils/supabaseClient";
 
-// Define a type exactly matching your SQL view
-interface StudentScoreOverview {
+interface LeaderboardRow {
   user_id: string;
   firstname: string;
   lastname: string;
-  easy: number;
-  average: number;
-  difficult: number;
-  overall: number;
+  easy_total: number;
+  average_total: number;
+  difficult_total: number;
+  overall_total: number;
   quizzes_taken: number;
 }
 
 const ArithmeticLeaderboard: React.FC = () => {
-  const [leaderboardData, setLeaderboardData] = useState<StudentScoreOverview[]>([]);
+  const [leaderboardData, setLeaderboardData] = useState<LeaderboardRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedDifficulty, setSelectedDifficulty] = useState<string>("All");
 
@@ -35,11 +34,10 @@ const ArithmeticLeaderboard: React.FC = () => {
   const fetchLeaderboard = async () => {
     setLoading(true);
     try {
-      // Fetch leaderboard from the view without generic type
       const { data, error } = await supabase
         .from("student_scores_overview")
         .select("*")
-        .order("overall", { ascending: false });
+        .order("overall_total", { ascending: false });
 
       if (error) {
         console.error("Error fetching leaderboard:", error);
@@ -47,36 +45,33 @@ const ArithmeticLeaderboard: React.FC = () => {
         return;
       }
 
-      let rows = (data || []) as StudentScoreOverview[];
+      let rows = data as LeaderboardRow[];
 
-      // Filter by difficulty in JS
+      // Filter by difficulty if selected
       if (selectedDifficulty !== "All") {
+        const col =
+          selectedDifficulty === "Easy"
+            ? "easy_total"
+            : selectedDifficulty === "Average"
+            ? "average_total"
+            : "difficult_total";
         rows = rows
-          .filter((r) => {
-            if (selectedDifficulty === "Easy") return r.easy > 0;
-            if (selectedDifficulty === "Average") return r.average > 0;
-            if (selectedDifficulty === "Difficult") return r.difficult > 0;
-            return true;
-          })
-          .sort((a, b) => {
-            if (selectedDifficulty === "Easy") return b.easy - a.easy;
-            if (selectedDifficulty === "Average") return b.average - a.average;
-            if (selectedDifficulty === "Difficult") return b.difficult - a.difficult;
-            return 0;
-          });
+          .filter((r) => r[col] > 0)
+          .sort((a, b) => b[col] - a[col]); // Sort descending by that difficulty
       }
 
       setLeaderboardData(rows);
-    } catch (e) {
-      console.error("Unexpected fetch error:", e);
+    } catch (err) {
+      console.error("Unexpected fetch error:", err);
       setLeaderboardData([]);
     } finally {
       setLoading(false);
     }
   };
 
-  const renderTable = (data: StudentScoreOverview[]) => {
+  const renderTable = (data: LeaderboardRow[]) => {
     const medals = ["🥇", "🥈", "🥉"];
+
     return (
       <div className="leaderboard-table-wrapper">
         <table className="leaderboard-table">
@@ -84,11 +79,17 @@ const ArithmeticLeaderboard: React.FC = () => {
             <tr>
               <th>Place</th>
               <th>Lastname</th>
-              <th>Easy</th>
-              <th>Average</th>
-              <th>Difficult</th>
-              <th>Overall</th>
-              <th>Quizzes Taken</th>
+              <th>Score</th>
+              {selectedDifficulty !== "All" && <th>Time</th>}
+              {selectedDifficulty === "All" && (
+                <>
+                  <th>Easy</th>
+                  <th>Average</th>
+                  <th>Difficult</th>
+                  <th>Overall</th>
+                  <th>Quizzes Taken</th>
+                </>
+              )}
             </tr>
           </thead>
           <tbody>
@@ -97,16 +98,24 @@ const ArithmeticLeaderboard: React.FC = () => {
                 <tr key={row.user_id}>
                   <td>{medals[index] || index + 1}</td>
                   <td>{row.lastname}</td>
-                  <td>{row.easy}</td>
-                  <td>{row.average}</td>
-                  <td>{row.difficult}</td>
-                  <td>{row.overall}</td>
-                  <td>{row.quizzes_taken}</td>
+                  {selectedDifficulty === "Easy" && <td>{row.easy_total}</td>}
+                  {selectedDifficulty === "Average" && <td>{row.average_total}</td>}
+                  {selectedDifficulty === "Difficult" && <td>{row.difficult_total}</td>}
+                  {selectedDifficulty === "All" && (
+                    <>
+                      <td>{row.easy_total}</td>
+                      <td>{row.average_total}</td>
+                      <td>{row.difficult_total}</td>
+                      <td>{row.overall_total}</td>
+                      <td>{row.quizzes_taken}</td>
+                    </>
+                  )}
+                  {selectedDifficulty !== "All" && <td>-</td> /* Placeholder for time */}
                 </tr>
               ))
             ) : (
               <tr>
-                <td colSpan={7}>No data found.</td>
+                <td colSpan={selectedDifficulty === "All" ? 8 : 4}>No data found.</td>
               </tr>
             )}
           </tbody>

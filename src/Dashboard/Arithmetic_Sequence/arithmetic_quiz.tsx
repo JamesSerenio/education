@@ -303,7 +303,8 @@ const ArithmeticQuiz: React.FC = () => {
       const average = userSolutions.filter((s) => s.difficulty === "Average" && s.isCorrect).length;
       const difficult = userSolutions.filter((s) => s.difficulty === "Difficult" && s.isCorrect).length;
 
-      // Insert into scores table, time_taken is the sum of all timeUsed (max 2700: 5*60 + 5*180 + 5*300)
+      // Connect time_taken to the SQL table: sum of timeUsed for all questions (full timer for wrong/timeout, actual for correct)
+      // Max: 2700 (5*60 + 5*180 + 5*300)
       const { error } = await supabase.from("scores").insert([
         {
           user_id: userId,
@@ -311,7 +312,7 @@ const ArithmeticQuiz: React.FC = () => {
           easy,
           average,
           difficult,
-          time_taken: Math.floor(totalTimeUsed), // Ensure integer, sum of full timers for wrong + actual for correct
+          time_taken: Math.floor(totalTimeUsed), // Connected to SQL table as integer
         },
       ]);
 

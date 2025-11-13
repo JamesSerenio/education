@@ -53,6 +53,7 @@ interface ScoreWithQuizzes {
   time_taken: number | null;
   created_at: string;
   quiz_id: string;
+  user_id: string; // Added user_id
   quizzes: Quiz | null;
   profiles?: {
     firstname?: string;
@@ -89,6 +90,7 @@ const AdminRadar: React.FC = () => {
       time_taken: (rawData.time_taken as number) ?? null,
       created_at: (rawData.created_at as string) || new Date().toISOString(),
       quiz_id: (rawData.quiz_id as string) || "",
+      user_id: (rawData.user_id as string) || "", // Added user_id
       quizzes: quiz
         ? {
             id: (quiz.id as string) || "",
@@ -106,13 +108,13 @@ const AdminRadar: React.FC = () => {
     };
   };
 
-// 🔹 Fetch and calculate averages by subject and category filters
+// 🔹 Fetch and calculate averages by subject and category filters (using highest per user)
 const fetchSubjectData = async (subject: string): Promise<UserScore> => {
   try {
     const { data, error } = await supabase
       .from("scores")
       .select(`
-        id, total_score, time_taken, created_at, quiz_id,
+        id, total_score, time_taken, created_at, quiz_id, user_id,
         quizzes!inner (id, category, subject)
       `)
       .order("created_at", { ascending: false });
@@ -130,43 +132,39 @@ const fetchSubjectData = async (subject: string): Promise<UserScore> => {
     if (subjectScores.length === 0)
       return { time: 0, solving: 0, problemSolving: 0 };
 
-    // ✅ Compute average time
-    const avgTime =
-      subjectScores.reduce((sum, s) => sum + (s.time_taken ?? 0), 0) /
-      subjectScores.length;
+    // ✅ Group by user_id and find the best (highest score, lowest time) per user per category
+    const userBests: Record<string, { wordProblem: number; problemSolving: number; time: number }> = {};
 
-    const timePercent = Math.max(
-      0,
-      Math.min(100, ((MAX_TIME - avgTime) / MAX_TIME) * 100)
-    );
+    subjectScores.forEach((score) => {
+      const userId = score.user_id;
+      if (!userBests[userId]) {
+        userBests[userId] = { wordProblem: 0, problemSolving: 0, time: MAX_TIME };
+      }
 
-    // ✅ Compute Problem Solving (category = "Problem Solving")
-    const problemSolvingScores = subjectScores.filter(
-      (s) => s.quizzes?.category === "Problem Solving" && s.total_score !== null
-    );
+      if (score.quizzes?.category === "Word Problem" && score.total_score !== null) {
+        userBests[userId].wordProblem = Math.max(userBests[userId].wordProblem, score.total_score);
+      }
+      if (score.quizzes?.category === "Problem Solving" && score.total_score !== null) {
+        userBests[userId].problemSolving = Math.max(userBests[userId].problemSolving, score.total_score);
+      }
+      if (score.time_taken !== null) {
+        userBests[userId].time = Math.min(userBests[userId].time, score.time_taken);
+      }
+    });
 
-    const problemSolvingPercent =
-      problemSolvingScores.length > 0
-        ? (problemSolvingScores.reduce((sum, s) => sum + (s.total_score ?? 0), 0) /
-            problemSolvingScores.length /
-            MAX_SCORE) *
-          100
-        : 0;
+    // ✅ Compute averages of the bests
+    const users = Object.values(userBests);
+    if (users.length === 0) return { time: 0, solving: 0, problemSolving: 0 };
 
-    // ✅ Compute Word Problem (category = "Word Problem")
-    const wordProblemScores = subjectScores.filter(
-      (s) => s.quizzes?.category === "Word Problem" && s.total_score !== null
-    );
+    const avgWordProblem = users.reduce((sum, u) => sum + u.wordProblem, 0) / users.length;
+    const avgProblemSolving = users.reduce((sum, u) => sum + u.problemSolving, 0) / users.length;
+    const avgTime = users.reduce((sum, u) => sum + u.time, 0) / users.length;
 
-    const solvingPercent =
-      wordProblemScores.length > 0
-        ? (wordProblemScores.reduce((sum, s) => sum + (s.total_score ?? 0), 0) /
-            wordProblemScores.length /
-            MAX_SCORE) *
-          100
-        : 0;
+    const timePercent = Math.max(0, Math.min(100, ((MAX_TIME - avgTime) / MAX_TIME) * 100));
+    const solvingPercent = (avgWordProblem / MAX_SCORE) * 100;
+    const problemSolvingPercent = (avgProblemSolving / MAX_SCORE) * 100;
 
-    // ✅ Return isolated subject-specific averages
+    // ✅ Return averages of highest per user
     return {
       time: parseFloat(timePercent.toFixed(2)),
       solving: parseFloat(solvingPercent.toFixed(2)),
@@ -230,6 +228,7 @@ const fetchSubjectData = async (subject: string): Promise<UserScore> => {
           time_taken,
           created_at,
           quiz_id,
+          user_id,
           quizzes!quiz_id (subject, category),
           profiles!user_id (firstname, lastname, email)
         `)

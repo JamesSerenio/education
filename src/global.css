@@ -1455,10 +1455,8 @@ ion-content {
 /* --- Progress Chart --- */
 .progress-chart {
   margin-bottom: 30px;
-  height: 300px; /* Fixed and consistent across all screens */
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+  height: 300px; /* Fixed height for chart container */
+  width: 100%;
 }
 
 /* --- Progress Loading --- */
@@ -1467,68 +1465,25 @@ ion-content {
   color: #333;
 }
 
-/* --- Chart Canvas --- */
-.progress-chart canvas {
-  width: 100% !important;
-  max-width: 700px;
-  height: 300px !important; /* Fixed height */
-  aspect-ratio: 16 / 9; /* Keep same proportion */
-  border-radius: 12px;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
-  transition: transform 0.4s ease, box-shadow 0.4s ease;
-}
-
-.progress-chart canvas:hover {
-  transform: scale(1.02);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
-}
-
-/* --- Animations --- */
+/* Animations */
 @keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
-/* --- Responsive (Locked Design) --- */
+/* --- Responsive --- */
 @media (max-width: 768px) {
   .progress-card {
-    max-width: 800px; /* same size */
-    padding: 28px;
+    max-width: 95%;
+    padding: 20px;
   }
 
   .progress-heading {
-    font-size: 1.8rem; /* no scaling down */
+    font-size: 1.4rem;
   }
 
   .progress-chart {
-    height: 300px; /* same height */
-  }
-
-  .progress-chart canvas {
-    max-width: 700px;
-    height: 300px !important;
-    aspect-ratio: 16 / 9;
-  }
-}
-
-@media (max-width: 480px) {
-  .progress-chart {
-    height: 300px;
-  }
-
-  .progress-heading {
-    font-size: 1.8rem;
-  }
-
-  .progress-chart canvas {
-    max-width: 700px;
-    height: 300px !important;
+    height: 300px; /* Same height on mobile for consistency */
   }
 }
 

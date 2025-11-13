@@ -106,6 +106,7 @@ const ArithmeticProgress: React.FC = () => {
   const renderLineChart = (category: "Word Problem" | "Problem Solving") => {
     const filtered = progressData.filter((d) => d.category === category);
     const maxQuizzes = filtered.reduce((max, user) => Math.max(max, user.scores.length), 0);
+    const maxScore = filtered.length > 0 ? Math.max(...filtered.flatMap(u => u.scores.map(s => s.score))) : 15; // Dynamic max, default to 15 if no data
 
     const chartData = {
       labels: Array.from({ length: maxQuizzes }, (_, i) => `Quiz ${i + 1}`),
@@ -120,6 +121,7 @@ const ArithmeticProgress: React.FC = () => {
 
     const options = {
       responsive: true,
+      maintainAspectRatio: false,
       plugins: {
         legend: { position: "top" as const },
         title: { display: true, text: `${category} Progress` },
@@ -137,11 +139,11 @@ const ArithmeticProgress: React.FC = () => {
         },
       },
       scales: {
-        y: { beginAtZero: true, max: 15 }, // Assuming max score is 15
+        y: { beginAtZero: true, max: maxScore },
       },
     };
 
-    return <Line data={chartData} options={options} />;
+    return <Line data={chartData} options={options} height={300} />;
   };
 
   return (

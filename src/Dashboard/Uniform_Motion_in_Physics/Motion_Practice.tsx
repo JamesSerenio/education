@@ -2,6 +2,9 @@ import React, { useState } from "react";
 import {
   IonPage,
   IonContent,
+  IonHeader,
+  IonToolbar,
+  IonTitle,
   IonItem,
   IonLabel,
   IonInput,
@@ -135,6 +138,11 @@ const Motion_Practice: React.FC = () => {
 
   return (
     <IonPage>
+      <IonHeader>
+        <IonToolbar>
+          <IonTitle>Uniform Motion Practice</IonTitle>
+        </IonToolbar>
+      </IonHeader>
       <IonContent className="ion-padding">
         <IonItem>
           <IonLabel>Choose Category</IonLabel>

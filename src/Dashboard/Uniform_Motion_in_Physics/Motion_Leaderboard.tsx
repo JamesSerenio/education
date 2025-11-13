@@ -1,10 +1,7 @@
 import React, { useEffect, useState } from "react";
 import {
   IonPage,
-  IonHeader,
   IonContent,
-  IonTitle,
-  IonToolbar,
   IonSelect,
   IonSelectOption,
 } from "@ionic/react";
@@ -192,12 +189,6 @@ const UniformMotionLeaderboard: React.FC = () => {
 
   return (
     <IonPage>
-      <IonHeader>
-        <IonToolbar>
-          <IonTitle>Uniform Motion in Physics Leaderboard</IonTitle>
-        </IonToolbar>
-      </IonHeader>
-
       <IonContent className="ion-padding arithmetic-module-container">
         <div style={{ marginBottom: "1rem" }}>
           <label>Filter by Difficulty:</label>

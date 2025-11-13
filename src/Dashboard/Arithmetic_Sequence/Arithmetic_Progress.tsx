@@ -16,6 +16,7 @@ import {
   Legend,
   TooltipItem,
 } from "chart.js";
+import { User } from "@supabase/supabase-js";
 
 ChartJS.register(CategoryScale, LinearScale, LineElement, PointElement, Title, Tooltip, Legend);
 
@@ -48,12 +49,26 @@ interface ProgressRow {
 const ArithmeticProgress: React.FC = () => {
   const [progressData, setProgressData] = useState<ProgressRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
 
   useEffect(() => {
-    fetchData();
+    getCurrentUser();
   }, []);
 
+  useEffect(() => {
+    if (currentUser) {
+      fetchData();
+    }
+  }, [currentUser]);
+
+  const getCurrentUser = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    setCurrentUser(user);
+  };
+
   const fetchData = async () => {
+    if (!currentUser) return;
+
     setLoading(true);
     try {
       const { data: fetchedData, error } = await supabase
@@ -63,6 +78,7 @@ const ArithmeticProgress: React.FC = () => {
           profiles (firstname, lastname),
           quizzes!inner (category, subject)
         `)
+        .eq("user_id", currentUser.id) // Filter by current user
         .eq("quizzes.subject", "Arithmetic Sequence")
         .in("quizzes.category", ["Word Problem", "Problem Solving"])
         .order("created_at", { ascending: true });

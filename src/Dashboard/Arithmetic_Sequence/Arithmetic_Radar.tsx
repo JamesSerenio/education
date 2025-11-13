@@ -116,7 +116,7 @@ const Arithmetic_Radar: React.FC = () => {
 
       const { data: allScores, error: scoresError } = await supabase
         .from("scores")
-        .select(`id, total_score, time_taken, created_at, quiz_id, quizzes!quiz_id(id, category, subject)`)
+        .select(`id, total_score, time_taken, created_at, quiz_id, quizzes!quiz_id!inner(id, category, subject)`)
         .eq("user_id", user.id)
         .order("created_at", { ascending: false })
         .limit(100);

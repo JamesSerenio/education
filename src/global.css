@@ -1407,12 +1407,7 @@ ion-content {
 /* --- Arithmetic Progress Section --- */
 .progress-container {
   background: linear-gradient(135deg, #fafffa, #fffde7);
-  height: 100vh;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
-  align-items: center;
-  overflow: hidden; /* ✅ remove double scroll */
+  /* Removed height: 100vh and overflow: hidden to prevent double scroll */
 }
 
 /* --- Progress Content Area --- */
@@ -1422,7 +1417,7 @@ ion-content.progress-content {
   justify-content: center;
   align-items: flex-start;
   padding: 40px 20px;
-  overflow-y: auto; /* ✅ only IonContent scrolls */
+  overflow-y: auto; /* Only IonContent scrolls */
 }
 
 /* --- Progress Card --- */

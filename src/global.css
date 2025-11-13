@@ -1406,7 +1406,7 @@ ion-content {
 
 /* --- Arithmetic Progress Section --- */
 .progress-container {
-  background: linear-gradient(90deg, #65a30d, #eab308); /* Changed to uniform gradient for consistency */
+  background: linear-gradient(135deg, #fafffa, #fffde7);
   /* Removed height: 100vh and overflow: hidden to prevent double scroll */
 }
 

@@ -107,10 +107,10 @@ const ArithmeticProgress: React.FC = () => {
 
     const chartData = {
       labels: Array.from({ length: maxQuizzes }, (_, i) => `Quiz ${i + 1}`),
-      datasets: filtered.map((user, idx) => ({
+      datasets: filtered.map((user,) => ({
         label: user.lastname,
         data: user.scores.map(s => s.score),
-        borderColor: `rgba(${(idx * 50) % 255}, ${(idx * 80) % 255}, ${(idx * 120) % 255}, 1)`,
+        borderColor: 'red', // Changed to red for uniform beauty
         backgroundColor: 'rgba(255, 0, 0, 0.2)', // Light red background for uniformity
         tension: 0.1,
       })),

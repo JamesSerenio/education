@@ -145,7 +145,7 @@ const ArithmeticProgress: React.FC = () => {
 
   return (
     <IonPage className="progress-container">
-      <IonContent className="ion-padding">
+    <IonContent className="progress-content ion-padding">
         <div className="progress-card">
           <h2 className="progress-heading">Your Progress</h2>
 

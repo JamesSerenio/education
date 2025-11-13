@@ -53,7 +53,7 @@ interface ScoreWithQuizzes {
   time_taken: number | null;
   created_at: string;
   quiz_id: string;
-  user_id: string; // Added user_id
+  user_id: string;
   quizzes: Quiz | null;
   profiles?: {
     firstname?: string;
@@ -90,7 +90,7 @@ const AdminRadar: React.FC = () => {
       time_taken: (rawData.time_taken as number) ?? null,
       created_at: (rawData.created_at as string) || new Date().toISOString(),
       quiz_id: (rawData.quiz_id as string) || "",
-      user_id: (rawData.user_id as string) || "", // Added user_id
+      user_id: (rawData.user_id as string) || "",
       quizzes: quiz
         ? {
             id: (quiz.id as string) || "",
@@ -246,50 +246,130 @@ const fetchSubjectData = async (subject: string): Promise<UserScore> => {
     const allScores = await fetchAllScores();
     if (allScores.length === 0) return;
 
-    const formatted = allScores.map((item) => ({
-      "Full Name": `${item.profiles?.lastname || ""}, ${item.profiles?.firstname || ""}`.trim() || "N/A",
-      Email: item.profiles?.email || "N/A",
-      Subject: item.quizzes?.subject || "N/A",
-      Category: item.quizzes?.category || "N/A",
-      Score: item.total_score ?? 0,
-      "Time Taken (s)": item.time_taken ?? 0,
-      "Date Taken": new Date(item.created_at).toLocaleString(),
-    }));
+    // Group by user, subject, category, take highest score and lowest time
+    const userData: Record<string, Record<string, Record<string, { score: number; time: number; percent: number }>>> = {};
 
-    const summarySection = [
-      { "📊 AVERAGE SUMMARY": "" },
-      {
-        Subject: "Arithmetic Sequence",
-        "⏱ Time (%)": `${arithmeticScore.time}%`,
-        "🧩 Problem Solving (%)": `${arithmeticScore.problemSolving}%`,
-        "🧮 Word Problem (%)": `${arithmeticScore.solving}%`,
-      },
-      {
-        Subject: "Uniform Motion in Physics",
-        "⏱ Time (%)": `${physicsScore.time}%`,
-        "🧩 Problem Solving (%)": `${physicsScore.problemSolving}%`,
-        "🧮 Word Problem (%)": `${physicsScore.solving}%`,
-      },
+    allScores.forEach((score) => {
+      const userId = score.user_id;
+      const subject = score.quizzes?.subject || "N/A";
+      const category = score.quizzes?.category || "N/A";
+      const scoreVal = score.total_score ?? 0;
+      const timeVal = score.time_taken ?? MAX_TIME;
+
+
+      if (!userData[userId]) userData[userId] = {};
+      if (!userData[userId][subject]) userData[userId][subject] = {};
+      if (!userData[userId][subject][category]) {
+        userData[userId][subject][category] = { score: 0, time: MAX_TIME, percent: 0 };
+      }
+
+      // Take highest score and lowest time
+      userData[userId][subject][category].score = Math.max(userData[userId][subject][category].score, scoreVal);
+      userData[userId][subject][category].time = Math.min(userData[userId][subject][category].time, timeVal);
+      userData[userId][subject][category].percent = (userData[userId][subject][category].score / MAX_SCORE) * 100;
+    });
+
+    // Prepare data for Excel
+    const arithmeticWordProblem: unknown[] = [];
+    const arithmeticProblemSolving: unknown[] = [];
+    const motionWordProblem: unknown[] = [];
+    const motionProblemSolving: unknown[] = [];
+
+    Object.keys(userData).forEach((userId) => {
+      const user = allScores.find(s => s.user_id === userId);
+      const fullName = `${user?.profiles?.lastname || ""}, ${user?.profiles?.firstname || ""}`.trim() || "N/A";
+      const email = user?.profiles?.email || "N/A";
+
+      if (userData[userId]["Arithmetic Sequence"]) {
+        if (userData[userId]["Arithmetic Sequence"]["Word Problem"]) {
+          arithmeticWordProblem.push({
+            "Full Name": fullName,
+            Email: email,
+            Score: userData[userId]["Arithmetic Sequence"]["Word Problem"].score,
+            "Percentage": `${userData[userId]["Arithmetic Sequence"]["Word Problem"].percent.toFixed(2)}%`,
+            "Time Taken (s)": userData[userId]["Arithmetic Sequence"]["Word Problem"].time,
+          });
+        }
+        if (userData[userId]["Arithmetic Sequence"]["Problem Solving"]) {
+          arithmeticProblemSolving.push({
+            "Full Name": fullName,
+            Email: email,
+            Score: userData[userId]["Arithmetic Sequence"]["Problem Solving"].score,
+            "Percentage": `${userData[userId]["Arithmetic Sequence"]["Problem Solving"].percent.toFixed(2)}%`,
+            "Time Taken (s)": userData[userId]["Arithmetic Sequence"]["Problem Solving"].time,
+          });
+        }
+      }
+
+      if (userData[userId]["Uniform Motion in Physics"]) {
+        if (userData[userId]["Uniform Motion in Physics"]["Word Problem"]) {
+          motionWordProblem.push({
+            "Full Name": fullName,
+            Email: email,
+            Score: userData[userId]["Uniform Motion in Physics"]["Word Problem"].score,
+            "Percentage": `${userData[userId]["Uniform Motion in Physics"]["Word Problem"].percent.toFixed(2)}%`,
+            "Time Taken (s)": userData[userId]["Uniform Motion in Physics"]["Word Problem"].time,
+          });
+        }
+        if (userData[userId]["Uniform Motion in Physics"]["Problem Solving"]) {
+          motionProblemSolving.push({
+            "Full Name": fullName,
+            Email: email,
+            Score: userData[userId]["Uniform Motion in Physics"]["Problem Solving"].score,
+            "Percentage": `${userData[userId]["Uniform Motion in Physics"]["Problem Solving"].percent.toFixed(2)}%`,
+            "Time Taken (s)": userData[userId]["Uniform Motion in Physics"]["Problem Solving"].time,
+          });
+        }
+      }
+    });
+
+    // Summary for pie charts
+    const arithmeticAvg = {
+      "Word Problem (%)": arithmeticScore.solving,
+      "Problem Solving (%)": arithmeticScore.problemSolving,
+    };
+    const motionAvg = {
+      "Word Problem (%)": physicsScore.solving,
+      "Problem Solving (%)": physicsScore.problemSolving,
+    };
+
+    // Structure the sheet
+    const wsData = [
+      { "ARITHMETIC SEQUENCE - WORD PROBLEM": "" },
+      ...arithmeticWordProblem,
       {},
-      { "STUDENT QUIZ RESULTS": "" },
+      { "ARITHMETIC SEQUENCE - PROBLEM SOLVING": "" },
+      ...arithmeticProblemSolving,
+      {},
+      { "UNIFORM MOTION IN PHYSICS - WORD PROBLEM": "" },
+      ...motionWordProblem,
+      {},
+      { "UNIFORM MOTION IN PHYSICS - PROBLEM SOLVING": "" },
+      ...motionProblemSolving,
+      {},
+      { "PIE CHART DATA - ARITHMETIC SEQUENCE": "" },
+      { Category: "Word Problem", Percentage: arithmeticAvg["Word Problem (%)"] },
+      { Category: "Problem Solving", Percentage: arithmeticAvg["Problem Solving (%)"] },
+      {},
+      { "PIE CHART DATA - UNIFORM MOTION IN PHYSICS": "" },
+      { Category: "Word Problem", Percentage: motionAvg["Word Problem (%)"] },
+      { Category: "Problem Solving", Percentage: motionAvg["Problem Solving (%)"] },
     ];
 
-    const ws = XLSX.utils.json_to_sheet([...summarySection, {}, ...formatted]);
+    const ws = XLSX.utils.json_to_sheet(wsData);
     ws["!cols"] = [
       { wch: 30 },
       { wch: 25 },
-      { wch: 25 },
-      { wch: 20 },
       { wch: 10 },
       { wch: 15 },
-      { wch: 25 }
+      { wch: 15 }
     ];
-  
+
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "All Results");
+    XLSX.utils.book_append_sheet(wb, ws, "Detailed Results");
 
     const dateStr = new Date().toISOString().split("T")[0];
-    XLSX.writeFile(wb, `All_Student_Results_${dateStr}.xlsx`);
+    XLSX.writeFile(wb, `Detailed_Student_Results_${dateStr}.xlsx`);
 
     await fetchAllData();
   };
@@ -422,7 +502,7 @@ const fetchSubjectData = async (subject: string): Promise<UserScore> => {
               <canvas ref={radarRefArithmetic} />
             </div>
 
-            <div
+                       <div
               style={{
                 width: "100%",
                 maxWidth: "500px",

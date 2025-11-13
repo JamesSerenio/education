@@ -53,7 +53,6 @@ interface ScoreWithQuizzes {
   time_taken: number | null;
   created_at: string;
   quiz_id: string;
-  user_id: string;
   quizzes: Quiz | null;
   profiles?: {
     firstname?: string;
@@ -90,7 +89,6 @@ const AdminRadar: React.FC = () => {
       time_taken: (rawData.time_taken as number) ?? null,
       created_at: (rawData.created_at as string) || new Date().toISOString(),
       quiz_id: (rawData.quiz_id as string) || "",
-      user_id: (rawData.user_id as string) || "",
       quizzes: quiz
         ? {
             id: (quiz.id as string) || "",
@@ -108,13 +106,13 @@ const AdminRadar: React.FC = () => {
     };
   };
 
-// 🔹 Fetch and calculate averages by subject and category filters (using highest per user)
+// 🔹 Fetch and calculate averages by subject and category filters
 const fetchSubjectData = async (subject: string): Promise<UserScore> => {
   try {
     const { data, error } = await supabase
       .from("scores")
       .select(`
-        id, total_score, time_taken, created_at, quiz_id, user_id,
+        id, total_score, time_taken, created_at, quiz_id,
         quizzes!inner (id, category, subject)
       `)
       .order("created_at", { ascending: false });
@@ -132,39 +130,43 @@ const fetchSubjectData = async (subject: string): Promise<UserScore> => {
     if (subjectScores.length === 0)
       return { time: 0, solving: 0, problemSolving: 0 };
 
-    // ✅ Group by user_id and find the best (highest score, lowest time) per user per category
-    const userBests: Record<string, { wordProblem: number; problemSolving: number; time: number }> = {};
+    // ✅ Compute average time
+    const avgTime =
+      subjectScores.reduce((sum, s) => sum + (s.time_taken ?? 0), 0) /
+      subjectScores.length;
 
-    subjectScores.forEach((score) => {
-      const userId = score.user_id;
-      if (!userBests[userId]) {
-        userBests[userId] = { wordProblem: 0, problemSolving: 0, time: MAX_TIME };
-      }
+    const timePercent = Math.max(
+      0,
+      Math.min(100, ((MAX_TIME - avgTime) / MAX_TIME) * 100)
+    );
 
-      if (score.quizzes?.category === "Word Problem" && score.total_score !== null) {
-        userBests[userId].wordProblem = Math.max(userBests[userId].wordProblem, score.total_score);
-      }
-      if (score.quizzes?.category === "Problem Solving" && score.total_score !== null) {
-        userBests[userId].problemSolving = Math.max(userBests[userId].problemSolving, score.total_score);
-      }
-      if (score.time_taken !== null) {
-        userBests[userId].time = Math.min(userBests[userId].time, score.time_taken);
-      }
-    });
+    // ✅ Compute Problem Solving (category = "Problem Solving")
+    const problemSolvingScores = subjectScores.filter(
+      (s) => s.quizzes?.category === "Problem Solving" && s.total_score !== null
+    );
 
-    // ✅ Compute averages of the bests
-    const users = Object.values(userBests);
-    if (users.length === 0) return { time: 0, solving: 0, problemSolving: 0 };
+    const problemSolvingPercent =
+      problemSolvingScores.length > 0
+        ? (problemSolvingScores.reduce((sum, s) => sum + (s.total_score ?? 0), 0) /
+            problemSolvingScores.length /
+            MAX_SCORE) *
+          100
+        : 0;
 
-    const avgWordProblem = users.reduce((sum, u) => sum + u.wordProblem, 0) / users.length;
-    const avgProblemSolving = users.reduce((sum, u) => sum + u.problemSolving, 0) / users.length;
-    const avgTime = users.reduce((sum, u) => sum + u.time, 0) / users.length;
+    // ✅ Compute Word Problem (category = "Word Problem")
+    const wordProblemScores = subjectScores.filter(
+      (s) => s.quizzes?.category === "Word Problem" && s.total_score !== null
+    );
 
-    const timePercent = Math.max(0, Math.min(100, ((MAX_TIME - avgTime) / MAX_TIME) * 100));
-    const solvingPercent = (avgWordProblem / MAX_SCORE) * 100;
-    const problemSolvingPercent = (avgProblemSolving / MAX_SCORE) * 100;
+    const solvingPercent =
+      wordProblemScores.length > 0
+        ? (wordProblemScores.reduce((sum, s) => sum + (s.total_score ?? 0), 0) /
+            wordProblemScores.length /
+            MAX_SCORE) *
+          100
+        : 0;
 
-    // ✅ Return averages of highest per user
+    // ✅ Return isolated subject-specific averages
     return {
       time: parseFloat(timePercent.toFixed(2)),
       solving: parseFloat(solvingPercent.toFixed(2)),
@@ -228,7 +230,6 @@ const fetchSubjectData = async (subject: string): Promise<UserScore> => {
           time_taken,
           created_at,
           quiz_id,
-          user_id,
           quizzes!quiz_id (subject, category),
           profiles!user_id (firstname, lastname, email)
         `)
@@ -246,130 +247,50 @@ const fetchSubjectData = async (subject: string): Promise<UserScore> => {
     const allScores = await fetchAllScores();
     if (allScores.length === 0) return;
 
-    // Group by user, subject, category, take highest score and lowest time
-    const userData: Record<string, Record<string, Record<string, { score: number; time: number; percent: number }>>> = {};
+    const formatted = allScores.map((item) => ({
+      "Full Name": `${item.profiles?.lastname || ""}, ${item.profiles?.firstname || ""}`.trim() || "N/A",
+      Email: item.profiles?.email || "N/A",
+      Subject: item.quizzes?.subject || "N/A",
+      Category: item.quizzes?.category || "N/A",
+      Score: item.total_score ?? 0,
+      "Time Taken (s)": item.time_taken ?? 0,
+      "Date Taken": new Date(item.created_at).toLocaleString(),
+    }));
 
-    allScores.forEach((score) => {
-      const userId = score.user_id;
-      const subject = score.quizzes?.subject || "N/A";
-      const category = score.quizzes?.category || "N/A";
-      const scoreVal = score.total_score ?? 0;
-      const timeVal = score.time_taken ?? MAX_TIME;
-
-
-      if (!userData[userId]) userData[userId] = {};
-      if (!userData[userId][subject]) userData[userId][subject] = {};
-      if (!userData[userId][subject][category]) {
-        userData[userId][subject][category] = { score: 0, time: MAX_TIME, percent: 0 };
-      }
-
-      // Take highest score and lowest time
-      userData[userId][subject][category].score = Math.max(userData[userId][subject][category].score, scoreVal);
-      userData[userId][subject][category].time = Math.min(userData[userId][subject][category].time, timeVal);
-      userData[userId][subject][category].percent = (userData[userId][subject][category].score / MAX_SCORE) * 100;
-    });
-
-    // Prepare data for Excel
-    const arithmeticWordProblem: unknown[] = [];
-    const arithmeticProblemSolving: unknown[] = [];
-    const motionWordProblem: unknown[] = [];
-    const motionProblemSolving: unknown[] = [];
-
-    Object.keys(userData).forEach((userId) => {
-      const user = allScores.find(s => s.user_id === userId);
-      const fullName = `${user?.profiles?.lastname || ""}, ${user?.profiles?.firstname || ""}`.trim() || "N/A";
-      const email = user?.profiles?.email || "N/A";
-
-      if (userData[userId]["Arithmetic Sequence"]) {
-        if (userData[userId]["Arithmetic Sequence"]["Word Problem"]) {
-          arithmeticWordProblem.push({
-            "Full Name": fullName,
-            Email: email,
-            Score: userData[userId]["Arithmetic Sequence"]["Word Problem"].score,
-            "Percentage": `${userData[userId]["Arithmetic Sequence"]["Word Problem"].percent.toFixed(2)}%`,
-            "Time Taken (s)": userData[userId]["Arithmetic Sequence"]["Word Problem"].time,
-          });
-        }
-        if (userData[userId]["Arithmetic Sequence"]["Problem Solving"]) {
-          arithmeticProblemSolving.push({
-            "Full Name": fullName,
-            Email: email,
-            Score: userData[userId]["Arithmetic Sequence"]["Problem Solving"].score,
-            "Percentage": `${userData[userId]["Arithmetic Sequence"]["Problem Solving"].percent.toFixed(2)}%`,
-            "Time Taken (s)": userData[userId]["Arithmetic Sequence"]["Problem Solving"].time,
-          });
-        }
-      }
-
-      if (userData[userId]["Uniform Motion in Physics"]) {
-        if (userData[userId]["Uniform Motion in Physics"]["Word Problem"]) {
-          motionWordProblem.push({
-            "Full Name": fullName,
-            Email: email,
-            Score: userData[userId]["Uniform Motion in Physics"]["Word Problem"].score,
-            "Percentage": `${userData[userId]["Uniform Motion in Physics"]["Word Problem"].percent.toFixed(2)}%`,
-            "Time Taken (s)": userData[userId]["Uniform Motion in Physics"]["Word Problem"].time,
-          });
-        }
-        if (userData[userId]["Uniform Motion in Physics"]["Problem Solving"]) {
-          motionProblemSolving.push({
-            "Full Name": fullName,
-            Email: email,
-            Score: userData[userId]["Uniform Motion in Physics"]["Problem Solving"].score,
-            "Percentage": `${userData[userId]["Uniform Motion in Physics"]["Problem Solving"].percent.toFixed(2)}%`,
-            "Time Taken (s)": userData[userId]["Uniform Motion in Physics"]["Problem Solving"].time,
-          });
-        }
-      }
-    });
-
-    // Summary for pie charts
-    const arithmeticAvg = {
-      "Word Problem (%)": arithmeticScore.solving,
-      "Problem Solving (%)": arithmeticScore.problemSolving,
-    };
-    const motionAvg = {
-      "Word Problem (%)": physicsScore.solving,
-      "Problem Solving (%)": physicsScore.problemSolving,
-    };
-
-    // Structure the sheet
-    const wsData = [
-      { "ARITHMETIC SEQUENCE - WORD PROBLEM": "" },
-      ...arithmeticWordProblem,
+    const summarySection = [
+      { "📊 AVERAGE SUMMARY": "" },
+      {
+        Subject: "Arithmetic Sequence",
+        "⏱ Time (%)": `${arithmeticScore.time}%`,
+        "🧩 Problem Solving (%)": `${arithmeticScore.problemSolving}%`,
+        "🧮 Word Problem (%)": `${arithmeticScore.solving}%`,
+      },
+      {
+        Subject: "Uniform Motion in Physics",
+        "⏱ Time (%)": `${physicsScore.time}%`,
+        "🧩 Problem Solving (%)": `${physicsScore.problemSolving}%`,
+        "🧮 Word Problem (%)": `${physicsScore.solving}%`,
+      },
       {},
-      { "ARITHMETIC SEQUENCE - PROBLEM SOLVING": "" },
-      ...arithmeticProblemSolving,
-      {},
-      { "UNIFORM MOTION IN PHYSICS - WORD PROBLEM": "" },
-      ...motionWordProblem,
-      {},
-      { "UNIFORM MOTION IN PHYSICS - PROBLEM SOLVING": "" },
-      ...motionProblemSolving,
-      {},
-      { "PIE CHART DATA - ARITHMETIC SEQUENCE": "" },
-      { Category: "Word Problem", Percentage: arithmeticAvg["Word Problem (%)"] },
-      { Category: "Problem Solving", Percentage: arithmeticAvg["Problem Solving (%)"] },
-      {},
-      { "PIE CHART DATA - UNIFORM MOTION IN PHYSICS": "" },
-      { Category: "Word Problem", Percentage: motionAvg["Word Problem (%)"] },
-      { Category: "Problem Solving", Percentage: motionAvg["Problem Solving (%)"] },
+      { "STUDENT QUIZ RESULTS": "" },
     ];
 
-    const ws = XLSX.utils.json_to_sheet(wsData);
+    const ws = XLSX.utils.json_to_sheet([...summarySection, {}, ...formatted]);
     ws["!cols"] = [
       { wch: 30 },
       { wch: 25 },
+      { wch: 25 },
+      { wch: 20 },
       { wch: 10 },
       { wch: 15 },
-      { wch: 15 }
+      { wch: 25 }
     ];
-
+  
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Detailed Results");
+    XLSX.utils.book_append_sheet(wb, ws, "All Results");
 
     const dateStr = new Date().toISOString().split("T")[0];
-    XLSX.writeFile(wb, `Detailed_Student_Results_${dateStr}.xlsx`);
+    XLSX.writeFile(wb, `All_Student_Results_${dateStr}.xlsx`);
 
     await fetchAllData();
   };
@@ -502,7 +423,7 @@ const fetchSubjectData = async (subject: string): Promise<UserScore> => {
               <canvas ref={radarRefArithmetic} />
             </div>
 
-                       <div
+            <div
               style={{
                 width: "100%",
                 maxWidth: "500px",

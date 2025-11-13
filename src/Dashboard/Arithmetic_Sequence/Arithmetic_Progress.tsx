@@ -140,12 +140,12 @@ const ArithmeticProgress: React.FC = () => {
       },
     };
 
-    return <Line data={chartData} options={options} height={300} />;
+    return <Line data={chartData} options={options} />;
   };
 
   return (
     <IonPage className="progress-container">
-    <IonContent className="progress-content ion-padding">
+      <IonContent className="progress-content ion-padding">
         <div className="progress-card">
           <h2 className="progress-heading">Your Progress</h2>
 

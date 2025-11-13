@@ -154,11 +154,11 @@ const ArithmeticProgress: React.FC = () => {
           ) : (
             <>
               <div className="progress-chart">
-                <h3>Word Problem</h3>
+                <h3></h3>
                 {renderLineChart("Word Problem")}
               </div>
               <div className="progress-chart">
-                <h3>Problem Solving</h3>
+                <h3></h3>
                 {renderLineChart("Problem Solving")}
               </div>
             </>

@@ -48,21 +48,8 @@ interface ProgressRow {
   scores: { score: number; date: string }[]; // Updated to include date
 }
 
-interface LeaderboardRow {
-  user_id: string;
-  firstname: string;
-  lastname: string;
-  category: "Word Problem" | "Problem Solving";
-  easy_total: number;
-  average_total: number;
-  difficult_total: number;
-  overall_total: number;
-  quizzes_taken: number;
-}
-
 const ArithmeticProgress: React.FC = () => {
   const [progressData, setProgressData] = useState<ProgressRow[]>([]);
-  const [leaderboardData, setLeaderboardData] = useState<LeaderboardRow[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -86,7 +73,6 @@ const ArithmeticProgress: React.FC = () => {
       if (error) {
         console.error("Error fetching data:", error);
         setProgressData([]);
-        setLeaderboardData([]);
         return;
       }
 
@@ -109,40 +95,9 @@ const ArithmeticProgress: React.FC = () => {
       });
       const progressRows = Array.from(progressMap.values());
       setProgressData(progressRows);
-
-      // For leaderboard: aggregate as before
-      const rows: LeaderboardRow[] = (fetchedData as ScoreWithRelations[]).map((row) => ({
-        user_id: row.user_id,
-        firstname: row.profiles.firstname,
-        lastname: row.profiles.lastname,
-        category: row.quizzes.category,
-        easy_total: row.easy,
-        average_total: row.average,
-        difficult_total: row.difficult,
-        overall_total: row.total_score || (row.easy + row.average + row.difficult),
-        quizzes_taken: 1,
-      }));
-
-      const aggregated = new Map<string, LeaderboardRow>();
-      rows.forEach((row) => {
-        const key = `${row.user_id}-${row.category}`;
-        const existing = aggregated.get(key);
-        if (existing) {
-          existing.easy_total = Math.max(existing.easy_total, row.easy_total);
-          existing.average_total = Math.max(existing.average_total, row.average_total);
-          existing.difficult_total = Math.max(existing.difficult_total, row.difficult_total);
-          existing.overall_total = Math.max(existing.overall_total, row.overall_total);
-          existing.quizzes_taken += 1;
-        } else {
-          aggregated.set(key, { ...row });
-        }
-      });
-      const aggregatedRows = Array.from(aggregated.values());
-      setLeaderboardData(aggregatedRows);
     } catch (err) {
       console.error("Unexpected fetch error:", err);
       setProgressData([]);
-      setLeaderboardData([]);
     } finally {
       setLoading(false);
     }
@@ -189,40 +144,6 @@ const ArithmeticProgress: React.FC = () => {
     return <Line data={chartData} options={options} />;
   };
 
-  const renderQuizzesTaken = (category: "Word Problem" | "Problem Solving") => {
-    const rows = leaderboardData
-      .filter(r => r.category === category)
-      .sort((a, b) => b.quizzes_taken - a.quizzes_taken);
-
-    return (
-      <div className="quizzes-taken-wrapper">
-        <h3>Quizzes Taken - {category}</h3>
-        <table className="quizzes-taken-table">
-          <thead>
-            <tr>
-              <th>Lastname</th>
-              <th>Quizzes Taken</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.length ? (
-              rows.map((row) => (
-                <tr key={`${row.user_id}-${row.category}`}>
-                  <td>{row.lastname}</td>
-                  <td>{row.quizzes_taken}</td>
-                </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan={2}>No data found.</td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-    );
-  };
-
   return (
     <IonPage className="progress-page">
       <IonHeader className="progress-toolbar">
@@ -246,10 +167,6 @@ const ArithmeticProgress: React.FC = () => {
               <div className="progress-chart">
                 <h3>Problem Solving</h3>
                 {renderLineChart("Problem Solving")}
-              </div>
-              <div className="quizzes-taken-section">
-                {renderQuizzesTaken("Word Problem")}
-                {renderQuizzesTaken("Problem Solving")}
               </div>
             </>
           )}

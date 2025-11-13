@@ -32,13 +32,13 @@ ChartJS.register(
   ChartDataLabels
 );
 
-const MAX_SCORE = 15; // Total max score as clarified
-const MAX_TIME = 2700;
+const MAX_SCORE = 15; // Total max score
+const MAX_TIME = 2700; // Max time in seconds
 
 interface ScoreWithQuizzes {
   id: string;
   total_score: number | null;
-  time_taken: number | null;
+  time_taken: number | null; // Time is based on this
   created_at: string;
   quiz_id: string;
   quizzes: { id: string; category: string; subject?: string } | null;

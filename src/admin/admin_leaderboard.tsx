@@ -6,7 +6,7 @@ import {
   IonSelectOption,
 } from "@ionic/react";
 import { Trophy } from "lucide-react";
-import { supabase } from "../utils/supabaseClient";
+import { supabase } from "../../utils/supabaseClient";
 
 interface LeaderboardRow {
   user_id: string;
@@ -41,23 +41,24 @@ interface ScoreWithRelations {
 }
 
 const AdminRadar: React.FC = () => {
+  // Shared difficulty state for both leaderboards
+  const [selectedDifficulty, setSelectedDifficulty] = useState<string>("All");
+
   // Arithmetic states
   const [arithmeticData, setArithmeticData] = useState<LeaderboardRow[]>([]);
   const [arithmeticLoading, setArithmeticLoading] = useState(true);
-  const [arithmeticSelectedDifficulty, setArithmeticSelectedDifficulty] = useState<string>("All");
 
   // Motion states
   const [motionData, setMotionData] = useState<LeaderboardRow[]>([]);
   const [motionLoading, setMotionLoading] = useState(true);
-  const [motionSelectedDifficulty, setMotionSelectedDifficulty] = useState<string>("All");
 
   useEffect(() => {
     fetchArithmeticLeaderboards();
-  }, [arithmeticSelectedDifficulty]);
+  }, [selectedDifficulty]);
 
   useEffect(() => {
     fetchMotionLeaderboards();
-  }, [motionSelectedDifficulty]);
+  }, [selectedDifficulty]);
 
   const fetchArithmeticLeaderboards = async () => {
     setArithmeticLoading(true);
@@ -110,10 +111,10 @@ const AdminRadar: React.FC = () => {
 
       // Filter by difficulty (remove strict >0 filter to show all data)
       let filteredRows = aggregatedRows;
-      if (arithmeticSelectedDifficulty !== "All") {
+      if (selectedDifficulty !== "All") {
         filteredRows = filteredRows.filter(r => {
-          if (arithmeticSelectedDifficulty === "Easy") return r.easy_total > 0;
-          if (arithmeticSelectedDifficulty === "Average") return r.average_total > 0;
+          if (selectedDifficulty === "Easy") return r.easy_total > 0;
+          if (selectedDifficulty === "Average") return r.average_total > 0;
           return r.difficult_total > 0;
         });
       }
@@ -178,10 +179,10 @@ const AdminRadar: React.FC = () => {
 
       // Filter by difficulty (remove strict >0 filter to show all data)
       let filteredRows = aggregatedRows;
-      if (motionSelectedDifficulty !== "All") {
+      if (selectedDifficulty !== "All") {
         filteredRows = filteredRows.filter(r => {
-          if (motionSelectedDifficulty === "Easy") return r.easy_total > 0;
-          if (motionSelectedDifficulty === "Average") return r.average_total > 0;
+          if (selectedDifficulty === "Easy") return r.easy_total > 0;
+          if (selectedDifficulty === "Average") return r.average_total > 0;
           return r.difficult_total > 0;
         });
       }
@@ -195,7 +196,7 @@ const AdminRadar: React.FC = () => {
     }
   };
 
-  const renderTable = (data: LeaderboardRow[], selectedDifficulty: string, category: "Word Problem" | "Problem Solving") => {
+  const renderTable = (data: LeaderboardRow[], category: "Word Problem" | "Problem Solving") => {
     const rows = data
       .filter(r => r.category === category)
       .sort((a, b) => {
@@ -268,28 +269,30 @@ const AdminRadar: React.FC = () => {
   return (
     <IonPage>
       <IonContent className="ion-padding arithmetic-module-container">
+        {/* Single Filter for both leaderboards */}
+        <div style={{ marginBottom: "2rem" }}>
+          <label>Filter by Difficulty:</label>
+          <IonSelect
+            value={selectedDifficulty}
+            onIonChange={(e) => setSelectedDifficulty(e.detail.value)}
+          >
+            <IonSelectOption value="All">All</IonSelectOption>
+            <IonSelectOption value="Easy">Easy</IonSelectOption>
+            <IonSelectOption value="Average">Average</IonSelectOption>
+            <IonSelectOption value="Difficult">Difficult</IonSelectOption>
+          </IonSelect>
+        </div>
+
         {/* Arithmetic Leaderboard */}
         <div style={{ marginBottom: "2rem" }}>
           <h1>Arithmetic Sequence Leaderboard</h1>
-          <div style={{ marginBottom: "1rem" }}>
-            <label>Filter by Difficulty:</label>
-            <IonSelect
-              value={arithmeticSelectedDifficulty}
-              onIonChange={(e) => setArithmeticSelectedDifficulty(e.detail.value)}
-            >
-              <IonSelectOption value="All">All</IonSelectOption>
-              <IonSelectOption value="Easy">Easy</IonSelectOption>
-              <IonSelectOption value="Average">Average</IonSelectOption>
-              <IonSelectOption value="Difficult">Difficult</IonSelectOption>
-            </IonSelect>
-          </div>
 
           <div className="leaderboard-card">
             <h2 className="leaderboard-title">Word Problem Leaderboard</h2>
             <div className="trophy-icon">
               <Trophy size={20} color="#65a30d" />
             </div>
-            {arithmeticLoading ? <p>Loading...</p> : renderTable(arithmeticData, arithmeticSelectedDifficulty, "Word Problem")}
+            {arithmeticLoading ? <p>Loading...</p> : renderTable(arithmeticData, "Word Problem")}
           </div>
 
           <div className="leaderboard-card">
@@ -297,32 +300,20 @@ const AdminRadar: React.FC = () => {
             <div className="trophy-icon">
               <Trophy size={20} color="#eab308" />
             </div>
-            {arithmeticLoading ? <p>Loading...</p> : renderTable(arithmeticData, arithmeticSelectedDifficulty, "Problem Solving")}
+            {arithmeticLoading ? <p>Loading...</p> : renderTable(arithmeticData, "Problem Solving")}
           </div>
         </div>
 
         {/* Motion Leaderboard */}
         <div>
           <h1>Uniform Motion in Physics Leaderboard</h1>
-          <div style={{ marginBottom: "1rem" }}>
-            <label>Filter by Difficulty:</label>
-            <IonSelect
-              value={motionSelectedDifficulty}
-              onIonChange={(e) => setMotionSelectedDifficulty(e.detail.value)}
-            >
-              <IonSelectOption value="All">All</IonSelectOption>
-              <IonSelectOption value="Easy">Easy</IonSelectOption>
-              <IonSelectOption value="Average">Average</IonSelectOption>
-              <IonSelectOption value="Difficult">Difficult</IonSelectOption>
-            </IonSelect>
-          </div>
 
           <div className="leaderboard-card">
             <h2 className="leaderboard-title">Word Problem Leaderboard</h2>
             <div className="trophy-icon">
               <Trophy size={20} color="#65a30d" />
             </div>
-            {motionLoading ? <p>Loading...</p> : renderTable(motionData, motionSelectedDifficulty, "Word Problem")}
+            {motionLoading ? <p>Loading...</p> : renderTable(motionData, "Word Problem")}
           </div>
 
           <div className="leaderboard-card">
@@ -330,7 +321,7 @@ const AdminRadar: React.FC = () => {
             <div className="trophy-icon">
               <Trophy size={20} color="#eab308" />
             </div>
-            {motionLoading ? <p>Loading...</p> : renderTable(motionData, motionSelectedDifficulty, "Problem Solving")}
+            {motionLoading ? <p>Loading...</p> : renderTable(motionData, "Problem Solving")}
           </div>
         </div>
       </IonContent>

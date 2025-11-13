@@ -1,452 +1,180 @@
-import React, { useEffect, useState, useRef, useCallback } from "react";
+import React, { useEffect, useState } from "react";
 import {
   IonPage,
   IonHeader,
   IonToolbar,
   IonTitle,
   IonContent,
-  IonItem,
-  IonButton,
-  IonInput,
-  IonText,
-  IonModal,
 } from "@ionic/react";
 import { supabase } from "../../utils/supabaseClient";
+import { Line } from "react-chartjs-2";
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  LineElement,
+  PointElement,
+  Title,
+  Tooltip,
+  Legend,
+  TooltipItem,
+} from "chart.js";
 
-interface Quiz {
-  id: string;
-  subject: string;
-  category: string;
-  difficulty: "Easy" | "Average" | "Difficult";
-  question: string;
-  solution: string;
-  answer: string;
-  accepted_answers?: string[];
+ChartJS.register(CategoryScale, LinearScale, LineElement, PointElement, Title, Tooltip, Legend);
+
+interface ScoreWithRelations {
+  user_id: string;
+  quiz_id: string;
+  easy: number;
+  average: number;
+  difficult: number;
+  total_score: number;
+  time_taken: number;
+  created_at: string;
+  profiles: {
+    firstname: string;
+    lastname: string;
+  };
+  quizzes: {
+    category: "Word Problem" | "Problem Solving";
+    subject: string;
+  };
 }
 
-const DIFFICULTY_TIMERS: Record<Quiz["difficulty"], number> = {
-  Easy: 15,
-  Average: 30,
-  Difficult: 60,
-};
+interface ProgressRow {
+  user_id: string;
+  lastname: string;
+  category: "Word Problem" | "Problem Solving";
+  scores: { score: number; date: string }[]; // Updated to include date
+}
 
-const QUESTIONS_PER_DIFFICULTY = 5;
-const difficultyOrder: Quiz["difficulty"][] = ["Easy", "Average", "Difficult"];
+const ArithmeticProgress: React.FC = () => {
+  const [progressData, setProgressData] = useState<ProgressRow[]>([]);
+  const [loading, setLoading] = useState(true);
 
-const MotionQuiz: React.FC = () => {
-  const [allQuizzes, setAllQuizzes] = useState<Quiz[]>([]);
-  const [quizQueue, setQuizQueue] = useState<Quiz[]>([]);
-  const [currentQuizIndex, setCurrentQuizIndex] = useState<number>(0);
-  const [currentQuiz, setCurrentQuiz] = useState<Quiz | null>(null);
-  const [userAnswer, setUserAnswer] = useState<string>("");
-  const [errorMessage, setErrorMessage] = useState<string>("");
-  const [score, setScore] = useState<number>(0);
-  const [userSolutions, setUserSolutions] = useState<
-    {
-      question: string;
-      correct: string;
-      userAnswer: string;
-      solution: string;
-      isCorrect: boolean;
-      timeUsed: number;
-      difficulty: Quiz["difficulty"];
-    }[]
-  >([]);
-  const [showResultModal, setShowResultModal] = useState(false);
-  const [timeLeft, setTimeLeft] = useState<number>(0);
-  const [timeUsed, setTimeUsed] = useState<number>(0);
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-
-  const [showTransitionScreen, setShowTransitionScreen] = useState(false);
-  const [transitionMessage, setTransitionMessage] = useState("");
-  const [showYesNo, setShowYesNo] = useState(false);
-  const [countdown, setCountdown] = useState(3);
-
-  const [delayTime, setDelayTime] = useState<number | null>(null);
-  const delayRef = useRef<NodeJS.Timeout | null>(null);
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
-
-  const clearAllTimers = () => {
-    if (timerRef.current) clearInterval(timerRef.current);
-    if (delayRef.current) clearInterval(delayRef.current);
-  };
-
-  // Fetch quizzes
   useEffect(() => {
-    const fetchQuizzes = async () => {
-      const { data, error } = await supabase
-        .from("quizzes")
-        .select("*")
-        .eq("subject", "Uniform Motion in Physics")
-        .in("category", ["Word Problem", "Problem Solving"]);
-
-      if (error) console.error("Error fetching motion quizzes:", error.message);
-      else setAllQuizzes(data || []);
-    };
-    fetchQuizzes();
+    fetchData();
   }, []);
 
-  // Start quiz
-  const startQuiz = (category: string) => {
-    setSelectedCategory(category);
-
-    const categoryQuizzes = allQuizzes.filter((q) => q.category === category);
-
-    const buildQueue = difficultyOrder.flatMap((difficulty) => {
-      const filtered = categoryQuizzes
-        .filter((q) => q.difficulty === difficulty)
-        .sort(() => Math.random() - 0.5)
-        .slice(0, QUESTIONS_PER_DIFFICULTY);
-      return filtered;
-    });
-
-    setQuizQueue(buildQueue);
-    setCurrentQuizIndex(0);
-    setCurrentQuiz(buildQueue[0] || null);
-    setScore(0);
-    setUserSolutions([]);
-    setUserAnswer("");
-    setTimeUsed(0);
-    if (buildQueue[0]) setDelayTime(15);
-  };
-
-  // Timer with reading delay
-  useEffect(() => {
-    if (!currentQuiz) return;
-
-    clearAllTimers();
-    setDelayTime(15);
-    setTimeLeft(0);
-    setTimeUsed(0);
-
-    delayRef.current = setInterval(() => {
-      setDelayTime((prev) => {
-        if (prev === null) return null;
-        if (prev <= 1) {
-          clearInterval(delayRef.current!);
-          setDelayTime(null);
-
-          const totalTime = DIFFICULTY_TIMERS[currentQuiz.difficulty];
-          setTimeLeft(totalTime);
-
-          timerRef.current = setInterval(() => {
-            setTimeLeft((prev) => {
-              if (prev <= 1) {
-                clearInterval(timerRef.current!);
-                handleNext(true);
-                return 0;
-              }
-              return prev - 1;
-            });
-            setTimeUsed((prev) => prev + 1);
-          }, 1000);
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
-    return () => clearAllTimers();
-  }, [currentQuiz]);
-
-  const handleNext = useCallback(
-    async (auto = false) => {
-      if (!currentQuiz) return;
-
-      if (!auto && !userAnswer.trim()) {
-        setErrorMessage("⚠️ Please enter your answer before proceeding.");
-        return;
-      }
-
-      setErrorMessage("");
-
-      const normalizedAnswer = userAnswer.trim().toLowerCase();
-      const correctAnswer = currentQuiz.answer.trim().toLowerCase();
-      const alternates = (currentQuiz.accepted_answers || []).map((a) =>
-        a.trim().toLowerCase()
-      );
-      const isCorrect =
-        normalizedAnswer === correctAnswer || alternates.includes(normalizedAnswer);
-
-      const timeUsedForThis = isCorrect
-        ? timeUsed
-        : DIFFICULTY_TIMERS[currentQuiz.difficulty];
-
-      const newUserSolution = {
-        question: currentQuiz.question,
-        correct: currentQuiz.answer,
-        userAnswer: userAnswer || "(no answer)",
-        solution: currentQuiz.solution,
-        isCorrect,
-        timeUsed: timeUsedForThis,
-        difficulty: currentQuiz.difficulty,
-      };
-
-      setScore((prev) => (isCorrect ? prev + 1 : prev));
-      setUserSolutions((prev) => [...prev, newUserSolution]);
-
-      // Check if there are more questions in same difficulty
-      const remainingInSameDifficulty = quizQueue.filter(
-        (q, i) =>
-          q.difficulty === currentQuiz.difficulty && i > currentQuizIndex
-      );
-
-      if (remainingInSameDifficulty.length > 0) {
-        const nextIndex = currentQuizIndex + 1;
-        setCurrentQuizIndex(nextIndex);
-        setCurrentQuiz(quizQueue[nextIndex]);
-        setUserAnswer("");
-        setDelayTime(15);
-        setTimeUsed(0);
-        return;
-      }
-
-      // Move to next difficulty or end
-      const currentDiffIndex = difficultyOrder.indexOf(currentQuiz.difficulty);
-      const nextDiff = difficultyOrder[currentDiffIndex + 1];
-
-      if (nextDiff) {
-        clearAllTimers();
-        const levelScore =
-          userSolutions.filter(
-            (q) => q.difficulty === currentQuiz.difficulty && q.isCorrect
-          ).length + (isCorrect ? 1 : 0);
-
-        setTransitionMessage(
-          `✅ You completed all ${currentQuiz.difficulty} questions.\nYour score: ${levelScore}/5\nDo you want to proceed to the ${nextDiff} level?`
-        );
-        setShowTransitionScreen(true);
-        setShowYesNo(true);
-      } else {
-        // End of quiz
-        clearAllTimers();
-        setShowResultModal(true);
-
-        const totalTimeUsed = [...userSolutions, newUserSolution].reduce(
-          (sum, q) => sum + q.timeUsed,
-          0
-        );
-
-        const finalScore =
-          userSolutions.filter((q) => q.isCorrect).length + (isCorrect ? 1 : 0);
-
-        await saveResult(finalScore, totalTimeUsed);
-      }
-    },
-    [currentQuiz, currentQuizIndex, quizQueue, userAnswer, userSolutions, timeUsed]
-  );
-
-  // Proceed to next level
-  const proceedNextLevel = () => {
-    setShowYesNo(false);
-    const currentDiffIndex = difficultyOrder.indexOf(currentQuiz!.difficulty);
-    const nextDiff = difficultyOrder[currentDiffIndex + 1];
-
-    setTransitionMessage(`⚡ Get ready for the ${nextDiff} level!`);
-    setCountdown(3);
-
-    const countdownInterval = setInterval(() => {
-      setCountdown((prev) => {
-        if (prev <= 1) {
-          clearInterval(countdownInterval);
-          const nextQuizIndex = quizQueue.findIndex(
-            (q) => q.difficulty === nextDiff
-          );
-          if (nextQuizIndex !== -1) {
-            setShowTransitionScreen(false);
-            setCurrentQuizIndex(nextQuizIndex);
-            setCurrentQuiz(quizQueue[nextQuizIndex]);
-            setUserAnswer("");
-            setDelayTime(15);
-            setTimeUsed(0);
-          }
-        }
-        return prev - 1;
-      });
-    }, 1000);
-  };
-
-  const saveResult = async (finalScore: number, totalTimeUsed: number) => {
+  const fetchData = async () => {
+    setLoading(true);
     try {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      if (!session) return;
-      const userId = session.user.id;
+      const { data: fetchedData, error } = await supabase
+        .from("scores")
+        .select(`
+          *,
+          profiles (firstname, lastname),
+          quizzes!inner (category, subject)
+        `)
+        .eq("quizzes.subject", "Arithmetic Sequence")
+        .in("quizzes.category", ["Word Problem", "Problem Solving"])
+        .order("created_at", { ascending: true });
 
-      await supabase.from("scores").insert([
-        {
-          user_id: userId,
-          quiz_id: quizQueue[0]?.id || null,
-          score: finalScore,
-          time_taken: totalTimeUsed,
-        },
-      ]);
+      if (error) {
+        console.error("Error fetching data:", error);
+        setProgressData([]);
+        return;
+      }
+
+      // For progress: group by user and category, collect total_score and created_at for each quiz
+      const progressMap = new Map<string, ProgressRow>();
+      (fetchedData as ScoreWithRelations[]).forEach((row) => {
+        const key = `${row.user_id}-${row.quizzes.category}`;
+        const existing = progressMap.get(key);
+        const score = row.total_score || (row.easy + row.average + row.difficult);
+        if (existing) {
+          existing.scores.push({ score, date: row.created_at });
+        } else {
+          progressMap.set(key, {
+            user_id: row.user_id,
+            lastname: row.profiles.lastname,
+            category: row.quizzes.category,
+            scores: [{ score, date: row.created_at }],
+          });
+        }
+      });
+      const progressRows = Array.from(progressMap.values());
+      setProgressData(progressRows);
     } catch (err) {
-      console.error("Error saving score:", err);
+      console.error("Unexpected fetch error:", err);
+      setProgressData([]);
+    } finally {
+      setLoading(false);
     }
   };
 
+  const renderLineChart = (category: "Word Problem" | "Problem Solving") => {
+    const filtered = progressData.filter((d) => d.category === category);
+    const maxQuizzes = filtered.reduce((max, user) => Math.max(max, user.scores.length), 0);
+
+    const chartData = {
+      labels: Array.from({ length: maxQuizzes }, (_, i) => `Quiz ${i + 1}`),
+      datasets: filtered.map((user, idx) => ({
+        label: user.lastname,
+        data: user.scores.map(s => s.score),
+        borderColor: `rgba(${(idx * 50) % 255}, ${(idx * 80) % 255}, ${(idx * 120) % 255}, 1)`,
+        backgroundColor: `rgba(${(idx * 50) % 255}, ${(idx * 80) % 255}, ${(idx * 120) % 255}, 0.2)`,
+        tension: 0.1,
+      })),
+    };
+
+    const options = {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { position: "top" as const },
+        title: { display: true, text: `${category} Progress` },
+        tooltip: {
+          callbacks: {
+            label: function(context: TooltipItem<'line'>) {
+              const datasetIndex = context.datasetIndex;
+              const dataIndex = context.dataIndex;
+              const user = filtered[datasetIndex];
+              const item = user.scores[dataIndex];
+              const date = new Date(item.date).toLocaleString();
+              return `${context.dataset.label}: ${context.parsed.y} (Date: ${date})`;
+            },
+          },
+        },
+      },
+      scales: {
+        y: { beginAtZero: true, max: 15 }, // Assuming max score is 15
+      },
+    };
+
+    return <Line data={chartData} options={options} height={300} />;
+  };
+
   return (
-    <IonPage className="quiz-container">
-      <IonHeader>
-        <IonToolbar color="light">
-          <IonTitle className="quiz-title">
-            Uniform Motion in Physics Quiz
-          </IonTitle>
+    <IonPage className="progress-container">
+      <IonHeader className="progress-toolbar">
+        <IonToolbar>
+          <IonTitle className="progress-title">Arithmetic Progress</IonTitle>
         </IonToolbar>
       </IonHeader>
 
-      <IonContent fullscreen>
-        {!selectedCategory ? (
-          <div className="quiz-category">
-            <h2 className="quiz-heading">Select Category</h2>
-            <div className="quiz-category-buttons">
-              {["Word Problem", "Problem Solving"].map((cat) => (
-                <IonButton key={cat} onClick={() => startQuiz(cat)} className="quiz-btn">
-                  {cat}
-                </IonButton>
-              ))}
-            </div>
-          </div>
-        ) : showTransitionScreen ? (
-          <div className="transition-screen">
-            <div className="transition-card">
-              <h2 className="transition-heading">Level Complete!</h2>
-              <p className="transition-text">{transitionMessage}</p>
+      <IonContent className="ion-padding">
+        <div className="progress-card">
+          <h2 className="progress-heading">Your Progress</h2>
 
-              {showYesNo && (
-                <div className="transition-buttons">
-                  <IonButton color="success" onClick={proceedNextLevel}>
-                    Yes
-                  </IonButton>
-                  <IonButton
-                    color="danger"
-                    onClick={() => {
-                      clearAllTimers();
-                      setShowTransitionScreen(false);
-                      setSelectedCategory(null);
-                      setCurrentQuiz(null);
-                      setUserAnswer("");
-                      setUserSolutions([]);
-                    }}
-                  >
-                    No
-                  </IonButton>
-                </div>
-              )}
-
-              {!showYesNo && transitionMessage.includes("Get ready") && (
-                <h3 className="countdown-display">⏳ {countdown}</h3>
-              )}
-            </div>
-          </div>
-        ) : currentQuiz ? (
-          <div className="quiz-content">
-            {delayTime !== null ? (
-              <div className={`quiz-delay ${delayTime <= 3 ? "almost-start" : ""}`}>
-                {delayTime > 3 ? (
-                  <>📖 Reading Time: <span className="countdown">{delayTime}s</span></>
-                ) : (
-                  <>⚡ Get Ready! The timer will start soon: <span className="countdown">{delayTime}s</span></>
-                )}
+          {loading ? (
+            <p className="progress-loading">Loading...</p>
+          ) : (
+            <>
+              <div className="progress-chart">
+                <h3>Word Problem</h3>
+                {renderLineChart("Word Problem")}
               </div>
-            ) : (
-              <div className={`quiz-timer ${timeLeft <= 5 ? "critical" : ""}`}>
-                ⏳ Time Left: {timeLeft}s
+              <div className="progress-chart">
+                <h3>Problem Solving</h3>
+                {renderLineChart("Problem Solving")}
               </div>
-            )}
-
-            <h2 className="quiz-difficulty">{currentQuiz.difficulty}</h2>
-            <p className="quiz-question">{currentQuiz.question}</p>
-
-            <IonItem className="quiz-input-item">
-              <IonInput
-                value={userAnswer}
-                placeholder="Enter your answer"
-                onIonInput={(e) => setUserAnswer(e.detail.value ?? "")}
-                className="quiz-input"
-              />
-            </IonItem>
-
-            {errorMessage && (
-              <IonText color="danger" className="quiz-error">
-                {errorMessage}
-              </IonText>
-            )}
-
-            <IonButton expand="block" onClick={() => handleNext(false)} className="quiz-next">
-              Next
-            </IonButton>
-
-            <IonButton
-              expand="block"
-              fill="outline"
-              color="medium"
-              onClick={() => {
-                clearAllTimers();
-                setSelectedCategory(null);
-                setCurrentQuiz(null);
-                setUserAnswer("");
-                setUserSolutions([]);
-              }}
-              className="quiz-back"
-            >
-              Back to Categories
-            </IonButton>
-          </div>
-        ) : (
-          <p className="quiz-loading">Loading...</p>
-        )}
-
-        <IonModal isOpen={showResultModal} backdropDismiss={false}>
-          <IonHeader>
-            <IonToolbar color="light">
-              <IonTitle>Results</IonTitle>
-            </IonToolbar>
-          </IonHeader>
-          <IonContent className="quiz-result-content">
-            <h2>Quiz Completed!</h2>
-            <h3>
-              Score: {score}/{userSolutions.length}
-            </h3>
-            <ul className="quiz-result-list">
-              {userSolutions.map((res, i) => (
-                <li key={i} className={`quiz-result-item ${res.isCorrect ? "correct" : "wrong"}`}>
-                  <b>Q{i + 1}:</b> {res.question}
-                  <br />
-                  <b>Your Answer:</b>{" "}
-                  <span className={res.isCorrect ? "text-correct" : "text-wrong"}>
-                    {res.userAnswer}
-                  </span>
-                  <br />
-                  <b>Correct Answer:</b> {res.correct}
-                  <br />
-                  <b>Time Used:</b> {res.timeUsed}s
-                  <br />
-                  <b>Solution:</b>
-                  <pre>{res.solution || "No solution provided."}</pre>
-                </li>
-              ))}
-            </ul>
-            <IonButton
-              expand="block"
-              onClick={() => {
-                clearAllTimers();
-                setShowResultModal(false);
-                setSelectedCategory(null);
-                setCurrentQuiz(null);
-                setUserAnswer("");
-                setUserSolutions([]);
-              }}
-              className="quiz-finish-btn"
-            >
-              Back to Categories
-            </IonButton>
-          </IonContent>
-        </IonModal>
+            </>
+          )}
+        </div>
       </IonContent>
     </IonPage>
   );
 };
 
-export default MotionQuiz;
+export default ArithmeticProgress;

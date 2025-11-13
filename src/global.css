@@ -1455,6 +1455,7 @@ ion-content {
 /* --- Progress Chart --- */
 .progress-chart {
   margin-bottom: 30px;
+  height: 300px; /* Fixed height for chart container */
 }
 
 /* --- Progress Loading --- */
@@ -1478,6 +1479,10 @@ ion-content {
 
   .progress-heading {
     font-size: 1.4rem;
+  }
+
+  .progress-chart {
+    height: 250px; /* Smaller height on mobile */
   }
 }
 

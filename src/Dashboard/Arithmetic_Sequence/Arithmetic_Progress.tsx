@@ -17,6 +17,7 @@ import {
   Title,
   Tooltip,
   Legend,
+  TooltipItem,
 } from "chart.js";
 
 ChartJS.register(CategoryScale, LinearScale, LineElement, PointElement, Title, Tooltip, Legend);
@@ -44,7 +45,7 @@ interface ProgressRow {
   user_id: string;
   lastname: string;
   category: "Word Problem" | "Problem Solving";
-  scores: number[]; // total_score for each quiz
+  scores: { score: number; date: string }[]; // Updated to include date
 }
 
 interface LeaderboardRow {
@@ -89,19 +90,20 @@ const ArithmeticProgress: React.FC = () => {
         return;
       }
 
-      // For progress: group by user and category, collect total_score for each quiz
+      // For progress: group by user and category, collect total_score and created_at for each quiz
       const progressMap = new Map<string, ProgressRow>();
       (fetchedData as ScoreWithRelations[]).forEach((row) => {
         const key = `${row.user_id}-${row.quizzes.category}`;
         const existing = progressMap.get(key);
+        const score = row.total_score || (row.easy + row.average + row.difficult);
         if (existing) {
-          existing.scores.push(row.total_score || (row.easy + row.average + row.difficult));
+          existing.scores.push({ score, date: row.created_at });
         } else {
           progressMap.set(key, {
             user_id: row.user_id,
             lastname: row.profiles.lastname,
             category: row.quizzes.category,
-            scores: [row.total_score || (row.easy + row.average + row.difficult)],
+            scores: [{ score, date: row.created_at }],
           });
         }
       });
@@ -154,7 +156,7 @@ const ArithmeticProgress: React.FC = () => {
       labels: Array.from({ length: maxQuizzes }, (_, i) => `Quiz ${i + 1}`),
       datasets: filtered.map((user, idx) => ({
         label: user.lastname,
-        data: user.scores,
+        data: user.scores.map(s => s.score),
         borderColor: `rgba(${(idx * 50) % 255}, ${(idx * 80) % 255}, ${(idx * 120) % 255}, 1)`,
         backgroundColor: `rgba(${(idx * 50) % 255}, ${(idx * 80) % 255}, ${(idx * 120) % 255}, 0.2)`,
         tension: 0.1,
@@ -166,6 +168,18 @@ const ArithmeticProgress: React.FC = () => {
       plugins: {
         legend: { position: "top" as const },
         title: { display: true, text: `${category} Progress` },
+        tooltip: {
+          callbacks: {
+            label: function(context: TooltipItem<'line'>) {
+              const datasetIndex = context.datasetIndex;
+              const dataIndex = context.dataIndex;
+              const user = filtered[datasetIndex];
+              const item = user.scores[dataIndex];
+              const date = new Date(item.date).toLocaleString();
+              return `${context.dataset.label}: ${context.parsed.y} (Date: ${date})`;
+            },
+          },
+        },
       },
       scales: {
         y: { beginAtZero: true, max: 15 }, // Assuming max score is 15

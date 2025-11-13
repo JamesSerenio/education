@@ -107,11 +107,11 @@ const ArithmeticProgress: React.FC = () => {
 
     const chartData = {
       labels: Array.from({ length: maxQuizzes }, (_, i) => `Quiz ${i + 1}`),
-      datasets: filtered.map((user, idx) => ({
+      datasets: filtered.map((user) => ({
         label: user.lastname,
         data: user.scores.map(s => s.score),
-        borderColor: `rgba(${(idx * 50) % 255}, ${(idx * 80) % 255}, ${(idx * 120) % 255}, 1)`,
-        backgroundColor: `rgba(${(idx * 50) % 255}, ${(idx * 80) % 255}, ${(idx * 120) % 255}, 0.2)`,
+        borderColor: 'red', // Changed to red for uniform beauty
+        backgroundColor: 'rgba(255, 0, 0, 0.2)', // Light red background for uniformity
         tension: 0.1,
       })),
     };
@@ -154,11 +154,11 @@ const ArithmeticProgress: React.FC = () => {
           ) : (
             <>
               <div className="progress-chart">
-                <h3></h3>
+                <h3>Word Problem</h3>
                 {renderLineChart("Word Problem")}
               </div>
               <div className="progress-chart">
-                <h3></h3>
+                <h3>Problem Solving</h3>
                 {renderLineChart("Problem Solving")}
               </div>
             </>

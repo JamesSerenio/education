@@ -60,7 +60,7 @@ const UniformMotionLeaderboard: React.FC = () => {
         .select(`
           *,
           profiles (firstname, lastname),
-          quizzes (category, subject)
+          quizzes!inner (category, subject)
         `)
         .eq("quizzes.subject", "Uniform Motion in Physics")
         .in("quizzes.category", ["Word Problem", "Problem Solving"]);
@@ -80,12 +80,29 @@ const UniformMotionLeaderboard: React.FC = () => {
         easy_total: row.easy,
         average_total: row.average,
         difficult_total: row.difficult,
-        overall_total: row.total_score,
+        overall_total: row.total_score || (row.easy + row.average + row.difficult), // Fallback to sum if total_score is null
         quizzes_taken: 1,
       }));
 
-      // Filter by difficulty
-      let filteredRows = rows.filter(r => r.overall_total > 0);
+      // Aggregate to sum scores and count quizzes per user per category
+      const aggregated = new Map<string, LeaderboardRow>();
+      rows.forEach((row) => {
+        const key = `${row.user_id}-${row.category}`;
+        const existing = aggregated.get(key);
+        if (existing) {
+          existing.easy_total += row.easy_total;
+          existing.average_total += row.average_total;
+          existing.difficult_total += row.difficult_total;
+          existing.overall_total += row.overall_total;
+          existing.quizzes_taken += 1;
+        } else {
+          aggregated.set(key, { ...row });
+        }
+      });
+      const aggregatedRows = Array.from(aggregated.values());
+
+      // Filter by difficulty (remove strict >0 filter to show all data)
+      let filteredRows = aggregatedRows;
       if (selectedDifficulty !== "All") {
         filteredRows = filteredRows.filter(r => {
           if (selectedDifficulty === "Easy") return r.easy_total > 0;

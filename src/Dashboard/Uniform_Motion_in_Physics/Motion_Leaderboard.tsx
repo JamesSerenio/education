@@ -119,7 +119,7 @@ const UniformMotionLeaderboard: React.FC = () => {
 
   const renderTable = (category: "Word Problem" | "Problem Solving") => {
     const rows = data
-      .filter(r => r.category === category)
+      .filter(r => r.category === category && r.overall_total > 0) // Filter out rows with 0 overall_total
       .sort((a, b) => {
         if (selectedDifficulty === "All") return b.overall_total - a.overall_total;
         if (selectedDifficulty === "Easy") return b.easy_total - a.easy_total;

@@ -1,9 +1,6 @@
 import React, { useEffect, useState } from "react";
 import {
   IonPage,
-  IonHeader,
-  IonToolbar,
-  IonTitle,
   IonContent,
 } from "@ionic/react";
 import { supabase } from "../../utils/supabaseClient";
@@ -148,12 +145,6 @@ const ArithmeticProgress: React.FC = () => {
 
   return (
     <IonPage className="progress-container">
-      <IonHeader className="progress-toolbar">
-        <IonToolbar>
-          <IonTitle className="progress-title">Arithmetic Progress</IonTitle>
-        </IonToolbar>
-      </IonHeader>
-
       <IonContent className="ion-padding">
         <div className="progress-card">
           <h2 className="progress-heading">Your Progress</h2>

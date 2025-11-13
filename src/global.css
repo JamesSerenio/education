@@ -1404,6 +1404,84 @@ ion-content {
   }
 }
 
+/* --- Arithmetic Progress Section --- */
+.progress-container {
+  background: linear-gradient(135deg, #fafffa, #fffde7);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: center;
+  padding: 40px 20px;
+  overflow-y: auto;
+}
+
+/* --- Progress Toolbar --- */
+.progress-toolbar {
+  --background: linear-gradient(135deg, #65a30d, #eab308);
+  --color: white;
+}
+
+/* --- Progress Title --- */
+.progress-title {
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+/* --- Progress Card --- */
+.progress-card {
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 18px;
+  padding: 28px;
+  max-width: 800px;
+  width: 100%;
+  text-align: center;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  margin: 0 auto;
+  backdrop-filter: blur(8px);
+  animation: fadeIn 0.5s ease;
+}
+
+/* --- Progress Heading --- */
+.progress-heading {
+  font-size: 1.8rem;
+  font-weight: 700;
+  background: linear-gradient(90deg, #65a30d, #eab308);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin-bottom: 20px;
+}
+
+/* --- Progress Chart --- */
+.progress-chart {
+  margin-bottom: 30px;
+}
+
+/* --- Progress Loading --- */
+.progress-loading {
+  font-size: 1.2rem;
+  color: #333;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* --- Responsive --- */
+@media (max-width: 768px) {
+  .progress-card {
+    max-width: 95%;
+    padding: 20px;
+  }
+
+  .progress-heading {
+    font-size: 1.4rem;
+  }
+}
+
+
 /* === ADMIN HOME === */
 /* --- Welcome Title --- */
 .admin-home h2.welcome-title {

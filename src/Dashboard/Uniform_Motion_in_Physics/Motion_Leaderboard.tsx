@@ -40,95 +40,17 @@ interface ScoreWithRelations {
   };
 }
 
-const AdminRadar: React.FC = () => {
-  // Arithmetic states
-  const [arithmeticData, setArithmeticData] = useState<LeaderboardRow[]>([]);
-  const [arithmeticLoading, setArithmeticLoading] = useState(true);
-  const [arithmeticSelectedDifficulty, setArithmeticSelectedDifficulty] = useState<string>("All");
-
-  // Motion states
-  const [motionData, setMotionData] = useState<LeaderboardRow[]>([]);
-  const [motionLoading, setMotionLoading] = useState(true);
-  const [motionSelectedDifficulty, setMotionSelectedDifficulty] = useState<string>("All");
+const UniformMotionLeaderboard: React.FC = () => {
+  const [data, setData] = useState<LeaderboardRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedDifficulty, setSelectedDifficulty] = useState<string>("All");
 
   useEffect(() => {
-    fetchArithmeticLeaderboards();
-  }, [arithmeticSelectedDifficulty]);
+    fetchLeaderboards();
+  }, [selectedDifficulty]);
 
-  useEffect(() => {
-    fetchMotionLeaderboards();
-  }, [motionSelectedDifficulty]);
-
-  const fetchArithmeticLeaderboards = async () => {
-    setArithmeticLoading(true);
-    try {
-      const { data: fetchedData, error } = await supabase
-        .from("scores")
-        .select(`
-          *,
-          profiles (firstname, lastname),
-          quizzes!inner (category, subject)
-        `)
-        .eq("quizzes.subject", "Arithmetic Sequence")
-        .in("quizzes.category", ["Word Problem", "Problem Solving"]);
-
-      if (error) {
-        console.error("Error fetching arithmetic leaderboard:", error);
-        setArithmeticData([]);
-        return;
-      }
-
-      // Safely map fetched data
-      const rows: LeaderboardRow[] = (fetchedData ?? []).map((row: ScoreWithRelations) => ({
-        user_id: row.user_id,
-        firstname: row.profiles.firstname,
-        lastname: row.profiles.lastname,
-        category: row.quizzes.category,
-        easy_total: row.easy,
-        average_total: row.average,
-        difficult_total: row.difficult,
-        overall_total: row.total_score || (row.easy + row.average + row.difficult), // Fallback to sum if total_score is null
-        quizzes_taken: 1,
-      }));
-
-      // Aggregate to take max scores and count quizzes per user per category
-      const aggregated = new Map<string, LeaderboardRow>();
-      rows.forEach((row) => {
-        const key = `${row.user_id}-${row.category}`;
-        const existing = aggregated.get(key);
-        if (existing) {
-          existing.easy_total = Math.max(existing.easy_total, row.easy_total);
-          existing.average_total = Math.max(existing.average_total, row.average_total);
-          existing.difficult_total = Math.max(existing.difficult_total, row.difficult_total);
-          existing.overall_total = Math.max(existing.overall_total, row.overall_total);
-          existing.quizzes_taken += 1;
-        } else {
-          aggregated.set(key, { ...row });
-        }
-      });
-      const aggregatedRows = Array.from(aggregated.values());
-
-      // Filter by difficulty (remove strict >0 filter to show all data)
-      let filteredRows = aggregatedRows;
-      if (arithmeticSelectedDifficulty !== "All") {
-        filteredRows = filteredRows.filter(r => {
-          if (arithmeticSelectedDifficulty === "Easy") return r.easy_total > 0;
-          if (arithmeticSelectedDifficulty === "Average") return r.average_total > 0;
-          return r.difficult_total > 0;
-        });
-      }
-
-      setArithmeticData(filteredRows);
-    } catch (err) {
-      console.error("Unexpected fetch error:", err);
-      setArithmeticData([]);
-    } finally {
-      setArithmeticLoading(false);
-    }
-  };
-
-  const fetchMotionLeaderboards = async () => {
-    setMotionLoading(true);
+  const fetchLeaderboards = async () => {
+    setLoading(true);
     try {
       const { data: fetchedData, error } = await supabase
         .from("scores")
@@ -141,8 +63,8 @@ const AdminRadar: React.FC = () => {
         .in("quizzes.category", ["Word Problem", "Problem Solving"]);
 
       if (error) {
-        console.error("Error fetching motion leaderboard:", error);
-        setMotionData([]);
+        console.error("Error fetching leaderboard:", error);
+        setData([]);
         return;
       }
 
@@ -178,24 +100,24 @@ const AdminRadar: React.FC = () => {
 
       // Filter by difficulty (remove strict >0 filter to show all data)
       let filteredRows = aggregatedRows;
-      if (motionSelectedDifficulty !== "All") {
+      if (selectedDifficulty !== "All") {
         filteredRows = filteredRows.filter(r => {
-          if (motionSelectedDifficulty === "Easy") return r.easy_total > 0;
-          if (motionSelectedDifficulty === "Average") return r.average_total > 0;
+          if (selectedDifficulty === "Easy") return r.easy_total > 0;
+          if (selectedDifficulty === "Average") return r.average_total > 0;
           return r.difficult_total > 0;
         });
       }
 
-      setMotionData(filteredRows);
+      setData(filteredRows);
     } catch (err) {
       console.error("Unexpected fetch error:", err);
-      setMotionData([]);
+      setData([]);
     } finally {
-      setMotionLoading(false);
+      setLoading(false);
     }
   };
 
-  const renderTable = (data: LeaderboardRow[], selectedDifficulty: string, category: "Word Problem" | "Problem Solving") => {
+  const renderTable = (category: "Word Problem" | "Problem Solving") => {
     const rows = data
       .filter(r => r.category === category)
       .sort((a, b) => {
@@ -268,74 +190,37 @@ const AdminRadar: React.FC = () => {
   return (
     <IonPage>
       <IonContent className="ion-padding arithmetic-module-container">
-        {/* Arithmetic Leaderboard */}
-        <div style={{ marginBottom: "2rem" }}>
-          <h1>Arithmetic Sequence Leaderboard</h1>
-          <div style={{ marginBottom: "1rem" }}>
-            <label>Filter by Difficulty:</label>
-            <IonSelect
-              value={arithmeticSelectedDifficulty}
-              onIonChange={(e) => setArithmeticSelectedDifficulty(e.detail.value)}
-            >
-              <IonSelectOption value="All">All</IonSelectOption>
-              <IonSelectOption value="Easy">Easy</IonSelectOption>
-              <IonSelectOption value="Average">Average</IonSelectOption>
-              <IonSelectOption value="Difficult">Difficult</IonSelectOption>
-            </IonSelect>
-          </div>
-
-          <div className="leaderboard-card">
-            <h2 className="leaderboard-title">Word Problem Leaderboard</h2>
-            <div className="trophy-icon">
-              <Trophy size={20} color="#65a30d" />
-            </div>
-            {arithmeticLoading ? <p>Loading...</p> : renderTable(arithmeticData, arithmeticSelectedDifficulty, "Word Problem")}
-          </div>
-
-          <div className="leaderboard-card">
-            <h2 className="leaderboard-title">Problem Solving Leaderboard</h2>
-            <div className="trophy-icon">
-              <Trophy size={20} color="#eab308" />
-            </div>
-            {arithmeticLoading ? <p>Loading...</p> : renderTable(arithmeticData, arithmeticSelectedDifficulty, "Problem Solving")}
-          </div>
+        <div style={{ marginBottom: "1rem" }}>
+          <label>Filter by Difficulty:</label>
+          <IonSelect
+            value={selectedDifficulty}
+            onIonChange={(e) => setSelectedDifficulty(e.detail.value)}
+          >
+            <IonSelectOption value="All">All</IonSelectOption>
+            <IonSelectOption value="Easy">Easy</IonSelectOption>
+            <IonSelectOption value="Average">Average</IonSelectOption>
+            <IonSelectOption value="Difficult">Difficult</IonSelectOption>
+          </IonSelect>
         </div>
 
-        {/* Motion Leaderboard */}
-        <div>
-          <h1>Uniform Motion in Physics Leaderboard</h1>
-          <div style={{ marginBottom: "1rem" }}>
-            <label>Filter by Difficulty:</label>
-            <IonSelect
-              value={motionSelectedDifficulty}
-              onIonChange={(e) => setMotionSelectedDifficulty(e.detail.value)}
-            >
-              <IonSelectOption value="All">All</IonSelectOption>
-              <IonSelectOption value="Easy">Easy</IonSelectOption>
-              <IonSelectOption value="Average">Average</IonSelectOption>
-              <IonSelectOption value="Difficult">Difficult</IonSelectOption>
-            </IonSelect>
+        <div className="leaderboard-card">
+          <h2 className="leaderboard-title">Word Problem Leaderboard</h2>
+          <div className="trophy-icon">
+            <Trophy size={20} color="#65a30d" />
           </div>
+          {loading ? <p>Loading...</p> : renderTable("Word Problem")}
+        </div>
 
-          <div className="leaderboard-card">
-            <h2 className="leaderboard-title">Word Problem Leaderboard</h2>
-            <div className="trophy-icon">
-              <Trophy size={20} color="#65a30d" />
-            </div>
-            {motionLoading ? <p>Loading...</p> : renderTable(motionData, motionSelectedDifficulty, "Word Problem")}
+        <div className="leaderboard-card">
+          <h2 className="leaderboard-title">Problem Solving Leaderboard</h2>
+          <div className="trophy-icon">
+            <Trophy size={20} color="#eab308" />
           </div>
-
-          <div className="leaderboard-card">
-            <h2 className="leaderboard-title">Problem Solving Leaderboard</h2>
-            <div className="trophy-icon">
-              <Trophy size={20} color="#eab308" />
-            </div>
-            {motionLoading ? <p>Loading...</p> : renderTable(motionData, motionSelectedDifficulty, "Problem Solving")}
-          </div>
+          {loading ? <p>Loading...</p> : renderTable("Problem Solving")}
         </div>
       </IonContent>
     </IonPage>
   );
 };
 
-export default AdminRadar;
+export default UniformMotionLeaderboard;

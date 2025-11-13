@@ -1,289 +1,341 @@
-// src/pages/AdminLeaderboard.tsx
 import React, { useEffect, useState } from "react";
 import {
   IonPage,
-  IonHeader,
-  IonToolbar,
-  IonTitle,
   IonContent,
+  IonSelect,
+  IonSelectOption,
 } from "@ionic/react";
 import { Trophy } from "lucide-react";
 import { supabase } from "../utils/supabaseClient";
 
-interface Profile {
-  lastname: string;
-}
-
-interface Quiz {
-  category: string;
-  subject: string;
-}
-
-interface RawScoreRow {
-  score: number;
-  time_taken: number;
-  profiles: Profile | Profile[];
-  quizzes: Quiz | Quiz[];
-}
-
 interface LeaderboardRow {
-  score: number;
-  time_taken: number;
-  profiles: { lastname: string };
-  quizzes: { category: string; subject: string };
+  user_id: string;
+  firstname: string;
+  lastname: string;
+  category: "Word Problem" | "Problem Solving";
+  easy_total: number;
+  average_total: number;
+  difficult_total: number;
+  overall_total: number;
+  quizzes_taken: number;
 }
 
-const AdminLeaderboard: React.FC = () => {
-  // Arithmetic
-  const [arithWordData, setArithWordData] = useState<LeaderboardRow[]>([]);
-  const [arithProblemData, setArithProblemData] = useState<LeaderboardRow[]>([]);
+// Type for Supabase fetch including relations
+interface ScoreWithRelations {
+  user_id: string;
+  quiz_id: string;
+  easy: number;
+  average: number;
+  difficult: number;
+  total_score: number;
+  time_taken: number;
+  created_at: string;
+  profiles: {
+    firstname: string;
+    lastname: string;
+  };
+  quizzes: {
+    category: "Word Problem" | "Problem Solving";
+    subject: string;
+  };
+}
 
-  // Motion
-  const [motionWordData, setMotionWordData] = useState<LeaderboardRow[]>([]);
-  const [motionProblemData, setMotionProblemData] = useState<LeaderboardRow[]>([]);
+const AdminRadar: React.FC = () => {
+  // Arithmetic states
+  const [arithmeticData, setArithmeticData] = useState<LeaderboardRow[]>([]);
+  const [arithmeticLoading, setArithmeticLoading] = useState(true);
+  const [arithmeticSelectedDifficulty, setArithmeticSelectedDifficulty] = useState<string>("All");
 
-  const [loading, setLoading] = useState(true);
+  // Motion states
+  const [motionData, setMotionData] = useState<LeaderboardRow[]>([]);
+  const [motionLoading, setMotionLoading] = useState(true);
+  const [motionSelectedDifficulty, setMotionSelectedDifficulty] = useState<string>("All");
 
   useEffect(() => {
-    fetchLeaderboards();
-  }, []);
+    fetchArithmeticLeaderboards();
+  }, [arithmeticSelectedDifficulty]);
 
-  const normalizeRow = (r: RawScoreRow): LeaderboardRow => {
-    const lastname = Array.isArray(r.profiles)
-      ? r.profiles[0]?.lastname ?? ""
-      : r.profiles?.lastname ?? "";
+  useEffect(() => {
+    fetchMotionLeaderboards();
+  }, [motionSelectedDifficulty]);
 
-    const category = Array.isArray(r.quizzes)
-      ? r.quizzes[0]?.category ?? ""
-      : r.quizzes?.category ?? "";
-
-    const subject = Array.isArray(r.quizzes)
-      ? r.quizzes[0]?.subject ?? ""
-      : r.quizzes?.subject ?? "";
-
-    return {
-      score: Number(r.score ?? 0),
-      time_taken: Number(r.time_taken ?? 0),
-      profiles: { lastname },
-      quizzes: { category, subject },
-    };
-  };
-
-  const filterHighestPerUser = (data: LeaderboardRow[]) => {
-    const map = new Map<string, LeaderboardRow>();
-
-    data.forEach((row) => {
-      const key = row.profiles.lastname;
-      const existing = map.get(key);
-      if (!existing) {
-        map.set(key, row);
-      } else if (
-        row.score > existing.score ||
-        (row.score === existing.score && row.time_taken < existing.time_taken)
-      ) {
-        map.set(key, row);
-      }
-    });
-
-    return Array.from(map.values()).sort((a, b) => {
-      if (b.score !== a.score) return b.score - a.score;
-      return a.time_taken - b.time_taken;
-    });
-  };
-
-  const fetchLeaderboards = async () => {
-    setLoading(true);
+  const fetchArithmeticLeaderboards = async () => {
+    setArithmeticLoading(true);
     try {
-      const fetchCategory = async (subject: string, category: string) => {
-        const { data, error } = await supabase
-          .from("scores")
-          .select(
-            `score,time_taken,profiles!inner(lastname),quizzes!inner(category,subject)`
-          )
-          .eq("quizzes.subject", subject)
-          .eq("quizzes.category", category);
+      const { data: fetchedData, error } = await supabase
+        .from("scores")
+        .select(`
+          *,
+          profiles (firstname, lastname),
+          quizzes!inner (category, subject)
+        `)
+        .eq("quizzes.subject", "Arithmetic Sequence")
+        .in("quizzes.category", ["Word Problem", "Problem Solving"]);
 
-        if (error) {
-          console.error(`${subject} - ${category} error:`, error);
-          return [];
+      if (error) {
+        console.error("Error fetching arithmetic leaderboard:", error);
+        setArithmeticData([]);
+        return;
+      }
+
+      // Safely map fetched data
+      const rows: LeaderboardRow[] = (fetchedData ?? []).map((row: ScoreWithRelations) => ({
+        user_id: row.user_id,
+        firstname: row.profiles.firstname,
+        lastname: row.profiles.lastname,
+        category: row.quizzes.category,
+        easy_total: row.easy,
+        average_total: row.average,
+        difficult_total: row.difficult,
+        overall_total: row.total_score || (row.easy + row.average + row.difficult), // Fallback to sum if total_score is null
+        quizzes_taken: 1,
+      }));
+
+      // Aggregate to take max scores and count quizzes per user per category
+      const aggregated = new Map<string, LeaderboardRow>();
+      rows.forEach((row) => {
+        const key = `${row.user_id}-${row.category}`;
+        const existing = aggregated.get(key);
+        if (existing) {
+          existing.easy_total = Math.max(existing.easy_total, row.easy_total);
+          existing.average_total = Math.max(existing.average_total, row.average_total);
+          existing.difficult_total = Math.max(existing.difficult_total, row.difficult_total);
+          existing.overall_total = Math.max(existing.overall_total, row.overall_total);
+          existing.quizzes_taken += 1;
+        } else {
+          aggregated.set(key, { ...row });
         }
-        return (data as RawScoreRow[]).map(normalizeRow);
-      };
+      });
+      const aggregatedRows = Array.from(aggregated.values());
 
-      // 🧮 Arithmetic
-      const arithWordRaw = await fetchCategory(
-        "Arithmetic Sequence",
-        "Word Problem"
-      );
-      const arithProblemRaw = await fetchCategory(
-        "Arithmetic Sequence",
-        "Problem Solving"
-      );
+      // Filter by difficulty (remove strict >0 filter to show all data)
+      let filteredRows = aggregatedRows;
+      if (arithmeticSelectedDifficulty !== "All") {
+        filteredRows = filteredRows.filter(r => {
+          if (arithmeticSelectedDifficulty === "Easy") return r.easy_total > 0;
+          if (arithmeticSelectedDifficulty === "Average") return r.average_total > 0;
+          return r.difficult_total > 0;
+        });
+      }
 
-      setArithWordData(filterHighestPerUser(arithWordRaw));
-      setArithProblemData(filterHighestPerUser(arithProblemRaw));
-
-      // ⚙️ Uniform Motion
-      const motionWordRaw = await fetchCategory(
-        "Uniform Motion in Physics",
-        "Word Problem"
-      );
-      const motionProblemRaw = await fetchCategory(
-        "Uniform Motion in Physics",
-        "Problem Solving"
-      );
-
-      setMotionWordData(filterHighestPerUser(motionWordRaw));
-      setMotionProblemData(filterHighestPerUser(motionProblemRaw));
-    } catch (e) {
-      console.error("Unexpected fetch error", e);
+      setArithmeticData(filteredRows);
+    } catch (err) {
+      console.error("Unexpected fetch error:", err);
+      setArithmeticData([]);
     } finally {
-      setLoading(false);
+      setArithmeticLoading(false);
     }
   };
 
-  const formatTime = (seconds: number) => {
-    if (!Number.isFinite(seconds)) return "0:00";
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${mins}:${secs < 10 ? "0" : ""}${secs}`;
+  const fetchMotionLeaderboards = async () => {
+    setMotionLoading(true);
+    try {
+      const { data: fetchedData, error } = await supabase
+        .from("scores")
+        .select(`
+          *,
+          profiles (firstname, lastname),
+          quizzes!inner (category, subject)
+        `)
+        .eq("quizzes.subject", "Uniform Motion in Physics")
+        .in("quizzes.category", ["Word Problem", "Problem Solving"]);
+
+      if (error) {
+        console.error("Error fetching motion leaderboard:", error);
+        setMotionData([]);
+        return;
+      }
+
+      // Safely map fetched data
+      const rows: LeaderboardRow[] = (fetchedData ?? []).map((row: ScoreWithRelations) => ({
+        user_id: row.user_id,
+        firstname: row.profiles.firstname,
+        lastname: row.profiles.lastname,
+        category: row.quizzes.category,
+        easy_total: row.easy,
+        average_total: row.average,
+        difficult_total: row.difficult,
+        overall_total: row.total_score || (row.easy + row.average + row.difficult), // Fallback to sum if total_score is null
+        quizzes_taken: 1,
+      }));
+
+      // Aggregate to take max scores and count quizzes per user per category
+      const aggregated = new Map<string, LeaderboardRow>();
+      rows.forEach((row) => {
+        const key = `${row.user_id}-${row.category}`;
+        const existing = aggregated.get(key);
+        if (existing) {
+          existing.easy_total = Math.max(existing.easy_total, row.easy_total);
+          existing.average_total = Math.max(existing.average_total, row.average_total);
+          existing.difficult_total = Math.max(existing.difficult_total, row.difficult_total);
+          existing.overall_total = Math.max(existing.overall_total, row.overall_total);
+          existing.quizzes_taken += 1;
+        } else {
+          aggregated.set(key, { ...row });
+        }
+      });
+      const aggregatedRows = Array.from(aggregated.values());
+
+      // Filter by difficulty (remove strict >0 filter to show all data)
+      let filteredRows = aggregatedRows;
+      if (motionSelectedDifficulty !== "All") {
+        filteredRows = filteredRows.filter(r => {
+          if (motionSelectedDifficulty === "Easy") return r.easy_total > 0;
+          if (motionSelectedDifficulty === "Average") return r.average_total > 0;
+          return r.difficult_total > 0;
+        });
+      }
+
+      setMotionData(filteredRows);
+    } catch (err) {
+      console.error("Unexpected fetch error:", err);
+      setMotionData([]);
+    } finally {
+      setMotionLoading(false);
+    }
   };
 
-  const renderTable = (data: LeaderboardRow[]) => (
-    <table style={tableStyle}>
-      <thead style={theadStyle}>
-        <tr>
-          <th style={thStyle}>Place</th>
-          <th style={thStyle}>Lastname</th>
-          <th style={thStyle}>Score</th>
-          <th style={thStyle}>Time</th>
-        </tr>
-      </thead>
-      <tbody>
-        {data.length > 0 ? (
-          data.map((row, i) => (
-            <tr key={i} style={{ borderBottom: "1px solid #e5e7eb" }}>
-              <td style={tdStyle}>{i + 1}</td>
-              <td style={tdStyle}>{row.profiles.lastname || "-"}</td>
-              <td style={tdStyle}>{Math.round(row.score)}</td>
-              <td style={tdStyle}>{formatTime(row.time_taken)}</td>
+  const renderTable = (data: LeaderboardRow[], selectedDifficulty: string, category: "Word Problem" | "Problem Solving") => {
+    const rows = data
+      .filter(r => r.category === category)
+      .sort((a, b) => {
+        if (selectedDifficulty === "All") return b.overall_total - a.overall_total;
+        if (selectedDifficulty === "Easy") return b.easy_total - a.easy_total;
+        if (selectedDifficulty === "Average") return b.average_total - a.average_total;
+        return b.difficult_total - a.difficult_total;
+      });
+
+    const medals = ["🥇", "🥈", "🥉"];
+
+    return (
+      <div className="leaderboard-table-wrapper">
+        <table className="leaderboard-table">
+          <thead>
+            <tr>
+              <th>Place</th>
+              <th>Lastname</th>
+              {selectedDifficulty === "All" ? (
+                <>
+                  <th>Easy</th>
+                  <th>Average</th>
+                  <th>Difficult</th>
+                  <th>Overall</th>
+                  <th>Quizzes Taken</th>
+                </>
+              ) : (
+                <th>Score</th>
+              )}
             </tr>
-          ))
-        ) : (
-          <tr>
-            <td style={tdStyle} colSpan={4}>
-              No data found.
-            </td>
-          </tr>
-        )}
-      </tbody>
-    </table>
-  );
+          </thead>
+          <tbody>
+            {rows.length ? (
+              rows.map((row, index) => (
+                <tr key={`${row.user_id}-${row.category}`}>
+                  <td>{medals[index] || index + 1}</td>
+                  <td>{row.lastname}</td>
+                  {selectedDifficulty === "All" ? (
+                    <>
+                      <td>{row.easy_total}</td>
+                      <td>{row.average_total}</td>
+                      <td>{row.difficult_total}</td>
+                      <td>{row.overall_total}</td>
+                      <td>{row.quizzes_taken}</td>
+                    </>
+                  ) : (
+                    <td>
+                      {selectedDifficulty === "Easy"
+                        ? row.easy_total
+                        : selectedDifficulty === "Average"
+                        ? row.average_total
+                        : row.difficult_total}
+                    </td>
+                  )}
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan={selectedDifficulty === "All" ? 7 : 3}>
+                  No data found.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    );
+  };
 
   return (
     <IonPage>
-      <IonHeader>
-        <IonToolbar>
-          <IonTitle>Admin Leaderboard</IonTitle>
-        </IonToolbar>
-      </IonHeader>
-
-      <IonContent className="ion-padding">
-        {/* 🧮 Arithmetic Leaderboard */}
-        <h1 style={mainTitle}>Arithmetic Sequence Leaderboard</h1>
-
-        <div style={cardStyle}>
-          <h2 style={blackTitle}>Word Problem</h2>
-          <div style={iconWrapper}>
-            <Trophy size={20} color="#f59e0b" />
+      <IonContent className="ion-padding arithmetic-module-container">
+        {/* Arithmetic Leaderboard */}
+        <div style={{ marginBottom: "2rem" }}>
+          <h1>Arithmetic Sequence Leaderboard</h1>
+          <div style={{ marginBottom: "1rem" }}>
+            <label>Filter by Difficulty:</label>
+            <IonSelect
+              value={arithmeticSelectedDifficulty}
+              onIonChange={(e) => setArithmeticSelectedDifficulty(e.detail.value)}
+            >
+              <IonSelectOption value="All">All</IonSelectOption>
+              <IonSelectOption value="Easy">Easy</IonSelectOption>
+              <IonSelectOption value="Average">Average</IonSelectOption>
+              <IonSelectOption value="Difficult">Difficult</IonSelectOption>
+            </IonSelect>
           </div>
-          {loading ? <p>Loading...</p> : renderTable(arithWordData)}
+
+          <div className="leaderboard-card">
+            <h2 className="leaderboard-title">Word Problem Leaderboard</h2>
+            <div className="trophy-icon">
+              <Trophy size={20} color="#65a30d" />
+            </div>
+            {arithmeticLoading ? <p>Loading...</p> : renderTable(arithmeticData, arithmeticSelectedDifficulty, "Word Problem")}
+          </div>
+
+          <div className="leaderboard-card">
+            <h2 className="leaderboard-title">Problem Solving Leaderboard</h2>
+            <div className="trophy-icon">
+              <Trophy size={20} color="#eab308" />
+            </div>
+            {arithmeticLoading ? <p>Loading...</p> : renderTable(arithmeticData, arithmeticSelectedDifficulty, "Problem Solving")}
+          </div>
         </div>
 
-        <div style={{ ...cardStyle, marginTop: 18 }}>
-          <h2 style={blackTitle}>Problem Solving</h2>
-          <div style={iconWrapper}>
-            <Trophy size={20} color="#3b82f6" />
+        {/* Motion Leaderboard */}
+        <div>
+          <h1>Uniform Motion in Physics Leaderboard</h1>
+          <div style={{ marginBottom: "1rem" }}>
+            <label>Filter by Difficulty:</label>
+            <IonSelect
+              value={motionSelectedDifficulty}
+              onIonChange={(e) => setMotionSelectedDifficulty(e.detail.value)}
+            >
+              <IonSelectOption value="All">All</IonSelectOption>
+              <IonSelectOption value="Easy">Easy</IonSelectOption>
+              <IonSelectOption value="Average">Average</IonSelectOption>
+              <IonSelectOption value="Difficult">Difficult</IonSelectOption>
+            </IonSelect>
           </div>
-          {loading ? <p>Loading...</p> : renderTable(arithProblemData)}
-        </div>
 
-        {/* ⚙️ Uniform Motion Leaderboard */}
-        <h1 style={{ ...mainTitle, marginTop: 40 }}>
-          Uniform Motion in Physics Leaderboard
-        </h1>
-
-        <div style={cardStyle}>
-          <h2 style={blackTitle}>Word Problem</h2>
-          <div style={iconWrapper}>
-            <Trophy size={20} color="#f59e0b" />
+          <div className="leaderboard-card">
+            <h2 className="leaderboard-title">Word Problem Leaderboard</h2>
+            <div className="trophy-icon">
+              <Trophy size={20} color="#65a30d" />
+            </div>
+            {motionLoading ? <p>Loading...</p> : renderTable(motionData, motionSelectedDifficulty, "Word Problem")}
           </div>
-          {loading ? <p>Loading...</p> : renderTable(motionWordData)}
-        </div>
 
-        <div style={{ ...cardStyle, marginTop: 18 }}>
-          <h2 style={blackTitle}>Problem Solving</h2>
-          <div style={iconWrapper}>
-            <Trophy size={20} color="#3b82f6" />
+          <div className="leaderboard-card">
+            <h2 className="leaderboard-title">Problem Solving Leaderboard</h2>
+            <div className="trophy-icon">
+              <Trophy size={20} color="#eab308" />
+            </div>
+            {motionLoading ? <p>Loading...</p> : renderTable(motionData, motionSelectedDifficulty, "Problem Solving")}
           </div>
-          {loading ? <p>Loading...</p> : renderTable(motionProblemData)}
         </div>
       </IonContent>
     </IonPage>
   );
 };
 
-/* 🎨 Styles */
-const mainTitle: React.CSSProperties = {
-  textAlign: "center",
-  fontSize: 24,
-  fontWeight: 700,
-  margin: "20px 0 10px 0",
-};
-
-const cardStyle: React.CSSProperties = {
-  maxWidth: 720,
-  margin: "0 auto",
-  background: "#fff",
-  borderRadius: 16,
-  boxShadow: "0 6px 18px rgba(0,0,0,0.06)",
-  padding: 16,
-  border: "1px solid #e5e7eb",
-};
-
-const blackTitle: React.CSSProperties = {
-  textAlign: "center",
-  color: "#000",
-  fontSize: 20,
-  margin: 0,
-};
-
-const iconWrapper: React.CSSProperties = {
-  display: "flex",
-  justifyContent: "center",
-  margin: "8px 0",
-};
-
-const tableStyle: React.CSSProperties = {
-  width: "100%",
-  borderCollapse: "collapse",
-  marginTop: 12,
-};
-
-const theadStyle: React.CSSProperties = {
-  background: "#f3f4f6",
-};
-
-const thStyle: React.CSSProperties = {
-  padding: "8px 10px",
-  border: "1px solid #e5e7eb",
-  textAlign: "center",
-};
-
-const tdStyle: React.CSSProperties = {
-  padding: "8px 10px",
-  border: "1px solid #eee",
-  textAlign: "center",
-};
-
-export default AdminLeaderboard;
+export default AdminRadar;

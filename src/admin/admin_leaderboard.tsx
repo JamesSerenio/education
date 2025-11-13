@@ -6,7 +6,7 @@ import {
   IonSelectOption,
 } from "@ionic/react";
 import { Trophy } from "lucide-react";
-import { supabase } from "../../utils/supabaseClient";
+import { supabase } from "../utils/supabaseClient";
 
 interface LeaderboardRow {
   user_id: string;

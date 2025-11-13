@@ -60,7 +60,7 @@ const ArithmeticLeaderboard: React.FC = () => {
         .select(`
           *,
           profiles (firstname, lastname),
-          quizzes (category, subject)
+          quizzes!inner (category, subject)
         `)
         .eq("quizzes.subject", "Arithmetic Sequence")
         .in("quizzes.category", ["Word Problem", "Problem Solving"]);
@@ -84,13 +84,19 @@ const ArithmeticLeaderboard: React.FC = () => {
         quizzes_taken: 1,
       }));
 
-      // Aggregate to get the highest per user per category
+      // Aggregate to sum scores and count quizzes per user per category
       const aggregated = new Map<string, LeaderboardRow>();
       rows.forEach((row) => {
         const key = `${row.user_id}-${row.category}`;
         const existing = aggregated.get(key);
-        if (!existing || row.overall_total > existing.overall_total) {
-          aggregated.set(key, row);
+        if (existing) {
+          existing.easy_total += row.easy_total;
+          existing.average_total += row.average_total;
+          existing.difficult_total += row.difficult_total;
+          existing.overall_total += row.overall_total;
+          existing.quizzes_taken += 1;
+        } else {
+          aggregated.set(key, { ...row });
         }
       });
       const aggregatedRows = Array.from(aggregated.values());

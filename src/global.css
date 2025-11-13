@@ -1438,7 +1438,6 @@ ion-content.progress-content {
 .progress-heading {
   font-size: 1.8rem;
   font-weight: 700;
-  background: linear-gradient(90deg, #65a30d, #eab308);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   margin-bottom: 24px;
@@ -1490,93 +1489,6 @@ ion-content.progress-content {
   }
 }
 
-/* --- Arithmetic Progress Section --- */
-.progress-container {
-  background: linear-gradient(90deg, #65a30d, #eab308); /* Changed to uniform gradient for consistency */
-  /* Removed height: 100vh and overflow: hidden to prevent double scroll */
-}
-
-/* --- Progress Content Area --- */
-ion-content.progress-content {
-  --background: transparent;
-  display: flex;
-  justify-content: center;
-  align-items: flex-start;
-  padding: 40px 20px;
-  overflow-y: auto; /* Only IonContent scrolls */
-}
-
-/* --- Progress Card --- */
-.progress-card {
-  background: rgba(255, 255, 255, 0.95);
-  border-radius: 20px;
-  padding: 32px;
-  width: 100%;
-  max-width: 950px; /* ✅ wider card fits chart */
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-  text-align: center;
-  margin: 0 auto;
-  backdrop-filter: blur(10px);
-  animation: fadeIn 0.6s ease;
-  min-height: 600px; /* ✅ increased min-height to ensure full visibility */
-}
-
-/* --- Progress Heading --- */
-.progress-heading {
-  font-size: 1.8rem;
-  font-weight: 700;
-  background: linear-gradient(90deg, #65a30d, #eab308);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  margin-bottom: 24px;
-}
-
-/* --- Chart Wrapper --- */
-.progress-chart {
-  margin-bottom: 40px;
-  width: 100%;
-  height: 400px; /* ✅ taller chart fits better */
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  padding: 10px; /* ✅ add padding to fit within card */
-  box-sizing: border-box; /* ✅ ensure padding is inside */
-}
-
-/* --- Loading Text --- */
-.progress-loading {
-  font-size: 1.2rem;
-  color: #333;
-}
-
-/* --- Animation --- */
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-/* --- Responsive --- */
-@media (max-width: 768px) {
-  ion-content.progress-content {
-    padding: 20px;
-  }
-
-  .progress-card {
-    max-width: 95%;
-    padding: 20px;
-    min-height: 500px; /* ✅ adjusted min-height for mobile */
-  }
-
-  .progress-heading {
-    font-size: 1.5rem;
-  }
-
-  .progress-chart {
-    height: 300px;
-    padding: 5px; /* ✅ adjust padding for mobile */
-  }
-}
 
 
 /* === ADMIN HOME === */

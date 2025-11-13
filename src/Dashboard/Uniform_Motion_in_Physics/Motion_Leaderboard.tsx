@@ -84,16 +84,16 @@ const UniformMotionLeaderboard: React.FC = () => {
         quizzes_taken: 1,
       }));
 
-      // Aggregate to sum scores and count quizzes per user per category
+      // Aggregate to take max scores and count quizzes per user per category
       const aggregated = new Map<string, LeaderboardRow>();
       rows.forEach((row) => {
         const key = `${row.user_id}-${row.category}`;
         const existing = aggregated.get(key);
         if (existing) {
-          existing.easy_total += row.easy_total;
-          existing.average_total += row.average_total;
-          existing.difficult_total += row.difficult_total;
-          existing.overall_total += row.overall_total;
+          existing.easy_total = Math.max(existing.easy_total, row.easy_total);
+          existing.average_total = Math.max(existing.average_total, row.average_total);
+          existing.difficult_total = Math.max(existing.difficult_total, row.difficult_total);
+          existing.overall_total = Math.max(existing.overall_total, row.overall_total);
           existing.quizzes_taken += 1;
         } else {
           aggregated.set(key, { ...row });

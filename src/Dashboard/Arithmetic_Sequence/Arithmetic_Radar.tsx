@@ -32,12 +32,12 @@ ChartJS.register(
   ChartDataLabels
 );
 
-const MAX_SCORE = 15; // Total max score
-const MAX_TIME = 2700; // Max time in seconds
+const MAX_SCORE = 15;
+const MAX_TIME = 525;
 
 interface ScoreWithQuizzes {
   id: string;
-  total_score: number | null;
+  score: number | null;
   time_taken: number | null;
   created_at: string;
   quiz_id: string;
@@ -64,10 +64,10 @@ const Arithmetic_Radar: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
   const mapToScoreWithQuizzes = (rawData: Record<string, unknown>): ScoreWithQuizzes => {
-    const quizzesRaw = rawData["quizzes"] as Record<string, unknown> | null;
+    const quizzesRaw = rawData["quizzes"] as Record<string, unknown> | null; // Fixed: removed invalid "| ;" and replaced with "| null"
     return {
       id: String(rawData["id"] ?? ""),
-      total_score: rawData["total_score"] == null ? null : Number(rawData["total_score"]),
+      score: rawData["score"] == null ? null : Number(rawData["score"]),
       time_taken: rawData["time_taken"] == null ? null : Number(rawData["time_taken"]),
       created_at: String(rawData["created_at"] ?? new Date().toISOString()),
       quiz_id: String(rawData["quiz_id"] ?? ""),
@@ -116,7 +116,7 @@ const Arithmetic_Radar: React.FC = () => {
 
       const { data: allScores, error: scoresError } = await supabase
         .from("scores")
-        .select(`id, total_score, time_taken, created_at, quiz_id, quizzes!quiz_id!inner(id, category, subject)`)
+        .select(`id, score, time_taken, created_at, quiz_id, quizzes!quiz_id(id, category, subject)`)
         .eq("user_id", user.id)
         .order("created_at", { ascending: false })
         .limit(100);
@@ -134,17 +134,17 @@ const Arithmetic_Radar: React.FC = () => {
       const normalize = (txt: string | undefined) => txt?.trim().toLowerCase() ?? "";
 
       const wordProblemScores = arithmeticScores.filter(
-        (s) => normalize(s.quizzes?.category) === "word problem" && s.total_score !== null
+        (s) => normalize(s.quizzes?.category) === "word problem" && s.score !== null
       );
       const problemSolvingScores = arithmeticScores.filter(
-        (s) => normalize(s.quizzes?.category) === "problem solving" && s.total_score !== null
+        (s) => normalize(s.quizzes?.category) === "problem solving" && s.score !== null
       );
 
       const bestWordProblem = wordProblemScores.length > 0
-        ? Math.max(...wordProblemScores.map((s) => s.total_score ?? 0))
+        ? Math.max(...wordProblemScores.map((s) => s.score ?? 0))
         : 0;
       const bestProblemSolving = problemSolvingScores.length > 0
-        ? Math.max(...problemSolvingScores.map((s) => s.total_score ?? 0))
+        ? Math.max(...problemSolvingScores.map((s) => s.score ?? 0))
         : 0;
 
       const validTimes = arithmeticScores.filter((s) => s.time_taken !== null);
@@ -252,10 +252,10 @@ const Arithmetic_Radar: React.FC = () => {
       return record.time_taken ? ((MAX_TIME - record.time_taken) / MAX_TIME) * 100 : 0;
     }
     if (selectedCategory === "word problem") {
-      return record.total_score ? (record.total_score / MAX_SCORE) * 100 : 0;
+      return record.score ? (record.score / MAX_SCORE) * 100 : 0;
     }
     if (selectedCategory === "problem solving") {
-      return record.total_score ? (record.total_score / MAX_SCORE) * 100 : 0;
+      return record.score ? (record.score / MAX_SCORE) * 100 : 0;
     }
     return 0;
   };
@@ -353,7 +353,7 @@ const Arithmetic_Radar: React.FC = () => {
                             marginBottom: "8px",
                           }}
                         >
-                          <strong>Total Score:</strong> {record.total_score ?? "N/A"} / {MAX_SCORE}<br />
+                          <strong>Score:</strong> {record.score ?? "N/A"} / {MAX_SCORE}<br />
                           <strong>Time Taken:</strong>{" "}
                           {record.time_taken ? `${record.time_taken}s` : "N/A"}<br />
                           <strong>Percent:</strong> {recordPercent(record).toFixed(1)}%<br />

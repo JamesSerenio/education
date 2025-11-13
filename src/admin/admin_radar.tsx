@@ -32,8 +32,8 @@ ChartJS.register(
 );
 
 // 🔹 Updated constants
-const MAX_SCORE = 15; // 15 questions total
-const MAX_TIME = 525; // total 15s×5 + 30s×5 + 60s×5
+const MAX_SCORE = 15; // Total max score
+const MAX_TIME = 2700; // Max time in seconds
 
 interface UserScore {
   time: number;
@@ -49,7 +49,7 @@ interface Quiz {
 
 interface ScoreWithQuizzes {
   id: string;
-  score: number | null;
+  total_score: number | null;
   time_taken: number | null;
   created_at: string;
   quiz_id: string;
@@ -82,10 +82,10 @@ const AdminRadar: React.FC = () => {
 
   const mapToScoreWithQuizzes = (rawData: Record<string, unknown>): ScoreWithQuizzes => {
     const quiz = rawData.quizzes as Record<string, unknown> | null;
-    const profiles = rawData.profiles as Record<string, unknown> | undefined;
+    const profiles = rawData.profiles as Record<string, unknown> | null;
     return {
       id: (rawData.id as string) || "",
-      score: (rawData.score as number) ?? null,
+      total_score: (rawData.total_score as number) ?? null,
       time_taken: (rawData.time_taken as number) ?? null,
       created_at: (rawData.created_at as string) || new Date().toISOString(),
       quiz_id: (rawData.quiz_id as string) || "",
@@ -112,7 +112,7 @@ const fetchSubjectData = async (subject: string): Promise<UserScore> => {
     const { data, error } = await supabase
       .from("scores")
       .select(`
-        id, score, time_taken, created_at, quiz_id,
+        id, total_score, time_taken, created_at, quiz_id,
         quizzes!inner (id, category, subject)
       `)
       .order("created_at", { ascending: false });
@@ -142,12 +142,12 @@ const fetchSubjectData = async (subject: string): Promise<UserScore> => {
 
     // ✅ Compute Problem Solving (category = "Problem Solving")
     const problemSolvingScores = subjectScores.filter(
-      (s) => s.quizzes?.category === "Problem Solving" && s.score !== null
+      (s) => s.quizzes?.category === "Problem Solving" && s.total_score !== null
     );
 
     const problemSolvingPercent =
       problemSolvingScores.length > 0
-        ? (problemSolvingScores.reduce((sum, s) => sum + (s.score ?? 0), 0) /
+        ? (problemSolvingScores.reduce((sum, s) => sum + (s.total_score ?? 0), 0) /
             problemSolvingScores.length /
             MAX_SCORE) *
           100
@@ -155,12 +155,12 @@ const fetchSubjectData = async (subject: string): Promise<UserScore> => {
 
     // ✅ Compute Word Problem (category = "Word Problem")
     const wordProblemScores = subjectScores.filter(
-      (s) => s.quizzes?.category === "Word Problem" && s.score !== null
+      (s) => s.quizzes?.category === "Word Problem" && s.total_score !== null
     );
 
     const solvingPercent =
       wordProblemScores.length > 0
-        ? (wordProblemScores.reduce((sum, s) => sum + (s.score ?? 0), 0) /
+        ? (wordProblemScores.reduce((sum, s) => sum + (s.total_score ?? 0), 0) /
             wordProblemScores.length /
             MAX_SCORE) *
           100
@@ -226,7 +226,7 @@ const fetchSubjectData = async (subject: string): Promise<UserScore> => {
         .from("scores")
         .select(`
           id,
-          score,
+          total_score,
           time_taken,
           created_at,
           quiz_id,
@@ -252,7 +252,7 @@ const fetchSubjectData = async (subject: string): Promise<UserScore> => {
       Email: item.profiles?.email || "N/A",
       Subject: item.quizzes?.subject || "N/A",
       Category: item.quizzes?.category || "N/A",
-      Score: item.score ?? 0,
+      Score: item.total_score ?? 0,
       "Time Taken (s)": item.time_taken ?? 0,
       "Date Taken": new Date(item.created_at).toLocaleString(),
     }));

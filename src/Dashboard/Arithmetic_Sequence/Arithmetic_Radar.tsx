@@ -38,7 +38,7 @@ const MAX_TIME = 2700; // Max time in seconds
 interface ScoreWithQuizzes {
   id: string;
   total_score: number | null;
-  time_taken: number | null; // Time is based on this
+  time_taken: number | null;
   created_at: string;
   quiz_id: string;
   quizzes: { id: string; category: string; subject?: string } | null;
@@ -116,9 +116,8 @@ const Arithmetic_Radar: React.FC = () => {
 
       const { data: allScores, error: scoresError } = await supabase
         .from("scores")
-        .select(`id, total_score, time_taken, created_at, quiz_id, quizzes!inner(id, category, subject)`)
+        .select(`id, total_score, time_taken, created_at, quiz_id, quizzes!quiz_id(id, category, subject)`)
         .eq("user_id", user.id)
-        .eq("quizzes.subject", "Arithmetic Sequence")
         .order("created_at", { ascending: false })
         .limit(100);
 
@@ -128,7 +127,9 @@ const Arithmetic_Radar: React.FC = () => {
       const typedScores = rawArray.map(mapToScoreWithQuizzes);
       setScores(typedScores);
 
-      const arithmeticScores = typedScores; // Already filtered in query
+      const arithmeticScores = typedScores.filter(
+        (s) => s.quizzes?.subject?.toLowerCase() === "arithmetic sequence"
+      );
 
       const normalize = (txt: string | undefined) => txt?.trim().toLowerCase() ?? "";
 
@@ -235,10 +236,14 @@ const Arithmetic_Radar: React.FC = () => {
   const getCategoryRecords = () => {
     const normalize = (txt: string | undefined) => txt?.trim().toLowerCase() ?? "";
     if (selectedCategory === "time") {
-      return scores; // Already filtered for Arithmetic Sequence
+      return scores.filter(
+        (s) => s.quizzes?.subject?.toLowerCase() === "arithmetic sequence"
+      );
     }
     return scores.filter(
-      (s) => normalize(s.quizzes?.category) === selectedCategory
+      (s) =>
+        s.quizzes?.subject?.toLowerCase() === "arithmetic sequence" &&
+        normalize(s.quizzes?.category) === selectedCategory
     );
   };
 

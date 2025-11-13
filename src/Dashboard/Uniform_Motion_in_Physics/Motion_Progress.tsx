@@ -1,9 +1,6 @@
 import React, { useEffect, useState } from "react";
 import {
   IonPage,
-  IonHeader,
-  IonToolbar,
-  IonTitle,
   IonContent,
 } from "@ionic/react";
 import { supabase } from "../../utils/supabaseClient";
@@ -48,7 +45,7 @@ interface ProgressRow {
   scores: { score: number; date: string }[]; // Updated to include date
 }
 
-const ArithmeticProgress: React.FC = () => {
+const MotionProgress: React.FC = () => {
   const [progressData, setProgressData] = useState<ProgressRow[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -66,7 +63,7 @@ const ArithmeticProgress: React.FC = () => {
           profiles (firstname, lastname),
           quizzes!inner (category, subject)
         `)
-        .eq("quizzes.subject", "Arithmetic Sequence")
+        .eq("quizzes.subject", "Uniform Motion in Physics")
         .in("quizzes.category", ["Word Problem", "Problem Solving"])
         .order("created_at", { ascending: true });
 
@@ -106,14 +103,15 @@ const ArithmeticProgress: React.FC = () => {
   const renderLineChart = (category: "Word Problem" | "Problem Solving") => {
     const filtered = progressData.filter((d) => d.category === category);
     const maxQuizzes = filtered.reduce((max, user) => Math.max(max, user.scores.length), 0);
+    const maxScore = filtered.length > 0 ? Math.max(...filtered.flatMap(u => u.scores.map(s => s.score))) : 15; // Dynamic max, default to 15 if no data
 
     const chartData = {
       labels: Array.from({ length: maxQuizzes }, (_, i) => `Quiz ${i + 1}`),
-      datasets: filtered.map((user, idx) => ({
+      datasets: filtered.map((user,) => ({
         label: user.lastname,
         data: user.scores.map(s => s.score),
-        borderColor: `rgba(${(idx * 50) % 255}, ${(idx * 80) % 255}, ${(idx * 120) % 255}, 1)`,
-        backgroundColor: `rgba(${(idx * 50) % 255}, ${(idx * 80) % 255}, ${(idx * 120) % 255}, 0.2)`,
+        borderColor: 'red', // Changed to red for uniform beauty
+        backgroundColor: 'rgba(255, 0, 0, 0.2)', // Light red background for uniformity
         tension: 0.1,
       })),
     };
@@ -138,22 +136,16 @@ const ArithmeticProgress: React.FC = () => {
         },
       },
       scales: {
-        y: { beginAtZero: true, max: 15 }, // Assuming max score is 15
+        y: { beginAtZero: true, max: maxScore },
       },
     };
 
-    return <Line data={chartData} options={options} height={300} />;
+    return <Line data={chartData} options={options} />;
   };
 
   return (
     <IonPage className="progress-container">
-      <IonHeader className="progress-toolbar">
-        <IonToolbar>
-          <IonTitle className="progress-title">Arithmetic Progress</IonTitle>
-        </IonToolbar>
-      </IonHeader>
-
-      <IonContent className="ion-padding">
+      <IonContent className="progress-content ion-padding">
         <div className="progress-card">
           <h2 className="progress-heading">Your Progress</h2>
 
@@ -162,11 +154,11 @@ const ArithmeticProgress: React.FC = () => {
           ) : (
             <>
               <div className="progress-chart">
-                <h3>Word Problem</h3>
+                <h3></h3>
                 {renderLineChart("Word Problem")}
               </div>
               <div className="progress-chart">
-                <h3>Problem Solving</h3>
+                <h3></h3>
                 {renderLineChart("Problem Solving")}
               </div>
             </>
@@ -177,4 +169,4 @@ const ArithmeticProgress: React.FC = () => {
   );
 };
 
-export default ArithmeticProgress;
+export default MotionProgress;

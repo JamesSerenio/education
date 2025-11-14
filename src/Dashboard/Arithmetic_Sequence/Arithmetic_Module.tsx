@@ -9,28 +9,26 @@ import {
   IonButton,
 } from "@ionic/react";
 import { supabase } from "../../utils/supabaseClient";
+import { isAdminUser } from "../../utils/adminCheck";
 
 interface ModuleImage {
   id: string;
   uploaded_by: string | null;
   subject: string;
   module: string; // "Who Discovered Arithmetic" | "Arithmetic Sequence"
-  submodule: string | null; // a1, d, an or null
+  submodule: string | null; // a1, d, an
   image_url: string;
   created_at?: string;
 }
 
-interface ArithmeticModuleProps {
-  isAdmin?: boolean;
-}
-
 const submodules = ["a1", "d", "an"];
 
-const ArithmeticModule: React.FC<ArithmeticModuleProps> = ({ isAdmin = false }) => {
-  const [selectedSubmodule, setSelectedSubmodule] = useState<string>("a1");
+const ArithmeticModule: React.FC = () => {
+  const [selectedSubmodule, setSelectedSubmodule] = useState("a1");
   const [images, setImages] = useState<ModuleImage[]>([]);
   const [file, setFile] = useState<File | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
+  const isAdmin = isAdminUser();
 
   useEffect(() => {
     const getUser = async () => {
@@ -54,6 +52,7 @@ const ArithmeticModule: React.FC<ArithmeticModuleProps> = ({ isAdmin = false }) 
   const handleUpload = async (moduleName: string, submoduleName: string | null) => {
     if (!file) return alert("Select a file to upload.");
     if (!userId) return alert("User not authenticated.");
+    if (!isAdmin) return alert("Only admins can upload.");
 
     const fileExt = file.name.split(".").pop();
     const fileName = `${crypto.randomUUID()}.${fileExt}`;
@@ -80,19 +79,21 @@ const ArithmeticModule: React.FC<ArithmeticModuleProps> = ({ isAdmin = false }) 
     fetchImages();
   };
 
-  const whoDiscovered = images.filter((img) => img.module === "Who Discovered Arithmetic");
-  const arithmeticSeq = images.filter((img) => img.module === "Arithmetic Sequence" && img.submodule === selectedSubmodule);
+  const whoDiscovered = images.filter(img => img.module === "Who Discovered Arithmetic");
+  const arithmeticSeq = images.filter(
+    img => img.module === "Arithmetic Sequence" && img.submodule === selectedSubmodule
+  );
 
   return (
     <IonPage>
       <IonHeader />
       <IonContent fullscreen>
         <div style={{ display: "flex", gap: "24px", padding: "16px", flexWrap: "wrap" }}>
-          {/* Who Discovered Arithmetic */}
+          {/* Who Discovered */}
           <div style={{ flex: 1, minWidth: "300px", border: "1px solid #ccc", borderRadius: "12px", padding: "16px" }}>
             <h3>Who Discovered Arithmetic</h3>
             {whoDiscovered.length > 0 ? (
-              whoDiscovered.map((img) => (
+              whoDiscovered.map(img => (
                 <img
                   key={img.id}
                   src={`https://YOUR_PROJECT_REF.supabase.co/storage/v1/object/public/${img.image_url}`}
@@ -105,7 +106,7 @@ const ArithmeticModule: React.FC<ArithmeticModuleProps> = ({ isAdmin = false }) 
             )}
             {isAdmin && (
               <div>
-                <input type="file" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
+                <input type="file" onChange={e => setFile(e.target.files?.[0] ?? null)} />
                 <IonButton onClick={() => handleUpload("Who Discovered Arithmetic", null)}>Upload Image</IonButton>
               </div>
             )}
@@ -116,13 +117,10 @@ const ArithmeticModule: React.FC<ArithmeticModuleProps> = ({ isAdmin = false }) 
             <h3>Module for Arithmetic Sequence</h3>
             <IonSegment
               value={selectedSubmodule}
-              onIonChange={(e: CustomEvent) => {
-                const val = e.detail.value;
-                if (val) setSelectedSubmodule(val);
-              }}
+              onIonChange={(e: CustomEvent) => setSelectedSubmodule(e.detail.value)}
               scrollable
             >
-              {submodules.map((sub) => (
+              {submodules.map(sub => (
                 <IonSegmentButton key={sub} value={sub}>
                   <IonLabel>{sub}</IonLabel>
                 </IonSegmentButton>
@@ -130,7 +128,7 @@ const ArithmeticModule: React.FC<ArithmeticModuleProps> = ({ isAdmin = false }) 
             </IonSegment>
 
             {arithmeticSeq.length > 0 ? (
-              arithmeticSeq.map((img) => (
+              arithmeticSeq.map(img => (
                 <img
                   key={img.id}
                   src={`https://YOUR_PROJECT_REF.supabase.co/storage/v1/object/public/${img.image_url}`}
@@ -144,7 +142,7 @@ const ArithmeticModule: React.FC<ArithmeticModuleProps> = ({ isAdmin = false }) 
 
             {isAdmin && (
               <div style={{ marginTop: "16px" }}>
-                <input type="file" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
+                <input type="file" onChange={e => setFile(e.target.files?.[0] ?? null)} />
                 <IonButton onClick={() => handleUpload("Arithmetic Sequence", selectedSubmodule)}>Upload Image</IonButton>
               </div>
             )}

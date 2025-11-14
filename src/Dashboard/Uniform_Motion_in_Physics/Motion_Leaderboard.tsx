@@ -1,226 +1,176 @@
-import React, { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import {
   IonPage,
+  IonHeader,
   IonContent,
-  IonSelect,
-  IonSelectOption,
+  IonSegment,
+  IonSegmentButton,
+  IonLabel,
+  IonButton,
 } from "@ionic/react";
-import { Trophy } from "lucide-react";
 import { supabase } from "../../utils/supabaseClient";
 
-interface LeaderboardRow {
-  user_id: string;
-  firstname: string;
-  lastname: string;
-  category: "Word Problem" | "Problem Solving";
-  easy_total: number;
-  average_total: number;
-  difficult_total: number;
-  overall_total: number;
-  quizzes_taken: number;
+interface ModuleImage {
+  id: string;
+  uploaded_by: string | null;
+  subject: string;
+  module: string; // "Who Discovered Motion" | "Uniform Motion"
+  submodule: string | null; // velocity, time, distance
+  image_url: string;
+  created_at?: string;
 }
 
-// Type for Supabase fetch including relations
-interface ScoreWithRelations {
-  user_id: string;
-  quiz_id: string;
-  easy: number;
-  average: number;
-  difficult: number;
-  total_score: number;
-  time_taken: number;
-  created_at: string;
-  profiles: {
-    firstname: string;
-    lastname: string;
-  };
-  quizzes: {
-    category: "Word Problem" | "Problem Solving";
-    subject: string;
-  };
+interface MotionModuleProps {
+  isAdmin?: boolean;
 }
 
-const UniformMotionLeaderboard: React.FC = () => {
-  const [data, setData] = useState<LeaderboardRow[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [selectedDifficulty, setSelectedDifficulty] = useState<string>("All");
+const submodules = ["velocity", "time", "distance"];
+
+const MotionModule: React.FC<MotionModuleProps> = ({ isAdmin = false }) => {
+  const [selectedSubmodule, setSelectedSubmodule] = useState<string>("velocity");
+  const [images, setImages] = useState<ModuleImage[]>([]);
+  const [file, setFile] = useState<File | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchLeaderboards();
-  }, [selectedDifficulty]);
+    const getUser = async () => {
+      const { data, error } = await supabase.auth.getUser();
+      if (!error && data.user) setUserId(data.user.id);
+    };
+    getUser();
+    fetchImages();
+  }, [selectedSubmodule]);
 
-  const fetchLeaderboards = async () => {
-    setLoading(true);
-    try {
-      const { data: fetchedData, error } = await supabase
-        .from("scores")
-        .select(`
-          *,
-          profiles (firstname, lastname),
-          quizzes!inner (category, subject)
-        `)
-        .eq("quizzes.subject", "Uniform Motion in Physics")
-        .in("quizzes.category", ["Word Problem", "Problem Solving"]);
+  const fetchImages = async () => {
+    const { data, error } = await supabase
+      .from("module_images")
+      .select("*")
+      .eq("subject", "Motion")
+      .order("created_at", { ascending: true });
 
-      if (error) {
-        console.error("Error fetching leaderboard:", error);
-        setData([]);
-        return;
-      }
-
-      // Safely map fetched data
-      const rows: LeaderboardRow[] = (fetchedData ?? []).map((row: ScoreWithRelations) => ({
-        user_id: row.user_id,
-        firstname: row.profiles.firstname,
-        lastname: row.profiles.lastname,
-        category: row.quizzes.category,
-        easy_total: row.easy,
-        average_total: row.average,
-        difficult_total: row.difficult,
-        overall_total: row.total_score || (row.easy + row.average + row.difficult), // Fallback to sum if total_score is null
-        quizzes_taken: 1,
-      }));
-
-      // Aggregate to take max scores and count quizzes per user per category
-      const aggregated = new Map<string, LeaderboardRow>();
-      rows.forEach((row) => {
-        const key = `${row.user_id}-${row.category}`;
-        const existing = aggregated.get(key);
-        if (existing) {
-          existing.easy_total = Math.max(existing.easy_total, row.easy_total);
-          existing.average_total = Math.max(existing.average_total, row.average_total);
-          existing.difficult_total = Math.max(existing.difficult_total, row.difficult_total);
-          existing.overall_total = Math.max(existing.overall_total, row.overall_total);
-          existing.quizzes_taken += 1;
-        } else {
-          aggregated.set(key, { ...row });
-        }
-      });
-      const aggregatedRows = Array.from(aggregated.values());
-
-      // Filter by difficulty (remove strict >0 filter to show all data)
-      let filteredRows = aggregatedRows;
-      if (selectedDifficulty !== "All") {
-        filteredRows = filteredRows.filter(r => {
-          if (selectedDifficulty === "Easy") return r.easy_total > 0;
-          if (selectedDifficulty === "Average") return r.average_total > 0;
-          return r.difficult_total > 0;
-        });
-      }
-
-      setData(filteredRows);
-    } catch (err) {
-      console.error("Unexpected fetch error:", err);
-      setData([]);
-    } finally {
-      setLoading(false);
-    }
+    if (!error && data) setImages(data as ModuleImage[]);
   };
 
-  const renderTable = (category: "Word Problem" | "Problem Solving") => {
-    const rows = data
-      .filter(r => r.category === category && r.overall_total > 0) // Filter out rows with 0 overall_total
-      .sort((a, b) => {
-        if (selectedDifficulty === "All") return b.overall_total - a.overall_total;
-        if (selectedDifficulty === "Easy") return b.easy_total - a.easy_total;
-        if (selectedDifficulty === "Average") return b.average_total - a.average_total;
-        return b.difficult_total - a.difficult_total;
-      });
+  const handleUpload = async (moduleName: string, submoduleName: string | null) => {
+    if (!file) return alert("Select a file to upload.");
+    if (!userId) return alert("User not authenticated.");
 
-    const medals = ["🥇", "🥈", "🥉"];
+    const fileExt = file.name.split(".").pop();
+    const fileName = `${crypto.randomUUID()}.${fileExt}`;
+    const filePath = `module-images/${fileName}`;
 
-    return (
-      <div className="leaderboard-table-wrapper">
-        <table className="leaderboard-table">
-          <thead>
-            <tr>
-              <th>Place</th>
-              <th>Lastname</th>
-              {selectedDifficulty === "All" ? (
-                <>
-                  <th>Easy</th>
-                  <th>Average</th>
-                  <th>Difficult</th>
-                  <th>Overall</th>
-                  <th>Quizzes Taken</th>
-                </>
-              ) : (
-                <th>Score</th>
-              )}
-            </tr>
-          </thead>
-          <tbody>
-            {rows.length ? (
-              rows.map((row, index) => (
-                <tr key={`${row.user_id}-${row.category}`}>
-                  <td>{medals[index] || index + 1}</td>
-                  <td>{row.lastname}</td>
-                  {selectedDifficulty === "All" ? (
-                    <>
-                      <td>{row.easy_total}</td>
-                      <td>{row.average_total}</td>
-                      <td>{row.difficult_total}</td>
-                      <td>{row.overall_total}</td>
-                      <td>{row.quizzes_taken}</td>
-                    </>
-                  ) : (
-                    <td>
-                      {selectedDifficulty === "Easy"
-                        ? row.easy_total
-                        : selectedDifficulty === "Average"
-                        ? row.average_total
-                        : row.difficult_total}
-                    </td>
-                  )}
-                </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan={selectedDifficulty === "All" ? 7 : 3}>
-                  No data found.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-    );
+    const { error: uploadError } = await supabase.storage
+      .from("module-images")
+      .upload(filePath, file);
+    if (uploadError) return alert(uploadError.message);
+
+    const { error: dbError } = await supabase.from("module_images").insert([
+      {
+        uploaded_by: userId,
+        subject: "Motion",
+        module: moduleName,
+        submodule: submoduleName,
+        image_url: filePath,
+      },
+    ]);
+    if (dbError) return alert(dbError.message);
+
+    alert("Image uploaded successfully!");
+    setFile(null);
+    fetchImages();
   };
+
+  const whoDiscovered = images.filter((img) => img.module === "Who Discovered Motion");
+  const uniformMotion = images.filter(
+    (img) => img.module === "Uniform Motion" && img.submodule === selectedSubmodule
+  );
 
   return (
     <IonPage>
-      <IonContent className="ion-padding arithmetic-module-container">
-        <div style={{ marginBottom: "1rem" }}>
-          <label>Filter by Difficulty:</label>
-          <IonSelect
-            value={selectedDifficulty}
-            onIonChange={(e) => setSelectedDifficulty(e.detail.value)}
+      <IonHeader />
+      <IonContent fullscreen>
+        <div style={{ display: "flex", gap: "24px", padding: "16px", flexWrap: "wrap" }}>
+          {/* Who Discovered Motion */}
+          <div
+            style={{
+              flex: 1,
+              minWidth: "300px",
+              border: "1px solid #ccc",
+              borderRadius: "12px",
+              padding: "16px",
+            }}
           >
-            <IonSelectOption value="All">All</IonSelectOption>
-            <IonSelectOption value="Easy">Easy</IonSelectOption>
-            <IonSelectOption value="Average">Average</IonSelectOption>
-            <IonSelectOption value="Difficult">Difficult</IonSelectOption>
-          </IonSelect>
-        </div>
-
-        <div className="leaderboard-card">
-          <h2 className="leaderboard-title">Word Problem Leaderboard</h2>
-          <div className="trophy-icon">
-            <Trophy size={20} color="#65a30d" />
+            <h3>Who Discovered Motion</h3>
+            {whoDiscovered.length > 0 ? (
+              whoDiscovered.map((img) => (
+                <img
+                  key={img.id}
+                  src={`https://YOUR_PROJECT_REF.supabase.co/storage/v1/object/public/${img.image_url}`}
+                  alt={img.module}
+                  style={{ width: "100%", borderRadius: "8px", marginBottom: "12px" }}
+                />
+              ))
+            ) : (
+              <p>No image uploaded yet.</p>
+            )}
+            {isAdmin && (
+              <div>
+                <input type="file" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
+                <IonButton onClick={() => handleUpload("Who Discovered Motion", null)}>Upload Image</IonButton>
+              </div>
+            )}
           </div>
-          {loading ? <p>Loading...</p> : renderTable("Word Problem")}
-        </div>
 
-        <div className="leaderboard-card">
-          <h2 className="leaderboard-title">Problem Solving Leaderboard</h2>
-          <div className="trophy-icon">
-            <Trophy size={20} color="#eab308" />
+          {/* Uniform Motion Module */}
+          <div
+            style={{
+              flex: 2,
+              minWidth: "400px",
+              border: "1px solid #ccc",
+              borderRadius: "12px",
+              padding: "16px",
+            }}
+          >
+            <h3>Uniform Motion Module</h3>
+            <IonSegment
+              value={selectedSubmodule}
+              onIonChange={(e: CustomEvent) => {
+                const val = e.detail.value;
+                if (val) setSelectedSubmodule(val);
+              }}
+              scrollable
+            >
+              {submodules.map((sub) => (
+                <IonSegmentButton key={sub} value={sub}>
+                  <IonLabel>{sub}</IonLabel>
+                </IonSegmentButton>
+              ))}
+            </IonSegment>
+
+            {uniformMotion.length > 0 ? (
+              uniformMotion.map((img) => (
+                <img
+                  key={img.id}
+                  src={`https://YOUR_PROJECT_REF.supabase.co/storage/v1/object/public/${img.image_url}`}
+                  alt={img.submodule ?? ""}
+                  style={{ width: "100%", borderRadius: "8px", marginTop: "12px" }}
+                />
+              ))
+            ) : (
+              <p>No image uploaded yet for {selectedSubmodule}.</p>
+            )}
+
+            {isAdmin && (
+              <div style={{ marginTop: "16px" }}>
+                <input type="file" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
+                <IonButton onClick={() => handleUpload("Uniform Motion", selectedSubmodule)}>Upload Image</IonButton>
+              </div>
+            )}
           </div>
-          {loading ? <p>Loading...</p> : renderTable("Problem Solving")}
         </div>
       </IonContent>
     </IonPage>
   );
 };
 
-export default UniformMotionLeaderboard;
+export default MotionModule;

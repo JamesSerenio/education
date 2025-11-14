@@ -27,12 +27,13 @@ interface ArithmeticModuleProps {
 }
 
 const ArithmeticModule: React.FC<ArithmeticModuleProps> = ({ isAdmin = false }) => {
-  const [selected, setSelected] = useState<string>("a1");
+  const [selectedModule, setSelectedModule] = useState<string>("Arithmetic Sequence");
+  const [selectedSubmodule, setSelectedSubmodule] = useState<string>("a1");
   const [images, setImages] = useState<ModuleImage[]>([]);
   const [file, setFile] = useState<File | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
 
-  // ✅ Get current user (Supabase v2)
+  // Get current user (Supabase v2)
   useEffect(() => {
     const getUser = async () => {
       const { data, error } = await supabase.auth.getUser();
@@ -42,18 +43,18 @@ const ArithmeticModule: React.FC<ArithmeticModuleProps> = ({ isAdmin = false }) 
         setUserId(data.user.id);
       }
     };
-
     getUser();
     fetchImages();
-  }, []);
+  }, [selectedModule, selectedSubmodule]);
 
-  // Fetch images from Supabase
+  // Fetch images from Supabase filtered by subject, module, and submodule
   const fetchImages = async () => {
     const { data, error } = await supabase
       .from("module_images")
       .select("*")
       .eq("subject", "Arithmetic")
-      .eq("module", "Arithmetic Sequence")
+      .eq("module", selectedModule)
+      .eq("submodule", selectedSubmodule)
       .order("created_at", { ascending: true });
 
     if (error) console.error("Error fetching images:", error.message);
@@ -76,13 +77,13 @@ const ArithmeticModule: React.FC<ArithmeticModuleProps> = ({ isAdmin = false }) 
 
     if (uploadError) return alert(uploadError.message);
 
-    // Insert record to module_images
+    // Insert record to module_images table
     const { error: dbError } = await supabase.from("module_images").insert([
       {
         uploaded_by: userId,
         subject: "Arithmetic",
-        module: "Arithmetic Sequence",
-        submodule: selected,
+        module: selectedModule,
+        submodule: selectedSubmodule,
         image_url: filePath,
       },
     ]);
@@ -94,9 +95,6 @@ const ArithmeticModule: React.FC<ArithmeticModuleProps> = ({ isAdmin = false }) 
     fetchImages();
   };
 
-  // Filter images by selected submodule
-  const filteredImages = images.filter((img) => img.submodule === selected);
-
   return (
     <IonPage>
       <IonHeader />
@@ -107,40 +105,62 @@ const ArithmeticModule: React.FC<ArithmeticModuleProps> = ({ isAdmin = false }) 
           transition={{ staggerChildren: 0.3, delayChildren: 0.2 }}
           className="arithmetic-module-container"
         >
-          {/* Arithmetic Sequence Module */}
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, ease: "easeOut" }}
             className="arithmetic-card"
           >
-            <h3>Module for Arithmetic Sequence</h3>
+            <h3>Arithmetic Modules</h3>
 
-            {/* Segment Tabs */}
+            {/* Module selection */}
             <IonSegment
-              value={selected}
+              value={selectedModule}
               onIonChange={(e: CustomEvent) => {
                 const val = e.detail.value;
-                if (val) setSelected(val);
+                if (val) setSelectedModule(val);
               }}
               scrollable
             >
-              <IonSegmentButton value="a1">
-                <IonLabel>a₁</IonLabel>
+              <IonSegmentButton value="Who Discovered Arithmetic">
+                <IonLabel>Who Discovered...</IonLabel>
               </IonSegmentButton>
-              <IonSegmentButton value="d">
-                <IonLabel>d</IonLabel>
+              <IonSegmentButton value="Arithmetic Sequence">
+                <IonLabel>Arithmetic Sequence</IonLabel>
               </IonSegmentButton>
-              <IonSegmentButton value="an">
-                <IonLabel>aₙ</IonLabel>
+              <IonSegmentButton value="Uniform Motion">
+                <IonLabel>Uniform Motion</IonLabel>
               </IonSegmentButton>
             </IonSegment>
 
-            {/* Scrollable Images */}
-            <div className="image-scroll-container">
+            {/* Submodule selection (only for modules with submodules) */}
+            {selectedModule === "Arithmetic Sequence" && (
+              <IonSegment
+                value={selectedSubmodule}
+                onIonChange={(e: CustomEvent) => {
+                  const val = e.detail.value;
+                  if (val) setSelectedSubmodule(val);
+                }}
+                scrollable
+                style={{ marginTop: "8px" }}
+              >
+                <IonSegmentButton value="a1">
+                  <IonLabel>a₁</IonLabel>
+                </IonSegmentButton>
+                <IonSegmentButton value="d">
+                  <IonLabel>d</IonLabel>
+                </IonSegmentButton>
+                <IonSegmentButton value="an">
+                  <IonLabel>aₙ</IonLabel>
+                </IonSegmentButton>
+              </IonSegment>
+            )}
+
+            {/* Scrollable images */}
+            <div className="image-scroll-container" style={{ marginTop: "12px" }}>
               <AnimatePresence mode="wait">
-                {filteredImages.length > 0 ? (
-                  filteredImages.map((img) => (
+                {images.length > 0 ? (
+                  images.map((img) => (
                     <motion.img
                       key={img.id}
                       src={`https://YOUR_PROJECT_REF.supabase.co/storage/v1/object/public/${img.image_url}`}
@@ -153,12 +173,12 @@ const ArithmeticModule: React.FC<ArithmeticModuleProps> = ({ isAdmin = false }) 
                     />
                   ))
                 ) : (
-                  <p>No images uploaded for this submodule yet.</p>
+                  <p>No images uploaded for this module/submodule yet.</p>
                 )}
               </AnimatePresence>
             </div>
 
-            {/* Admin Upload */}
+            {/* Admin upload */}
             {isAdmin && (
               <div style={{ marginTop: "16px" }}>
                 <input

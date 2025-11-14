@@ -333,7 +333,7 @@ const Motion_Radar: React.FC = () => {
                     %
                   </p>
 
-                  <div style={{ textAlign: "left", marginTop: "15px" }}>
+                  <div className="radar-records">
                     {getCategoryRecords().length > 0 ? (
                       getCategoryRecords().map((record) => (
                         <div

@@ -32,7 +32,7 @@ ChartJS.register(
 );
 
 const MAX_SCORE = 15; // Total max score
-const MAX_TIME = 525; // Max time in seconds (adjusted for Arithmetic Sequence)
+const MAX_TIME = 2700; // Max time in seconds (matched to Motion_Radar for consistency)
 
 interface ScoreWithQuizzes {
   id: string;

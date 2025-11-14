@@ -19,7 +19,6 @@ import ChartDataLabels from "chartjs-plugin-datalabels";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "../../utils/supabaseClient";
 
-
 ChartJS.register(
   RadialLinearScale,
   PointElement,
@@ -32,12 +31,12 @@ ChartJS.register(
   ChartDataLabels
 );
 
-const MAX_SCORE = 15;
-const MAX_TIME = 525;
+const MAX_SCORE = 15; // Total max score
+const MAX_TIME = 525; // Max time in seconds (adjusted for Arithmetic Sequence)
 
 interface ScoreWithQuizzes {
   id: string;
-  score: number | null;
+  total_score: number | null; // Changed from score to total_score for consistency
   time_taken: number | null;
   created_at: string;
   quiz_id: string;
@@ -64,10 +63,10 @@ const Arithmetic_Radar: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
   const mapToScoreWithQuizzes = (rawData: Record<string, unknown>): ScoreWithQuizzes => {
-    const quizzesRaw = rawData["quizzes"] as Record<string, unknown> | null; // Fixed: removed invalid "| ;" and replaced with "| null"
+    const quizzesRaw = rawData["quizzes"] as Record<string, unknown> | null;
     return {
       id: String(rawData["id"] ?? ""),
-      score: rawData["score"] == null ? null : Number(rawData["score"]),
+      total_score: rawData["total_score"] == null ? null : Number(rawData["total_score"]), // Changed to total_score
       time_taken: rawData["time_taken"] == null ? null : Number(rawData["time_taken"]),
       created_at: String(rawData["created_at"] ?? new Date().toISOString()),
       quiz_id: String(rawData["quiz_id"] ?? ""),
@@ -116,8 +115,9 @@ const Arithmetic_Radar: React.FC = () => {
 
       const { data: allScores, error: scoresError } = await supabase
         .from("scores")
-        .select(`id, score, time_taken, created_at, quiz_id, quizzes!quiz_id(id, category, subject)`)
+        .select(`id, total_score, time_taken, created_at, quiz_id, quizzes!inner(id, category, subject)`) // Changed to total_score and inner join for consistency
         .eq("user_id", user.id)
+        .eq("quizzes.subject", "Arithmetic Sequence") // Focus on this subject
         .order("created_at", { ascending: false })
         .limit(100);
 
@@ -127,24 +127,22 @@ const Arithmetic_Radar: React.FC = () => {
       const typedScores = rawArray.map(mapToScoreWithQuizzes);
       setScores(typedScores);
 
-      const arithmeticScores = typedScores.filter(
-        (s) => s.quizzes?.subject?.toLowerCase() === "arithmetic sequence"
-      );
+      const arithmeticScores = typedScores; // Already filtered in query
 
       const normalize = (txt: string | undefined) => txt?.trim().toLowerCase() ?? "";
 
       const wordProblemScores = arithmeticScores.filter(
-        (s) => normalize(s.quizzes?.category) === "word problem" && s.score !== null
+        (s) => normalize(s.quizzes?.category) === "word problem" && s.total_score !== null // Changed to total_score
       );
       const problemSolvingScores = arithmeticScores.filter(
-        (s) => normalize(s.quizzes?.category) === "problem solving" && s.score !== null
+        (s) => normalize(s.quizzes?.category) === "problem solving" && s.total_score !== null // Changed to total_score
       );
 
       const bestWordProblem = wordProblemScores.length > 0
-        ? Math.max(...wordProblemScores.map((s) => s.score ?? 0))
+        ? Math.max(...wordProblemScores.map((s) => s.total_score ?? 0)) // Changed to total_score
         : 0;
       const bestProblemSolving = problemSolvingScores.length > 0
-        ? Math.max(...problemSolvingScores.map((s) => s.score ?? 0))
+        ? Math.max(...problemSolvingScores.map((s) => s.total_score ?? 0)) // Changed to total_score
         : 0;
 
       const validTimes = arithmeticScores.filter((s) => s.time_taken !== null);
@@ -160,9 +158,7 @@ const Arithmetic_Radar: React.FC = () => {
         problemSolving: (bestProblemSolving / MAX_SCORE) * 100,
       };
 
-      // Save total percentages for display
       setCategoryPercent(newPerformance);
-
       animateRadarUpdate(newPerformance);
     } catch (err) {
       console.error("Error fetching radar data:", err);
@@ -184,8 +180,8 @@ const Arithmetic_Radar: React.FC = () => {
     chartInstance.current?.destroy();
 
     const gradient = ctx.createLinearGradient(0, 0, 0, 500);
-    gradient.addColorStop(0, "rgba(101, 163, 13, 0.35)");
-    gradient.addColorStop(1, "rgba(234, 179, 8, 0.35)");
+    gradient.addColorStop(0, "rgba(101, 163, 13, 0.35)"); // Green theme for Arithmetic
+    gradient.addColorStop(1, "rgba(234, 179, 8, 0.35)"); // Yellow theme for Arithmetic
 
     chartInstance.current = new ChartJS(ctx, {
       type: "radar",
@@ -201,9 +197,9 @@ const Arithmetic_Radar: React.FC = () => {
             ],
             fill: true,
             backgroundColor: gradient,
-            borderColor: "#65a30d",
+            borderColor: "#65a30d", // Green border
             borderWidth: 3,
-            pointBackgroundColor: "#eab308",
+            pointBackgroundColor: "#eab308", // Yellow points
             pointBorderColor: "#fff",
           },
         ],
@@ -236,14 +232,10 @@ const Arithmetic_Radar: React.FC = () => {
   const getCategoryRecords = () => {
     const normalize = (txt: string | undefined) => txt?.trim().toLowerCase() ?? "";
     if (selectedCategory === "time") {
-      return scores.filter(
-        (s) => s.quizzes?.subject?.toLowerCase() === "arithmetic sequence"
-      );
+      return scores; // Already filtered for Arithmetic Sequence
     }
     return scores.filter(
-      (s) =>
-        s.quizzes?.subject?.toLowerCase() === "arithmetic sequence" &&
-        normalize(s.quizzes?.category) === selectedCategory
+      (s) => normalize(s.quizzes?.category) === selectedCategory
     );
   };
 
@@ -252,10 +244,10 @@ const Arithmetic_Radar: React.FC = () => {
       return record.time_taken ? ((MAX_TIME - record.time_taken) / MAX_TIME) * 100 : 0;
     }
     if (selectedCategory === "word problem") {
-      return record.score ? (record.score / MAX_SCORE) * 100 : 0;
+      return record.total_score ? (record.total_score / MAX_SCORE) * 100 : 0; // Changed to total_score
     }
     if (selectedCategory === "problem solving") {
-      return record.score ? (record.score / MAX_SCORE) * 100 : 0;
+      return record.total_score ? (record.total_score / MAX_SCORE) * 100 : 0; // Changed to total_score
     }
     return 0;
   };
@@ -353,7 +345,7 @@ const Arithmetic_Radar: React.FC = () => {
                             marginBottom: "8px",
                           }}
                         >
-                          <strong>Score:</strong> {record.score ?? "N/A"} / {MAX_SCORE}<br />
+                          <strong>Total Score:</strong> {record.total_score ?? "N/A"} / {MAX_SCORE}<br /> {/* Changed to total_score */}
                           <strong>Time Taken:</strong>{" "}
                           {record.time_taken ? `${record.time_taken}s` : "N/A"}<br />
                           <strong>Percent:</strong> {recordPercent(record).toFixed(1)}%<br />

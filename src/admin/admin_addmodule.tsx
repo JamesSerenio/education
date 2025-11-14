@@ -10,32 +10,28 @@ import {
   IonButton,
 } from "@ionic/react";
 import { supabase } from "../utils/supabaseClient";
-import { isAdminUser } from "../utils/adminCheck";
 
 const AdminAddModule: React.FC = () => {
   const [userId, setUserId] = useState<string | null>(null);
-  const [subject, setSubject] = useState("Arithmetic"); // Arithmetic or Motion
-  const [moduleName, setModuleName] = useState("Who Discovered Arithmetic");
+  const [subject, setSubject] = useState<string>("Arithmetic");
+  const [moduleName, setModuleName] = useState<string>("Who Discovered Arithmetic");
   const [submodule, setSubmodule] = useState<string | null>(null);
   const [file, setFile] = useState<File | null>(null);
-  const isAdmin = isAdminUser();
 
+  // Define available submodules for each subject/module
   const submodulesMap: Record<string, string[]> = {
     "Arithmetic Sequence": ["a1", "d", "an"],
     "Uniform Motion": ["velocity", "time", "distance"],
   };
 
-  // Update default module/submodule when subject changes
+  // Update default module when subject changes
   useEffect(() => {
-    if (!isAdmin) {
-      alert("Access denied! Only admins can add modules.");
-      return;
-    }
     if (subject === "Arithmetic") setModuleName("Who Discovered Arithmetic");
     else if (subject === "Motion") setModuleName("Who Discovered Motion");
-    setSubmodule(null);
-  }, [subject, isAdmin]);
+    setSubmodule(null); // reset submodule when subject/module changes
+  }, [subject]);
 
+  // Get authenticated user
   useEffect(() => {
     const getUser = async () => {
       const { data, error } = await supabase.auth.getUser();
@@ -47,35 +43,42 @@ const AdminAddModule: React.FC = () => {
   const handleUpload = async () => {
     if (!file) return alert("Select a file to upload.");
     if (!userId) return alert("User not authenticated.");
-    if (!isAdmin) return alert("Only admins can upload.");
 
-    const fileExt = file.name.split(".").pop();
-    const fileName = `${crypto.randomUUID()}.${fileExt}`;
-    const filePath = `module-images/${fileName}`;
+    try {
+      // Upload file to Supabase storage
+      const fileExt = file.name.split(".").pop();
+      const fileName = `${crypto.randomUUID()}.${fileExt}`;
+      const filePath = `module-images/${fileName}`;
 
-    // Upload to Supabase Storage
-    const { error: uploadError } = await supabase.storage
-      .from("module-images")
-      .upload(filePath, file);
-    if (uploadError) return alert(uploadError.message);
+      const { error: uploadError } = await supabase.storage
+        .from("module-images")
+        .upload(filePath, file);
 
-    // Insert into DB
-    const { error: dbError } = await supabase.from("module_images").insert([
-      {
-        uploaded_by: userId,
-        subject,
-        module: moduleName,
-        submodule,
-        image_url: filePath,
-      },
-    ]);
-    if (dbError) return alert(dbError.message);
+      if (uploadError) throw uploadError;
 
-    alert("Module image uploaded successfully!");
-    setFile(null);
-    setSubmodule(null);
+      // Insert record into module_images table
+      const { error: dbError } = await supabase.from("module_images").insert([
+        {
+          uploaded_by: userId,
+          subject,
+          module: moduleName,
+          submodule,
+          image_url: filePath,
+        },
+      ]);
+
+      if (dbError) throw dbError;
+
+      alert("Module image uploaded successfully!");
+      setFile(null);
+      setSubmodule(null);
+    } catch (err: unknown) {
+      if (err instanceof Error) alert(err.message);
+      else alert("Upload failed");
+    }
   };
 
+  // Get available submodules for the selected module
   const availableSubmodules = submodulesMap[moduleName] || [];
 
   return (
@@ -86,7 +89,7 @@ const AdminAddModule: React.FC = () => {
       <IonContent fullscreen style={{ padding: "16px" }}>
         <IonItem>
           <IonLabel>Subject</IonLabel>
-          <IonSelect value={subject} onIonChange={e => setSubject(e.detail.value)}>
+          <IonSelect value={subject} onIonChange={(e) => setSubject(e.detail.value!)}>
             <IonSelectOption value="Arithmetic">Arithmetic</IonSelectOption>
             <IonSelectOption value="Motion">Motion</IonSelectOption>
           </IonSelect>
@@ -94,7 +97,7 @@ const AdminAddModule: React.FC = () => {
 
         <IonItem>
           <IonLabel>Module</IonLabel>
-          <IonSelect value={moduleName} onIonChange={e => setModuleName(e.detail.value)}>
+          <IonSelect value={moduleName} onIonChange={(e) => setModuleName(e.detail.value!)}>
             {subject === "Arithmetic" && (
               <>
                 <IonSelectOption value="Who Discovered Arithmetic">Who Discovered Arithmetic</IonSelectOption>
@@ -113,9 +116,11 @@ const AdminAddModule: React.FC = () => {
         {availableSubmodules.length > 0 && (
           <IonItem>
             <IonLabel>Submodule</IonLabel>
-            <IonSelect value={submodule} onIonChange={e => setSubmodule(e.detail.value)}>
-              {availableSubmodules.map(sub => (
-                <IonSelectOption key={sub} value={sub}>{sub}</IonSelectOption>
+            <IonSelect value={submodule} onIonChange={(e) => setSubmodule(e.detail.value!)}>
+              {availableSubmodules.map((sub) => (
+                <IonSelectOption key={sub} value={sub}>
+                  {sub}
+                </IonSelectOption>
               ))}
             </IonSelect>
           </IonItem>
@@ -123,7 +128,7 @@ const AdminAddModule: React.FC = () => {
 
         <IonItem>
           <IonLabel>Choose Image</IonLabel>
-          <input type="file" onChange={e => setFile(e.target.files?.[0] ?? null)} />
+          <input type="file" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
         </IonItem>
 
         <IonButton expand="block" style={{ marginTop: "16px" }} onClick={handleUpload}>

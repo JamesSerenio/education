@@ -3,34 +3,34 @@ import {
   IonPage,
   IonHeader,
   IonContent,
-  IonItem,
+  IonSegment,
+  IonSegmentButton,
   IonLabel,
-  IonSelect,
-  IonSelectOption,
   IonButton,
 } from "@ionic/react";
 import { supabase } from "../../utils/supabaseClient";
-import { isAdminUser } from "../../utils/adminCheck";
 
-const AdminAddModule: React.FC = () => {
-  const [userId, setUserId] = useState<string | null>(null);
-  const [subject, setSubject] = useState("Arithmetic");
-  const [moduleName, setModuleName] = useState("Who Discovered Arithmetic");
-  const [submodule, setSubmodule] = useState<string | null>(null);
+interface ModuleImage {
+  id: string;
+  uploaded_by: string | null;
+  subject: string;
+  module: string; // "Who Discovered Motion" | "Uniform Motion"
+  submodule: string | null; // velocity, time, distance
+  image_url: string;
+  created_at?: string;
+}
+
+interface MotionModuleProps {
+  isAdmin?: boolean;
+}
+
+const submodules = ["velocity", "time", "distance"];
+
+const MotionModule: React.FC<MotionModuleProps> = ({ isAdmin = false }) => {
+  const [selectedSubmodule, setSelectedSubmodule] = useState<string>("velocity");
+  const [images, setImages] = useState<ModuleImage[]>([]);
   const [file, setFile] = useState<File | null>(null);
-  const isAdmin = isAdminUser();
-
-  const submodulesMap: Record<string, string[]> = {
-    "Arithmetic Sequence": ["a1", "d", "an"],
-    "Uniform Motion": ["velocity", "time", "distance"],
-  };
-
-  useEffect(() => {
-    if (!isAdmin) alert("Access denied! Only admins can add modules.");
-    if (subject === "Arithmetic") setModuleName("Who Discovered Arithmetic");
-    else if (subject === "Motion") setModuleName("Who Discovered Motion");
-    setSubmodule(null);
-  }, [subject, isAdmin]);
+  const [userId, setUserId] = useState<string | null>(null);
 
   useEffect(() => {
     const getUser = async () => {
@@ -38,12 +38,22 @@ const AdminAddModule: React.FC = () => {
       if (!error && data.user) setUserId(data.user.id);
     };
     getUser();
-  }, []);
+    fetchImages();
+  }, [selectedSubmodule]);
 
-  const handleUpload = async () => {
+  const fetchImages = async () => {
+    const { data, error } = await supabase
+      .from("module_images")
+      .select("*")
+      .eq("subject", "Motion")
+      .order("created_at", { ascending: true });
+
+    if (!error && data) setImages(data as ModuleImage[]);
+  };
+
+  const handleUpload = async (moduleName: string, submoduleName: string | null) => {
     if (!file) return alert("Select a file to upload.");
     if (!userId) return alert("User not authenticated.");
-    if (!isAdmin) return alert("Only admins can upload.");
 
     const fileExt = file.name.split(".").pop();
     const fileName = `${crypto.randomUUID()}.${fileExt}`;
@@ -57,75 +67,112 @@ const AdminAddModule: React.FC = () => {
     const { error: dbError } = await supabase.from("module_images").insert([
       {
         uploaded_by: userId,
-        subject,
+        subject: "Motion",
         module: moduleName,
-        submodule,
+        submodule: submoduleName,
         image_url: filePath,
       },
     ]);
     if (dbError) return alert(dbError.message);
 
-    alert("Module image uploaded successfully!");
+    alert("Image uploaded successfully!");
     setFile(null);
-    setSubmodule(null);
+    fetchImages();
   };
 
-  const availableSubmodules = submodulesMap[moduleName] || [];
+  const whoDiscovered = images.filter((img) => img.module === "Who Discovered Motion");
+  const uniformMotion = images.filter(
+    (img) => img.module === "Uniform Motion" && img.submodule === selectedSubmodule
+  );
 
   return (
     <IonPage>
-      <IonHeader>
-        <h2 style={{ textAlign: "center", padding: "16px" }}>Admin Add Module</h2>
-      </IonHeader>
-      <IonContent fullscreen style={{ padding: "16px" }}>
-        <IonItem>
-          <IonLabel>Subject</IonLabel>
-          <IonSelect value={subject} onIonChange={e => setSubject(e.detail.value)}>
-            <IonSelectOption value="Arithmetic">Arithmetic</IonSelectOption>
-            <IonSelectOption value="Motion">Motion</IonSelectOption>
-          </IonSelect>
-        </IonItem>
-
-        <IonItem>
-          <IonLabel>Module</IonLabel>
-          <IonSelect value={moduleName} onIonChange={e => setModuleName(e.detail.value)}>
-            {subject === "Arithmetic" && (
-              <>
-                <IonSelectOption value="Who Discovered Arithmetic">Who Discovered Arithmetic</IonSelectOption>
-                <IonSelectOption value="Arithmetic Sequence">Arithmetic Sequence</IonSelectOption>
-              </>
+      <IonHeader />
+      <IonContent fullscreen>
+        <div style={{ display: "flex", gap: "24px", padding: "16px", flexWrap: "wrap" }}>
+          {/* Who Discovered Motion */}
+          <div
+            style={{
+              flex: 1,
+              minWidth: "300px",
+              border: "1px solid #ccc",
+              borderRadius: "12px",
+              padding: "16px",
+              textAlign: "center",
+            }}
+          >
+            <h3>Who Discovered Motion</h3>
+            {whoDiscovered.length > 0 ? (
+              whoDiscovered.map((img) => (
+                <img
+                  key={img.id}
+                  src={`https://YOUR_PROJECT_REF.supabase.co/storage/v1/object/public/${img.image_url}`}
+                  alt={img.module}
+                  style={{ width: "100%", borderRadius: "8px", marginBottom: "12px" }}
+                />
+              ))
+            ) : (
+              <p>No image uploaded yet.</p>
             )}
-            {subject === "Motion" && (
-              <>
-                <IonSelectOption value="Who Discovered Motion">Who Discovered Motion</IonSelectOption>
-                <IonSelectOption value="Uniform Motion">Uniform Motion</IonSelectOption>
-              </>
+            {isAdmin && (
+              <div>
+                <input type="file" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
+                <IonButton onClick={() => handleUpload("Who Discovered Motion", null)}>Upload Image</IonButton>
+              </div>
             )}
-          </IonSelect>
-        </IonItem>
+          </div>
 
-        {availableSubmodules.length > 0 && (
-          <IonItem>
-            <IonLabel>Submodule</IonLabel>
-            <IonSelect value={submodule} onIonChange={e => setSubmodule(e.detail.value)}>
-              {availableSubmodules.map(sub => (
-                <IonSelectOption key={sub} value={sub}>{sub}</IonSelectOption>
+          {/* Uniform Motion Module */}
+          <div
+            style={{
+              flex: 2,
+              minWidth: "400px",
+              border: "1px solid #ccc",
+              borderRadius: "12px",
+              padding: "16px",
+              textAlign: "center",
+            }}
+          >
+            <h3>Uniform Motion Module</h3>
+            <IonSegment
+              value={selectedSubmodule}
+              onIonChange={(e: CustomEvent) => {
+                const val = e.detail.value;
+                if (val) setSelectedSubmodule(val);
+              }}
+              scrollable
+            >
+              {submodules.map((sub) => (
+                <IonSegmentButton key={sub} value={sub}>
+                  <IonLabel>{sub}</IonLabel>
+                </IonSegmentButton>
               ))}
-            </IonSelect>
-          </IonItem>
-        )}
+            </IonSegment>
 
-        <IonItem>
-          <IonLabel>Choose Image</IonLabel>
-          <input type="file" onChange={e => setFile(e.target.files?.[0] ?? null)} />
-        </IonItem>
+            {uniformMotion.length > 0 ? (
+              uniformMotion.map((img) => (
+                <img
+                  key={img.id}
+                  src={`https://YOUR_PROJECT_REF.supabase.co/storage/v1/object/public/${img.image_url}`}
+                  alt={img.submodule ?? ""}
+                  style={{ width: "100%", borderRadius: "8px", marginTop: "12px" }}
+                />
+              ))
+            ) : (
+              <p>No image uploaded yet for {selectedSubmodule}.</p>
+            )}
 
-        <IonButton expand="block" style={{ marginTop: "16px" }} onClick={handleUpload}>
-          Upload Module Image
-        </IonButton>
+            {isAdmin && (
+              <div style={{ marginTop: "16px" }}>
+                <input type="file" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
+                <IonButton onClick={() => handleUpload("Uniform Motion", selectedSubmodule)}>Upload Image</IonButton>
+              </div>
+            )}
+          </div>
+        </div>
       </IonContent>
     </IonPage>
   );
 };
 
-export default AdminAddModule;
+export default MotionModule;

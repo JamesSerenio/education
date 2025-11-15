@@ -176,3 +176,4 @@ const ArithmeticModule: React.FC<ArithmeticModuleProps> = ({ isAdmin = false }) 
 };
 
 export default ArithmeticModule;
+ 

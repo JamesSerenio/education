@@ -80,7 +80,9 @@ const MotionModule: React.FC<MotionModuleProps> = ({ isAdmin = false }) => {
     fetchImages();
   };
 
-  const whoDiscovered = images.filter((img) => img.module === "Who Discovered Motion");
+  const whoDiscovered = images.filter(
+    (img) => img.module === "Who Discovered Motion"
+  );
   const uniformMotion = images.filter(
     (img) => img.module === "Uniform Motion" && img.submodule === selectedSubmodule
   );
@@ -89,51 +91,46 @@ const MotionModule: React.FC<MotionModuleProps> = ({ isAdmin = false }) => {
     <IonPage>
       <IonHeader />
       <IonContent fullscreen>
-        <div style={{ display: "flex", gap: "24px", padding: "16px", flexWrap: "wrap" }}>
+        {/* ✅ gamit na layout class from your CSS */}
+        <div className="arithmetic-module-container">
           {/* Who Discovered Motion */}
-          <div
-            style={{
-              flex: 1,
-              minWidth: "300px",
-              border: "1px solid #ccc",
-              borderRadius: "12px",
-              padding: "16px",
-              textAlign: "center",
-            }}
-          >
+          <div className="arithmetic-card">
             <h3>Who Discovered Motion</h3>
-            {whoDiscovered.length > 0 ? (
-              whoDiscovered.map((img) => (
-                <img
-                  key={img.id}
-                  src={`https://YOUR_PROJECT_REF.supabase.co/storage/v1/object/public/${img.image_url}`}
-                  alt={img.module}
-                  style={{ width: "100%", borderRadius: "8px", marginBottom: "12px" }}
-                />
-              ))
-            ) : (
-              <p>No image uploaded yet.</p>
-            )}
+
+            <div className="image-scroll-container">
+              {whoDiscovered.length > 0 ? (
+                whoDiscovered.map((img) => (
+                  <img
+                    key={img.id}
+                    src={`https://YOUR_PROJECT_REF.supabase.co/storage/v1/object/public/${img.image_url}`}
+                    alt={img.module}
+                  />
+                ))
+              ) : (
+                <p>No image uploaded yet.</p>
+              )}
+            </div>
+
             {isAdmin && (
-              <div>
-                <input type="file" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
-                <IonButton onClick={() => handleUpload("Who Discovered Motion", null)}>Upload Image</IonButton>
+              <div style={{ marginTop: "16px" }}>
+                <input
+                  type="file"
+                  onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+                />
+                <IonButton
+                  style={{ marginTop: "8px" }}
+                  onClick={() => handleUpload("Who Discovered Motion", null)}
+                >
+                  Upload Image
+                </IonButton>
               </div>
             )}
           </div>
 
           {/* Uniform Motion Module */}
-          <div
-            style={{
-              flex: 2,
-              minWidth: "400px",
-              border: "1px solid #ccc",
-              borderRadius: "12px",
-              padding: "16px",
-              textAlign: "center",
-            }}
-          >
+          <div className="arithmetic-card">
             <h3>Uniform Motion Module</h3>
+
             <IonSegment
               value={selectedSubmodule}
               onIonChange={(e: CustomEvent) => {
@@ -149,23 +146,32 @@ const MotionModule: React.FC<MotionModuleProps> = ({ isAdmin = false }) => {
               ))}
             </IonSegment>
 
-            {uniformMotion.length > 0 ? (
-              uniformMotion.map((img) => (
-                <img
-                  key={img.id}
-                  src={`https://YOUR_PROJECT_REF.supabase.co/storage/v1/object/public/${img.image_url}`}
-                  alt={img.submodule ?? ""}
-                  style={{ width: "100%", borderRadius: "8px", marginTop: "12px" }}
-                />
-              ))
-            ) : (
-              <p>No image uploaded yet for {selectedSubmodule}.</p>
-            )}
+            <div className="image-scroll-container">
+              {uniformMotion.length > 0 ? (
+                uniformMotion.map((img) => (
+                  <img
+                    key={img.id}
+                    src={`https://YOUR_PROJECT_REF.supabase.co/storage/v1/object/public/${img.image_url}`}
+                    alt={img.submodule ?? ""}
+                  />
+                ))
+              ) : (
+                <p>No image uploaded yet for {selectedSubmodule}.</p>
+              )}
+            </div>
 
             {isAdmin && (
               <div style={{ marginTop: "16px" }}>
-                <input type="file" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
-                <IonButton onClick={() => handleUpload("Uniform Motion", selectedSubmodule)}>Upload Image</IonButton>
+                <input
+                  type="file"
+                  onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+                />
+                <IonButton
+                  style={{ marginTop: "8px" }}
+                  onClick={() => handleUpload("Uniform Motion", selectedSubmodule)}
+                >
+                  Upload Image
+                </IonButton>
               </div>
             )}
           </div>

@@ -24,7 +24,6 @@ interface ArithmeticModuleProps {
   isAdmin?: boolean;
 }
 
-// 🔹 submodules for Arithmetic Sequence
 const submodules = ["a1", "d", "an"];
 
 const ArithmeticModule: React.FC<ArithmeticModuleProps> = ({ isAdmin = false }) => {
@@ -81,12 +80,12 @@ const ArithmeticModule: React.FC<ArithmeticModuleProps> = ({ isAdmin = false }) 
     fetchImages();
   };
 
-  // 🔹 Who Discovered Arithmetic (no submodule)
+  // Who Discovered Arithmetic (no submodule)
   const whoDiscovered = images.filter(
     (img) => img.module === "Who Discovered Arithmetic"
   );
 
-  // 🔹 Arithmetic Sequence (a1, d, an)
+  // Arithmetic Sequence (a1, d, an)
   const arithmeticSequence = images.filter(
     (img) => img.module === "Arithmetic Sequence" && img.submodule === selectedSubmodule
   );
@@ -95,49 +94,33 @@ const ArithmeticModule: React.FC<ArithmeticModuleProps> = ({ isAdmin = false }) 
     <IonPage>
       <IonHeader />
       <IonContent fullscreen>
-        <div
-          style={{
-            display: "flex",
-            gap: "24px",
-            padding: "16px",
-            flexWrap: "wrap",
-          }}
-        >
+        {/* ✅ gamit na yung .arithmetic-module-container sa CSS mo */}
+        <div className="arithmetic-module-container">
           {/* Who Discovered Arithmetic */}
-          <div
-            style={{
-              flex: 1,
-              minWidth: "300px",
-              border: "1px solid #ccc",
-              borderRadius: "12px",
-              padding: "16px",
-              textAlign: "center",
-            }}
-          >
+          <div className="arithmetic-card">
             <h3>Who Discovered Arithmetic</h3>
-            {whoDiscovered.length > 0 ? (
-              whoDiscovered.map((img) => (
-                <img
-                  key={img.id}
-                  src={`https://YOUR_PROJECT_REF.supabase.co/storage/v1/object/public/${img.image_url}`}
-                  alt={img.module}
-                  style={{
-                    width: "100%",
-                    borderRadius: "8px",
-                    marginBottom: "12px",
-                  }}
-                />
-              ))
-            ) : (
-              <p>No image uploaded yet.</p>
-            )}
+            <div className="image-scroll-container">
+              {whoDiscovered.length > 0 ? (
+                whoDiscovered.map((img) => (
+                  <img
+                    key={img.id}
+                    src={`https://YOUR_PROJECT_REF.supabase.co/storage/v1/object/public/${img.image_url}`}
+                    alt={img.module}
+                  />
+                ))
+              ) : (
+                <p>No image uploaded yet.</p>
+              )}
+            </div>
+
             {isAdmin && (
-              <div>
+              <div style={{ marginTop: "16px" }}>
                 <input
                   type="file"
                   onChange={(e) => setFile(e.target.files?.[0] ?? null)}
                 />
                 <IonButton
+                  style={{ marginTop: "8px" }}
                   onClick={() => handleUpload("Who Discovered Arithmetic", null)}
                 >
                   Upload Image
@@ -147,17 +130,9 @@ const ArithmeticModule: React.FC<ArithmeticModuleProps> = ({ isAdmin = false }) 
           </div>
 
           {/* Arithmetic Sequence Module */}
-          <div
-            style={{
-              flex: 2,
-              minWidth: "400px",
-              border: "1px solid #ccc",
-              borderRadius: "12px",
-              padding: "16px",
-              textAlign: "center",
-            }}
-          >
+          <div className="arithmetic-card">
             <h3>Arithmetic Sequence Module</h3>
+
             <IonSegment
               value={selectedSubmodule}
               onIonChange={(e: CustomEvent) => {
@@ -175,22 +150,19 @@ const ArithmeticModule: React.FC<ArithmeticModuleProps> = ({ isAdmin = false }) 
               ))}
             </IonSegment>
 
-            {arithmeticSequence.length > 0 ? (
-              arithmeticSequence.map((img) => (
-                <img
-                  key={img.id}
-                  src={`https://YOUR_PROJECT_REF.supabase.co/storage/v1/object/public/${img.image_url}`}
-                  alt={img.submodule ?? ""}
-                  style={{
-                    width: "100%",
-                    borderRadius: "8px",
-                    marginTop: "12px",
-                  }}
-                />
-              ))
-            ) : (
-              <p>No image uploaded yet for {selectedSubmodule}.</p>
-            )}
+            <div className="image-scroll-container">
+              {arithmeticSequence.length > 0 ? (
+                arithmeticSequence.map((img) => (
+                  <img
+                    key={img.id}
+                    src={`https://YOUR_PROJECT_REF.supabase.co/storage/v1/object/public/${img.image_url}`}
+                    alt={img.submodule ?? ""}
+                  />
+                ))
+              ) : (
+                <p>No image uploaded yet for {selectedSubmodule}.</p>
+              )}
+            </div>
 
             {isAdmin && (
               <div style={{ marginTop: "16px" }}>
@@ -199,6 +171,7 @@ const ArithmeticModule: React.FC<ArithmeticModuleProps> = ({ isAdmin = false }) 
                   onChange={(e) => setFile(e.target.files?.[0] ?? null)}
                 />
                 <IonButton
+                  style={{ marginTop: "8px" }}
                   onClick={() =>
                     handleUpload("Arithmetic Sequence", selectedSubmodule)
                   }

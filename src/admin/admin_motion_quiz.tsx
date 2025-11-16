@@ -14,6 +14,7 @@ import {
   IonSelectOption,
   IonItem,
   IonTextarea,
+  IonSearchbar, // Added IonSearchbar import
 } from "@ionic/react";
 import { createOutline, trashOutline } from "ionicons/icons";
 import { supabase } from "../utils/supabaseClient";
@@ -47,6 +48,7 @@ const AdminMotionQuiz: React.FC = () => {
   const [editDifficulty, setEditDifficulty] = useState<"Easy" | "Average" | "Difficult">("Easy");
   const [editCategory, setEditCategory] = useState("");
   const [editAcceptedAnswers, setEditAcceptedAnswers] = useState("");
+  const [searchQuery, setSearchQuery] = useState(""); // Added search query state
 
   // Fetch quizzes
   const fetchQuizzes = async () => {
@@ -137,8 +139,17 @@ const AdminMotionQuiz: React.FC = () => {
     }
   };
 
-  // Group quizzes by category
-  const groupedQuizzes = quizzes.reduce((acc: { [key: string]: Quiz[] }, quiz) => {
+  // Filter quizzes based on search query
+  const filteredQuizzes = quizzes.filter((quiz) =>
+    quiz.question.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    quiz.answer.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (quiz.solution || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+    quiz.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    quiz.difficulty.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  // Group filtered quizzes by category
+  const groupedQuizzes = filteredQuizzes.reduce((acc: { [key: string]: Quiz[] }, quiz) => {
     if (!acc[quiz.category]) acc[quiz.category] = [];
     acc[quiz.category].push(quiz);
     return acc;
@@ -166,9 +177,17 @@ const AdminMotionQuiz: React.FC = () => {
           @media (max-width: 768px) { .quiz-table th, .quiz-table td { font-size: 12px; padding: 0.5rem; } .actions-cell { width: 70px; } }
         `}</style>
 
+        {/* Search Bar */}
+        <IonSearchbar
+          value={searchQuery}
+          onIonChange={(e) => setSearchQuery(e.detail.value!)}
+          placeholder="Search quizzes by question, answer, solution, category, or difficulty..."
+          style={{ marginBottom: "1rem" }}
+        />
+
         {loading ? (
           <div>Loading quizzes...</div>
-        ) : quizzes.length === 0 ? (
+        ) : filteredQuizzes.length === 0 ? (
           <div>No quizzes found.</div>
         ) : (
           categories.map((category) => (

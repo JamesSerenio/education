@@ -52,7 +52,7 @@
       { name: "Motion Quiz", key: "motion_quiz", icon: iconMotion },
       { name: "Leaderboard", key: "leaderboard", icon: iconLeaderboard },
       { name: "Radar", key: "radar", icon: iconRadar },
-      { name: "Pie", key: "radar", icon: iconPiechart },
+      { name: "Pie", key: "pie", icon: iconPiechart },
     ];
 
     // ✅ Switch between dashboard content
@@ -72,7 +72,7 @@
           return <AdminLeaderboard />;
         case "radar":
           return <AdminRadar />;
-        case "Pie":
+        case "pie":
           return <AdminPiechart />;
         default:
           return <h2 style={{ padding: "1rem" }}>Welcome to Admin Dashboard</h2>;

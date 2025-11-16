@@ -1,3 +1,4 @@
+// src/pages/ArithmeticModule.tsx
 import { useState, useEffect } from "react";
 import {
   IonPage,
@@ -26,21 +27,33 @@ interface ArithmeticModuleProps {
 
 const submodules = ["a1", "d", "an"];
 
+// ✅ Get Supabase URL from env (same as in supabaseClient)
+const PROJECT_URL = import.meta.env.VITE_SUPABASE_URL;
+
+// Helper para di ka paulit-ulit
+const getPublicImageUrl = (path: string) =>
+  `${PROJECT_URL}/storage/v1/object/public/${path}`;
+
 const ArithmeticModule: React.FC<ArithmeticModuleProps> = ({ isAdmin = false }) => {
   const [selectedSubmodule, setSelectedSubmodule] = useState<string>("a1");
   const [images, setImages] = useState<ModuleImage[]>([]);
   const [file, setFile] = useState<File | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
 
+  // Get logged-in user + fetch images
   useEffect(() => {
-    const getUser = async () => {
+    const getUserAndImages = async () => {
       const { data, error } = await supabase.auth.getUser();
-      if (!error && data.user) setUserId(data.user.id);
+      if (!error && data.user) {
+        setUserId(data.user.id);
+      }
+      await fetchImages();
     };
-    getUser();
-    fetchImages();
-  }, [selectedSubmodule]);
 
+    getUserAndImages();
+  }, []);
+
+  // Fetch all Arithmetic images
   const fetchImages = async () => {
     const { data, error } = await supabase
       .from("module_images")
@@ -48,36 +61,50 @@ const ArithmeticModule: React.FC<ArithmeticModuleProps> = ({ isAdmin = false }) 
       .eq("subject", "Arithmetic")
       .order("created_at", { ascending: true });
 
-    if (!error && data) setImages(data as ModuleImage[]);
+    if (error) {
+      console.error("Error fetching images:", error.message);
+      return;
+    }
+    if (data) setImages(data as ModuleImage[]);
   };
 
   const handleUpload = async (moduleName: string, submoduleName: string | null) => {
     if (!file) return alert("Select a file to upload.");
     if (!userId) return alert("User not authenticated.");
 
-    const fileExt = file.name.split(".").pop();
-    const fileName = `${crypto.randomUUID()}.${fileExt}`;
-    const filePath = `module-images/${fileName}`;
+    try {
+      const fileExt = file.name.split(".").pop();
+      const fileName = `${crypto.randomUUID()}.${fileExt}`;
+      const filePath = `module-images/${fileName}`;
 
-    const { error: uploadError } = await supabase.storage
-      .from("module-images")
-      .upload(filePath, file);
-    if (uploadError) return alert(uploadError.message);
+      // 1️⃣ Upload to storage
+      const { error: uploadError } = await supabase.storage
+        .from("module-images")
+        .upload(filePath, file);
 
-    const { error: dbError } = await supabase.from("module_images").insert([
-      {
-        uploaded_by: userId,
-        subject: "Arithmetic",
-        module: moduleName,
-        submodule: submoduleName,
-        image_url: filePath,
-      },
-    ]);
-    if (dbError) return alert(dbError.message);
+      if (uploadError) throw uploadError;
 
-    alert("Image uploaded successfully!");
-    setFile(null);
-    fetchImages();
+      // 2️⃣ Insert row to module_images
+      const { error: dbError } = await supabase.from("module_images").insert([
+        {
+          uploaded_by: userId,
+          subject: "Arithmetic",
+          module: moduleName,
+          submodule: submoduleName,
+          image_url: filePath,
+        },
+      ]);
+
+      if (dbError) throw dbError;
+
+      alert("Image uploaded successfully!");
+      setFile(null);
+      await fetchImages();
+    } catch (err: unknown) {
+      console.error(err);
+      if (err instanceof Error) alert(err.message);
+      else alert("Upload failed");
+    }
   };
 
   // Who Discovered Arithmetic (no submodule)
@@ -87,16 +114,18 @@ const ArithmeticModule: React.FC<ArithmeticModuleProps> = ({ isAdmin = false }) 
 
   // Arithmetic Sequence (a1, d, an)
   const arithmeticSequence = images.filter(
-    (img) => img.module === "Arithmetic Sequence" && img.submodule === selectedSubmodule
+    (img) =>
+      img.module === "Arithmetic Sequence" &&
+      img.submodule === selectedSubmodule
   );
 
   return (
     <IonPage>
       <IonHeader />
       <IonContent fullscreen>
-        {/* ✅ gamit na yung .arithmetic-module-container sa CSS mo */}
+        {/* ✅ uses your CSS classes */}
         <div className="arithmetic-module-container">
-          {/* Who Discovered Arithmetic */}
+          {/* ─────────────── Who Discovered Arithmetic ─────────────── */}
           <div className="arithmetic-card">
             <h3>Who Discovered Arithmetic</h3>
             <div className="image-scroll-container">
@@ -104,7 +133,7 @@ const ArithmeticModule: React.FC<ArithmeticModuleProps> = ({ isAdmin = false }) 
                 whoDiscovered.map((img) => (
                   <img
                     key={img.id}
-                    src={`https://YOUR_PROJECT_REF.supabase.co/storage/v1/object/public/${img.image_url}`}
+                    src={getPublicImageUrl(img.image_url)}
                     alt={img.module}
                   />
                 ))
@@ -121,7 +150,9 @@ const ArithmeticModule: React.FC<ArithmeticModuleProps> = ({ isAdmin = false }) 
                 />
                 <IonButton
                   style={{ marginTop: "8px" }}
-                  onClick={() => handleUpload("Who Discovered Arithmetic", null)}
+                  onClick={() =>
+                    handleUpload("Who Discovered Arithmetic", null)
+                  }
                 >
                   Upload Image
                 </IonButton>
@@ -129,14 +160,14 @@ const ArithmeticModule: React.FC<ArithmeticModuleProps> = ({ isAdmin = false }) 
             )}
           </div>
 
-          {/* Arithmetic Sequence Module */}
+          {/* ─────────────── Arithmetic Sequence Module ─────────────── */}
           <div className="arithmetic-card">
             <h3>Arithmetic Sequence Module</h3>
 
             <IonSegment
               value={selectedSubmodule}
               onIonChange={(e: CustomEvent) => {
-                const val = e.detail.value;
+                const val = e.detail.value as string | null;
                 if (val) setSelectedSubmodule(val);
               }}
               scrollable
@@ -144,7 +175,7 @@ const ArithmeticModule: React.FC<ArithmeticModuleProps> = ({ isAdmin = false }) 
               {submodules.map((sub) => (
                 <IonSegmentButton key={sub} value={sub}>
                   <IonLabel>
-                    {sub === "a1" ? "a₁" : sub === "d" ? "d" : "aₙ"}
+                    {sub === "a1" ? "a₁" : sub === "d" ? "D" : "aₙ"}
                   </IonLabel>
                 </IonSegmentButton>
               ))}
@@ -155,7 +186,7 @@ const ArithmeticModule: React.FC<ArithmeticModuleProps> = ({ isAdmin = false }) 
                 arithmeticSequence.map((img) => (
                   <img
                     key={img.id}
-                    src={`https://YOUR_PROJECT_REF.supabase.co/storage/v1/object/public/${img.image_url}`}
+                    src={getPublicImageUrl(img.image_url)}
                     alt={img.submodule ?? ""}
                   />
                 ))

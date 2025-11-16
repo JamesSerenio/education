@@ -15,9 +15,9 @@ interface ModuleImage {
   id: string;
   uploaded_by: string | null;
   subject: string;
-  module: string;           // "Who Discovered Arithmetic" | "Arithmetic Sequence"
-  submodule: string | null; // "a1", "d", "an"
-  image_url: string;        // e.g. "module-images/xxx.png"
+  module: string;        // "Who Discovered Arithmetic" | "Arithmetic Sequence"
+  submodule: string | null; // "a1" | "d" | "an" | null
+  image_url: string;     // e.g. "module-images/xxxx.png"
   created_at?: string;
 }
 
@@ -27,12 +27,12 @@ interface ArithmeticModuleProps {
 
 const submodules = ["a1", "d", "an"];
 
-// ✅ Gamitin direct env (no need import)
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
+// ✅ reuse supabaseUrl from client
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 
-// helper for public image URL
+// Helper para sa public URL
 const getPublicImageUrl = (path: string) =>
-  `${SUPABASE_URL}/storage/v1/object/public/${path}`;
+  `${supabaseUrl}/storage/v1/object/public/${path}`;
 
 const ArithmeticModule: React.FC<ArithmeticModuleProps> = ({ isAdmin = false }) => {
   const [selectedSubmodule, setSelectedSubmodule] = useState<string>("a1");
@@ -50,6 +50,7 @@ const ArithmeticModule: React.FC<ArithmeticModuleProps> = ({ isAdmin = false }) 
     getUserAndImages();
   }, []);
 
+  // 🔹 Fetch lahat ng Arithmetic images
   const fetchImages = async () => {
     const { data, error } = await supabase
       .from("module_images")
@@ -61,26 +62,33 @@ const ArithmeticModule: React.FC<ArithmeticModuleProps> = ({ isAdmin = false }) 
       console.error("Error fetching images:", error.message);
       return;
     }
-    if (data) setImages(data as ModuleImage[]);
+    setImages((data || []) as ModuleImage[]);
   };
 
+  // 🔹 Upload image + insert row sa module_images (matched sa SQL)
   const handleUpload = async (moduleName: string, submoduleName: string | null) => {
-    if (!file) return alert("Select a file to upload.");
-    if (!userId) return alert("User not authenticated.");
+    if (!file) {
+      alert("Select a file to upload.");
+      return;
+    }
+    if (!userId) {
+      alert("User not authenticated.");
+      return;
+    }
 
     try {
       const fileExt = file.name.split(".").pop();
       const fileName = `${crypto.randomUUID()}.${fileExt}`;
       const filePath = `module-images/${fileName}`;
 
-      // upload to storage
+      // 1. upload to bucket
       const { error: uploadError } = await supabase.storage
         .from("module-images")
         .upload(filePath, file);
 
       if (uploadError) throw uploadError;
 
-      // insert to module_images
+      // 2. insert row to table (SQL mo)
       const { error: dbError } = await supabase.from("module_images").insert([
         {
           uploaded_by: userId,
@@ -103,10 +111,12 @@ const ArithmeticModule: React.FC<ArithmeticModuleProps> = ({ isAdmin = false }) 
     }
   };
 
+  // 🔹 Who Discovered Arithmetic (walang submodule)
   const whoDiscovered = images.filter(
     (img) => img.module === "Who Discovered Arithmetic"
   );
 
+  // 🔹 Arithmetic Sequence (a1, d, an)
   const arithmeticSequence = images.filter(
     (img) =>
       img.module === "Arithmetic Sequence" &&
@@ -123,13 +133,11 @@ const ArithmeticModule: React.FC<ArithmeticModuleProps> = ({ isAdmin = false }) 
             <h3>Who Discovered Arithmetic</h3>
             <div className="image-scroll-container">
               {whoDiscovered.length > 0 ? (
-                whoDiscovered.map((img) => (
-                  <img
-                    key={img.id}
-                    src={getPublicImageUrl(img.image_url)}
-                    alt={img.module}
-                  />
-                ))
+                whoDiscovered.map((img) => {
+                  const url = getPublicImageUrl(img.image_url);
+                  console.log("WHO URL:", url);
+                  return <img key={img.id} src={url} alt={img.module} />;
+                })
               ) : (
                 <p>No image uploaded yet.</p>
               )}
@@ -159,11 +167,11 @@ const ArithmeticModule: React.FC<ArithmeticModuleProps> = ({ isAdmin = false }) 
 
             <IonSegment
               value={selectedSubmodule}
+              scrollable
               onIonChange={(e: CustomEvent) => {
                 const val = e.detail.value as string | null;
                 if (val) setSelectedSubmodule(val);
               }}
-              scrollable
             >
               {submodules.map((sub) => (
                 <IonSegmentButton key={sub} value={sub}>
@@ -176,13 +184,11 @@ const ArithmeticModule: React.FC<ArithmeticModuleProps> = ({ isAdmin = false }) 
 
             <div className="image-scroll-container">
               {arithmeticSequence.length > 0 ? (
-                arithmeticSequence.map((img) => (
-                  <img
-                    key={img.id}
-                    src={getPublicImageUrl(img.image_url)}
-                    alt={img.submodule ?? ""}
-                  />
-                ))
+                arithmeticSequence.map((img) => {
+                  const url = getPublicImageUrl(img.image_url);
+                  console.log("SEQ URL:", url);
+                  return <img key={img.id} src={url} alt={img.submodule ?? ""} />;
+                })
               ) : (
                 <p>No image uploaded yet for {selectedSubmodule}.</p>
               )}

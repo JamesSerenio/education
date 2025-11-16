@@ -14,9 +14,11 @@ import {
   IonSelectOption,
   IonItem,
   IonTextarea,
-  IonSearchbar, // Added IonSearchbar import
+  IonSearchbar,
+  IonSegment,
+  IonSegmentButton,
 } from "@ionic/react";
-import { createOutline, trashOutline } from "ionicons/icons";
+import { createOutline, trashOutline, archiveOutline, refreshOutline } from "ionicons/icons";
 import { supabase } from "../utils/supabaseClient";
 
 interface Quiz {
@@ -29,6 +31,7 @@ interface Quiz {
   answer: string;
   accepted_answers?: string[];
   created_at: string;
+  archived?: boolean; // Added archived field
 }
 
 // Map difficulty to numbers for sorting
@@ -40,8 +43,11 @@ const difficultyOrder: Record<string, number> = {
 
 const AdminArithmeticQuiz: React.FC = () => {
   const [quizzes, setQuizzes] = useState<Quiz[]>([]);
+  const [archivedQuizzes, setArchivedQuizzes] = useState<Quiz[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [permanentDeleteId, setPermanentDeleteId] = useState<string | null>(null);
+  const [restoreId, setRestoreId] = useState<string | null>(null);
   const [editQuiz, setEditQuiz] = useState<Quiz | null>(null);
   const [editQuestion, setEditQuestion] = useState("");
   const [editAnswer, setEditAnswer] = useState("");
@@ -49,7 +55,8 @@ const AdminArithmeticQuiz: React.FC = () => {
   const [editDifficulty, setEditDifficulty] = useState<"Easy" | "Average" | "Difficult">("Easy");
   const [editCategory, setEditCategory] = useState("");
   const [editAcceptedAnswers, setEditAcceptedAnswers] = useState("");
-  const [searchQuery, setSearchQuery] = useState(""); // Added search query state
+  const [searchQuery, setSearchQuery] = useState("");
+  const [showArchived, setShowArchived] = useState(false); // Toggle for active/archived
 
   // Fetch quizzes
   const fetchQuizzes = async () => {
@@ -62,14 +69,20 @@ const AdminArithmeticQuiz: React.FC = () => {
     if (error) {
       console.error("Error fetching quizzes:", error.message);
       setQuizzes([]);
+      setArchivedQuizzes([]);
     } else {
-      // Sort first by category, then by difficulty number
-      const sorted = (data || []).sort((a, b) => {
+      const active = (data || []).filter((q) => !q.archived).sort((a, b) => {
         if (a.category < b.category) return -1;
         if (a.category > b.category) return 1;
         return difficultyOrder[a.difficulty] - difficultyOrder[b.difficulty];
       });
-      setQuizzes(sorted);
+      const archived = (data || []).filter((q) => q.archived).sort((a, b) => {
+        if (a.category < b.category) return -1;
+        if (a.category > b.category) return 1;
+        return difficultyOrder[a.difficulty] - difficultyOrder[b.difficulty];
+      });
+      setQuizzes(active);
+      setArchivedQuizzes(archived);
     }
     setLoading(false);
   };
@@ -78,13 +91,47 @@ const AdminArithmeticQuiz: React.FC = () => {
     fetchQuizzes();
   }, []);
 
-  // Delete quiz
-  const handleDelete = async () => {
-    if (!deleteId) return;
-    const { error } = await supabase.from("quizzes").delete().eq("id", deleteId);
-    if (error) console.error("Error deleting quiz:", error.message);
-    else setQuizzes(quizzes.filter((q) => q.id !== deleteId));
-    setDeleteId(null);
+  // Archive quiz (soft delete)
+  const handleArchive = async (id: string) => {
+    const { error } = await supabase
+      .from("quizzes")
+      .update({ archived: true })
+      .eq("id", id);
+    if (error) console.error("Error archiving quiz:", error.message);
+    else {
+      const quizToArchive = quizzes.find((q) => q.id === id);
+      if (quizToArchive) {
+        setQuizzes(quizzes.filter((q) => q.id !== id));
+        setArchivedQuizzes([...archivedQuizzes, { ...quizToArchive, archived: true }]);
+      }
+    }
+  };
+
+  // Restore quiz
+  const handleRestore = async () => {
+    if (!restoreId) return;
+    const { error } = await supabase
+      .from("quizzes")
+      .update({ archived: false })
+      .eq("id", restoreId);
+    if (error) console.error("Error restoring quiz:", error.message);
+    else {
+      const quizToRestore = archivedQuizzes.find((q) => q.id === restoreId);
+      if (quizToRestore) {
+        setArchivedQuizzes(archivedQuizzes.filter((q) => q.id !== restoreId));
+        setQuizzes([...quizzes, { ...quizToRestore, archived: false }]);
+      }
+    }
+    setRestoreId(null);
+  };
+
+  // Permanent delete
+  const handlePermanentDelete = async () => {
+    if (!permanentDeleteId) return;
+    const { error } = await supabase.from("quizzes").delete().eq("id", permanentDeleteId);
+    if (error) console.error("Error permanently deleting quiz:", error.message);
+    else setArchivedQuizzes(archivedQuizzes.filter((q) => q.id !== permanentDeleteId));
+    setPermanentDeleteId(null);
   };
 
   // Open edit modal
@@ -122,27 +169,35 @@ const AdminArithmeticQuiz: React.FC = () => {
     if (error) {
       console.error("Error updating quiz:", error.message);
     } else {
-      setQuizzes(
-        quizzes.map((q) =>
-          q.id === editQuiz.id
-            ? {
-                ...q,
-                question: editQuestion,
-                answer: editAnswer,
-                solution: editSolution,
-                difficulty: editDifficulty,
-                category: editCategory,
-                accepted_answers: acceptedAnswersArray,
-              }
-            : q
-        )
-      );
+      const updateQuiz = (list: Quiz[], setList: React.Dispatch<React.SetStateAction<Quiz[]>>) => {
+        setList(
+          list.map((q) =>
+            q.id === editQuiz.id
+              ? {
+                  ...q,
+                  question: editQuestion,
+                  answer: editAnswer,
+                  solution: editSolution,
+                  difficulty: editDifficulty,
+                  category: editCategory,
+                  accepted_answers: acceptedAnswersArray,
+                }
+              : q
+          )
+        );
+      };
+      if (showArchived) {
+        updateQuiz(archivedQuizzes, setArchivedQuizzes);
+      } else {
+        updateQuiz(quizzes, setQuizzes);
+      }
       setEditQuiz(null);
     }
   };
 
   // Filter quizzes based on search query
-  const filteredQuizzes = quizzes.filter((quiz) =>
+  const currentQuizzes = showArchived ? archivedQuizzes : quizzes;
+  const filteredQuizzes = currentQuizzes.filter((quiz) =>
     quiz.question.toLowerCase().includes(searchQuery.toLowerCase()) ||
     quiz.answer.toLowerCase().includes(searchQuery.toLowerCase()) ||
     (quiz.solution || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -174,10 +229,20 @@ const AdminArithmeticQuiz: React.FC = () => {
           .quiz-table { width: 100%; border-collapse: collapse; background: white; }
           .quiz-table th, .quiz-table td { padding: 0.75rem; border-bottom: 1px solid #ddd; vertical-align: top; text-align: left; white-space: nowrap; }
           .quiz-table th { background-color: #f8f9fa; font-weight: bold; }
-          .actions-cell { text-align: center; width: 90px; }
+          .actions-cell { text-align: center; width: 120px; } /* Increased width for more buttons */
           pre { white-space: pre-wrap; word-wrap: break-word; margin: 0; font-family: inherit; }
-          @media (max-width: 768px) { .quiz-table th, .quiz-table td { font-size: 12px; padding: 0.5rem; } .actions-cell { width: 70px; } }
+          @media (max-width: 768px) { .quiz-table th, .quiz-table td { font-size: 12px; padding: 0.5rem; } .actions-cell { width: 100px; } }
         `}</style>
+
+        {/* Toggle Active/Archived */}
+        <IonSegment value={showArchived ? "archived" : "active"} onIonChange={(e) => setShowArchived(e.detail.value === "archived")}>
+          <IonSegmentButton value="active">
+            <IonLabel>Active Quizzes</IonLabel>
+          </IonSegmentButton>
+          <IonSegmentButton value="archived">
+            <IonLabel>Archived Quizzes ({archivedQuizzes.length})</IonLabel>
+          </IonSegmentButton>
+        </IonSegment>
 
         {/* Search Bar */}
         <IonSearchbar
@@ -218,12 +283,25 @@ const AdminArithmeticQuiz: React.FC = () => {
                         <td><pre>{quiz.solution || "No solution"}</pre></td>
                         <td>{new Date(quiz.created_at).toLocaleDateString()}</td>
                         <td className="actions-cell">
-                          <IonButton fill="clear" size="small" color="primary" onClick={() => openEdit(quiz)}>
-                            <IonIcon icon={createOutline} />
-                          </IonButton>
-                          <IonButton fill="clear" size="small" color="danger" onClick={() => setDeleteId(quiz.id)}>
-                            <IonIcon icon={trashOutline} />
-                          </IonButton>
+                          {showArchived ? (
+                            <>
+                              <IonButton fill="clear" size="small" color="success" onClick={() => setRestoreId(quiz.id)}>
+                                <IonIcon icon={refreshOutline} />
+                              </IonButton>
+                              <IonButton fill="clear" size="small" color="danger" onClick={() => setPermanentDeleteId(quiz.id)}>
+                                <IonIcon icon={trashOutline} />
+                              </IonButton>
+                            </>
+                          ) : (
+                            <>
+                              <IonButton fill="clear" size="small" color="primary" onClick={() => openEdit(quiz)}>
+                                <IonIcon icon={createOutline} />
+                              </IonButton>
+                              <IonButton fill="clear" size="small" color="warning" onClick={() => handleArchive(quiz.id)}>
+                                <IonIcon icon={archiveOutline} />
+                              </IonButton>
+                            </>
+                          )}
                         </td>
                       </tr>
                     ))}
@@ -234,15 +312,39 @@ const AdminArithmeticQuiz: React.FC = () => {
           ))
         )}
 
-        {/* Delete Alert */}
+        {/* Archive Alert */}
         <IonAlert
           isOpen={!!deleteId}
           onDidDismiss={() => setDeleteId(null)}
-          header="Confirm Delete"
-          message="Are you sure you want to delete this quiz?"
+          header="Confirm Archive"
+          message="Are you sure you want to archive this quiz? It can be restored later."
           buttons={[
             { text: "Cancel", role: "cancel" },
-            { text: "Delete", cssClass: "danger-button", handler: handleDelete },
+            { text: "Archive", cssClass: "warning-button", handler: () => handleArchive(deleteId!) },
+          ]}
+        />
+
+        {/* Restore Alert */}
+        <IonAlert
+          isOpen={!!restoreId}
+          onDidDismiss={() => setRestoreId(null)}
+          header="Confirm Restore"
+          message="Are you sure you want to restore this quiz?"
+          buttons={[
+            { text: "Cancel", role: "cancel" },
+            { text: "Restore", cssClass: "success-button", handler: handleRestore },
+          ]}
+        />
+
+        {/* Permanent Delete Alert */}
+        <IonAlert
+          isOpen={!!permanentDeleteId}
+          onDidDismiss={() => setPermanentDeleteId(null)}
+          header="Confirm Permanent Delete"
+          message="Are you sure you want to permanently delete this quiz? This action cannot be undone."
+          buttons={[
+            { text: "Cancel", role: "cancel" },
+            { text: "Delete", cssClass: "danger-button", handler: handlePermanentDelete },
           ]}
         />
 

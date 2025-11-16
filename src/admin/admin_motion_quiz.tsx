@@ -14,10 +14,7 @@ import {
   IonSelectOption,
   IonItem,
   IonTextarea,
-  IonSearchbar,
-  IonList,
-  IonItem as IonListItem, // Renamed to avoid conflict
-  IonText,
+  IonSearchbar, // Added IonSearchbar import
 } from "@ionic/react";
 import { createOutline, trashOutline } from "ionicons/icons";
 import { supabase } from "../utils/supabaseClient";
@@ -51,7 +48,7 @@ const AdminMotionQuiz: React.FC = () => {
   const [editDifficulty, setEditDifficulty] = useState<"Easy" | "Average" | "Difficult">("Easy");
   const [editCategory, setEditCategory] = useState("");
   const [editAcceptedAnswers, setEditAcceptedAnswers] = useState("");
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState(""); // Added search query state
 
   // Fetch quizzes
   const fetchQuizzes = async () => {
@@ -151,15 +148,6 @@ const AdminMotionQuiz: React.FC = () => {
     quiz.difficulty.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  // Suggestions for autocomplete (top 5 matching questions)
-  const suggestions = quizzes
-    .filter((quiz) =>
-      quiz.question.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      quiz.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      quiz.difficulty.toLowerCase().includes(searchQuery.toLowerCase())
-    )
-    .slice(0, 5); // Limit to 5 suggestions
-
   // Group filtered quizzes by category
   const groupedQuizzes = filteredQuizzes.reduce((acc: { [key: string]: Quiz[] }, quiz) => {
     if (!acc[quiz.category]) acc[quiz.category] = [];
@@ -186,36 +174,16 @@ const AdminMotionQuiz: React.FC = () => {
           .quiz-table th { background-color: #f8f9fa; font-weight: bold; }
           .actions-cell { text-align: center; width: 90px; }
           pre { white-space: pre-wrap; word-wrap: break-word; margin: 0; font-family: inherit; }
-          .suggestions-list { position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid #ddd; border-radius: 4px; z-index: 1000; max-height: 200px; overflow-y: auto; }
-          .suggestion-item { padding: 0.5rem; cursor: pointer; border-bottom: 1px solid #eee; }
-          .suggestion-item:hover { background: #f0f0f0; }
           @media (max-width: 768px) { .quiz-table th, .quiz-table td { font-size: 12px; padding: 0.5rem; } .actions-cell { width: 70px; } }
         `}</style>
 
-        {/* Search Bar with Suggestions */}
-        <div style={{ position: "relative" }}>
-          <IonSearchbar
-            value={searchQuery}
-            onIonChange={(e) => setSearchQuery(e.detail.value!)}
-            placeholder="Search quizzes by question, answer, solution, category, or difficulty..."
-            style={{ marginBottom: "1rem" }}
-          />
-          {searchQuery && suggestions.length > 0 && (
-            <IonList className="suggestions-list">
-              {suggestions.map((quiz) => (
-                <IonListItem
-                  key={quiz.id}
-                  className="suggestion-item"
-                  onClick={() => setSearchQuery(quiz.question)} // Set search to full question on click
-                >
-                  <IonText>
-                    <strong>{quiz.category}</strong> - {quiz.question.substring(0, 50)}... ({quiz.difficulty})
-                  </IonText>
-                </IonListItem>
-              ))}
-            </IonList>
-          )}
-        </div>
+        {/* Search Bar */}
+        <IonSearchbar
+          value={searchQuery}
+          onIonChange={(e) => setSearchQuery(e.detail.value!)}
+          placeholder="Search quizzes by question, answer, solution, category, or difficulty..."
+          style={{ marginBottom: "1rem" }}
+        />
 
         {loading ? (
           <div>Loading quizzes...</div>
@@ -336,3 +304,4 @@ const AdminMotionQuiz: React.FC = () => {
 };
 
 export default AdminMotionQuiz;
+ 

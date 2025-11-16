@@ -26,7 +26,6 @@
   import AdminRadar from "./admin_radar";
   import AdminArithmeticQuiz from "./admin_arithmetic_quiz";
   import AdminMotionQuiz from "./admin_motion_quiz";
-  import AdminModule from "./admin_module";
   import AdminPiechart from "./admin_chart";
 
 
@@ -39,7 +38,7 @@
   import iconRadar from "../assets/icon_radar.png";
   import iconModule from "../assets/book.gif";
   import iconPiechart from "../assets/piechart.gif";
-  import iconEditmodule from "../assets/edit_module.gif";
+
 
   const AdminDashboard: React.FC = () => {
     const history = useHistory();
@@ -51,7 +50,6 @@
       { name: "Add Module", key: "module", icon: iconModule },
       { name: "Arithmetic Quiz", key: "arithmetic_quiz", icon: iconArithmetic },
       { name: "Motion Quiz", key: "motion_quiz", icon: iconMotion },
-      { name: "AdminModule", key: "add_module", icon: iconEditmodule },
       { name: "Leaderboard", key: "leaderboard", icon: iconLeaderboard },
       { name: "Radar", key: "radar", icon: iconRadar },
       { name: "Pie", key: "radar", icon: iconPiechart },
@@ -70,8 +68,6 @@
           return <AdminArithmeticQuiz />;
         case "motion_quiz":
           return <AdminMotionQuiz />;
-        case "add_module":
-          return <AdminModule />;
         case "leaderboard":
           return <AdminLeaderboard />;
         case "radar":

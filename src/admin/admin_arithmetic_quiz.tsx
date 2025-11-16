@@ -34,14 +34,13 @@ interface Quiz {
   archived?: boolean; // Added archived field
 }
 
-// Map difficulty to numbers for sorting
 const difficultyOrder: Record<string, number> = {
   Easy: 1,
   Average: 2,
   Difficult: 3,
 };
 
-const AdminArithmeticQuiz: React.FC = () => {
+const AdminMotionQuiz: React.FC = () => {
   const [quizzes, setQuizzes] = useState<Quiz[]>([]);
   const [archivedQuizzes, setArchivedQuizzes] = useState<Quiz[]>([]);
   const [loading, setLoading] = useState(true);
@@ -64,7 +63,7 @@ const AdminArithmeticQuiz: React.FC = () => {
     const { data, error } = await supabase
       .from("quizzes")
       .select("*")
-      .eq("subject", "Arithmetic Sequence");
+      .eq("subject", "Uniform Motion in Physics");
 
     if (error) {
       console.error("Error fetching quizzes:", error.message);
@@ -218,7 +217,7 @@ const AdminArithmeticQuiz: React.FC = () => {
     <IonPage>
       <IonHeader>
         <IonToolbar>
-          <IonTitle>Admin Arithmetic Quizzes</IonTitle>
+          <IonTitle>Admin Motion Quizzes</IonTitle>
         </IonToolbar>
       </IonHeader>
       <IonContent style={{ padding: "1rem" }}>
@@ -409,4 +408,4 @@ const AdminArithmeticQuiz: React.FC = () => {
   );
 };
 
-export default AdminArithmeticQuiz;
+export default AdminMotionQuiz;

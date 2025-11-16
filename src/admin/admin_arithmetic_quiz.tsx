@@ -71,14 +71,16 @@ const AdminMotionQuiz: React.FC = () => {
       setArchivedQuizzes([]);
     } else {
       const active = (data || []).filter((q) => !q.archived).sort((a, b) => {
-        if (a.category < b.category) return -1;
-        if (a.category > b.category) return 1;
-        return difficultyOrder[a.difficulty] - difficultyOrder[b.difficulty];
+        // Sort by difficulty first (Easy, Average, Difficult), then by category
+        const diffCompare = difficultyOrder[a.difficulty] - difficultyOrder[b.difficulty];
+        if (diffCompare !== 0) return diffCompare;
+        return a.category.localeCompare(b.category);
       });
       const archived = (data || []).filter((q) => q.archived).sort((a, b) => {
-        if (a.category < b.category) return -1;
-        if (a.category > b.category) return 1;
-        return difficultyOrder[a.difficulty] - difficultyOrder[b.difficulty];
+        // Sort by difficulty first (Easy, Average, Difficult), then by category
+        const diffCompare = difficultyOrder[a.difficulty] - difficultyOrder[b.difficulty];
+        if (diffCompare !== 0) return diffCompare;
+        return a.category.localeCompare(b.category);
       });
       setQuizzes(active);
       setArchivedQuizzes(archived);

@@ -14,9 +14,14 @@ import {
   IonSelectOption,
   IonItem,
   IonTextarea,
-  IonSearchbar, // Added IonSearchbar import
+  IonSearchbar,
+  IonList,
+  IonItem as IonListItem,
+  IonText,
+  IonSegment,
+  IonSegmentButton,
 } from "@ionic/react";
-import { createOutline, trashOutline } from "ionicons/icons";
+import { createOutline, trashOutline, archiveOutline, refreshOutline } from "ionicons/icons";
 import { supabase } from "../utils/supabaseClient";
 
 interface Quiz {
@@ -29,6 +34,7 @@ interface Quiz {
   answer: string;
   accepted_answers?: string[];
   created_at: string;
+  archived?: boolean; // Added archived field
 }
 
 const difficultyOrder: Record<string, number> = {
@@ -39,8 +45,11 @@ const difficultyOrder: Record<string, number> = {
 
 const AdminMotionQuiz: React.FC = () => {
   const [quizzes, setQuizzes] = useState<Quiz[]>([]);
+  const [archivedQuizzes, setArchivedQuizzes] = useState<Quiz[]>([]);
   const [loading, setLoading] = useState(true);
-  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [archiveId, setArchiveId] = useState<string | null>(null);
+  const [permanentDeleteId, setPermanentDeleteId] = useState<string | null>(null);
+  const [restoreId, setRestoreId] = useState<string | null>(null);
   const [editQuiz, setEditQuiz] = useState<Quiz | null>(null);
   const [editQuestion, setEditQuestion] = useState("");
   const [editAnswer, setEditAnswer] = useState("");
@@ -48,7 +57,8 @@ const AdminMotionQuiz: React.FC = () => {
   const [editDifficulty, setEditDifficulty] = useState<"Easy" | "Average" | "Difficult">("Easy");
   const [editCategory, setEditCategory] = useState("");
   const [editAcceptedAnswers, setEditAcceptedAnswers] = useState("");
-  const [searchQuery, setSearchQuery] = useState(""); // Added search query state
+  const [searchQuery, setSearchQuery] = useState("");
+  const [showArchived, setShowArchived] = useState(false); // Toggle for active/archived
 
   // Fetch quizzes
   const fetchQuizzes = async () => {
@@ -61,14 +71,22 @@ const AdminMotionQuiz: React.FC = () => {
     if (error) {
       console.error("Error fetching quizzes:", error.message);
       setQuizzes([]);
+      setArchivedQuizzes([]);
     } else {
-      // Sort by category, then difficulty
-      const sorted = (data || []).sort((a, b) => {
-        if (a.category < b.category) return -1;
-        if (a.category > b.category) return 1;
-        return difficultyOrder[a.difficulty] - difficultyOrder[b.difficulty];
+      const active = (data || []).filter((q) => !q.archived).sort((a, b) => {
+        // Sort by difficulty first (Easy, Average, Difficult), then by category
+        const diffCompare = difficultyOrder[a.difficulty] - difficultyOrder[b.difficulty];
+        if (diffCompare !== 0) return diffCompare;
+        return a.category.localeCompare(b.category);
       });
-      setQuizzes(sorted);
+      const archived = (data || []).filter((q) => q.archived).sort((a, b) => {
+        // Sort by difficulty first (Easy, Average, Difficult), then by category
+        const diffCompare = difficultyOrder[a.difficulty] - difficultyOrder[b.difficulty];
+        if (diffCompare !== 0) return diffCompare;
+        return a.category.localeCompare(b.category);
+      });
+      setQuizzes(active);
+      setArchivedQuizzes(archived);
     }
     setLoading(false);
   };
@@ -77,13 +95,49 @@ const AdminMotionQuiz: React.FC = () => {
     fetchQuizzes();
   }, []);
 
-  // Delete quiz
-  const handleDelete = async () => {
-    if (!deleteId) return;
-    const { error } = await supabase.from("quizzes").delete().eq("id", deleteId);
-    if (error) console.error("Error deleting quiz:", error.message);
-    else setQuizzes(quizzes.filter((q) => q.id !== deleteId));
-    setDeleteId(null);
+  // Archive quiz (soft delete)
+  const handleArchive = async () => {
+    if (!archiveId) return;
+    const { error } = await supabase
+      .from("quizzes")
+      .update({ archived: true })
+      .eq("id", archiveId);
+    if (error) console.error("Error archiving quiz:", error.message);
+    else {
+      const quizToArchive = quizzes.find((q) => q.id === archiveId);
+      if (quizToArchive) {
+        setQuizzes(quizzes.filter((q) => q.id !== archiveId));
+        setArchivedQuizzes([...archivedQuizzes, { ...quizToArchive, archived: true }]);
+      }
+    }
+    setArchiveId(null);
+  };
+
+  // Restore quiz
+  const handleRestore = async () => {
+    if (!restoreId) return;
+    const { error } = await supabase
+      .from("quizzes")
+      .update({ archived: false })
+      .eq("id", restoreId);
+    if (error) console.error("Error restoring quiz:", error.message);
+    else {
+      const quizToRestore = archivedQuizzes.find((q) => q.id === restoreId);
+      if (quizToRestore) {
+        setArchivedQuizzes(archivedQuizzes.filter((q) => q.id !== restoreId));
+        setQuizzes([...quizzes, { ...quizToRestore, archived: false }]);
+      }
+    }
+    setRestoreId(null);
+  };
+
+  // Permanent delete
+  const handlePermanentDelete = async () => {
+    if (!permanentDeleteId) return;
+    const { error } = await supabase.from("quizzes").delete().eq("id", permanentDeleteId);
+    if (error) console.error("Error permanently deleting quiz:", error.message);
+    else setArchivedQuizzes(archivedQuizzes.filter((q) => q.id !== permanentDeleteId));
+    setPermanentDeleteId(null);
   };
 
   // Open edit modal
@@ -118,35 +172,53 @@ const AdminMotionQuiz: React.FC = () => {
       })
       .eq("id", editQuiz.id);
 
-    if (error) console.error("Error updating quiz:", error.message);
-    else {
-      setQuizzes(
-        quizzes.map((q) =>
-          q.id === editQuiz.id
-            ? {
-                ...q,
-                question: editQuestion,
-                answer: editAnswer,
-                solution: editSolution,
-                difficulty: editDifficulty,
-                category: editCategory,
-                accepted_answers: acceptedAnswersArray,
-              }
-            : q
-        )
-      );
+    if (error) {
+      console.error("Error updating quiz:", error.message);
+    } else {
+      const updateQuiz = (list: Quiz[], setList: React.Dispatch<React.SetStateAction<Quiz[]>>) => {
+        setList(
+          list.map((q) =>
+            q.id === editQuiz.id
+              ? {
+                  ...q,
+                  question: editQuestion,
+                  answer: editAnswer,
+                  solution: editSolution,
+                  difficulty: editDifficulty,
+                  category: editCategory,
+                  accepted_answers: acceptedAnswersArray,
+                }
+              : q
+          )
+        );
+      };
+      if (showArchived) {
+        updateQuiz(archivedQuizzes, setArchivedQuizzes);
+      } else {
+        updateQuiz(quizzes, setQuizzes);
+      }
       setEditQuiz(null);
     }
   };
 
   // Filter quizzes based on search query
-  const filteredQuizzes = quizzes.filter((quiz) =>
+  const currentQuizzes = showArchived ? archivedQuizzes : quizzes;
+  const filteredQuizzes = currentQuizzes.filter((quiz) =>
     quiz.question.toLowerCase().includes(searchQuery.toLowerCase()) ||
     quiz.answer.toLowerCase().includes(searchQuery.toLowerCase()) ||
     (quiz.solution || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
     quiz.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
     quiz.difficulty.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  // Suggestions for autocomplete (top 5 matching questions)
+  const suggestions = quizzes
+    .filter((quiz) =>
+      quiz.question.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      quiz.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      quiz.difficulty.toLowerCase().includes(searchQuery.toLowerCase())
+    )
+    .slice(0, 5); // Limit to 5 suggestions
 
   // Group filtered quizzes by category
   const groupedQuizzes = filteredQuizzes.reduce((acc: { [key: string]: Quiz[] }, quiz) => {
@@ -172,18 +244,48 @@ const AdminMotionQuiz: React.FC = () => {
           .quiz-table { width: 100%; border-collapse: collapse; background: white; }
           .quiz-table th, .quiz-table td { padding: 0.75rem; border-bottom: 1px solid #ddd; vertical-align: top; text-align: left; white-space: nowrap; }
           .quiz-table th { background-color: #f8f9fa; font-weight: bold; }
-          .actions-cell { text-align: center; width: 90px; }
+          .actions-cell { text-align: center; width: 120px; } /* Increased width for more buttons */
           pre { white-space: pre-wrap; word-wrap: break-word; margin: 0; font-family: inherit; }
-          @media (max-width: 768px) { .quiz-table th, .quiz-table td { font-size: 12px; padding: 0.5rem; } .actions-cell { width: 70px; } }
+          .suggestions-list { position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid #ddd; border-radius: 4px; z-index: 1000; max-height: 200px; overflow-y: auto; }
+          .suggestion-item { padding: 0.5rem; cursor: pointer; border-bottom: 1px solid #eee; }
+          .suggestion-item:hover { background: #f0f0f0; }
+          @media (max-width: 768px) { .quiz-table th, .quiz-table td { font-size: 12px; padding: 0.5rem; } .actions-cell { width: 100px; } }
         `}</style>
 
-        {/* Search Bar */}
-        <IonSearchbar
-          value={searchQuery}
-          onIonChange={(e) => setSearchQuery(e.detail.value!)}
-          placeholder="Search quizzes by question, answer, solution, category, or difficulty..."
-          style={{ marginBottom: "1rem" }}
-        />
+        {/* Toggle Active/Archived */}
+        <IonSegment value={showArchived ? "archived" : "active"} onIonChange={(e) => setShowArchived(e.detail.value === "archived")}>
+          <IonSegmentButton value="active">
+            <IonLabel>Active Quizzes</IonLabel>
+          </IonSegmentButton>
+          <IonSegmentButton value="archived">
+            <IonLabel>Archived Quizzes ({archivedQuizzes.length})</IonLabel>
+          </IonSegmentButton>
+        </IonSegment>
+
+        {/* Search Bar with Suggestions */}
+        <div style={{ position: "relative" }}>
+          <IonSearchbar
+            value={searchQuery}
+            onIonChange={(e) => setSearchQuery(e.detail.value!)}
+            placeholder="Search quizzes by question, answer, solution, category, or difficulty..."
+            style={{ marginBottom: "1rem" }}
+          />
+          {searchQuery && suggestions.length > 0 && (
+            <IonList className="suggestions-list">
+              {suggestions.map((quiz) => (
+                <IonListItem
+                  key={quiz.id}
+                  className="suggestion-item"
+                  onClick={() => setSearchQuery(quiz.question)} // Set search to full question on click
+                >
+                  <IonText>
+                    <strong>{quiz.category}</strong> - {quiz.question.substring(0, 50)}... ({quiz.difficulty})
+                  </IonText>
+                </IonListItem>
+              ))}
+            </IonList>
+          )}
+        </div>
 
         {loading ? (
           <div>Loading quizzes...</div>
@@ -216,12 +318,25 @@ const AdminMotionQuiz: React.FC = () => {
                         <td><pre>{quiz.solution || "No solution"}</pre></td>
                         <td>{new Date(quiz.created_at).toLocaleDateString()}</td>
                         <td className="actions-cell">
-                          <IonButton fill="clear" size="small" color="primary" onClick={() => openEdit(quiz)}>
-                            <IonIcon icon={createOutline} />
-                          </IonButton>
-                          <IonButton fill="clear" size="small" color="danger" onClick={() => setDeleteId(quiz.id)}>
-                            <IonIcon icon={trashOutline} />
-                          </IonButton>
+                          {showArchived ? (
+                            <>
+                              <IonButton fill="clear" size="small" color="success" onClick={() => setRestoreId(quiz.id)}>
+                                <IonIcon icon={refreshOutline} />
+                              </IonButton>
+                              <IonButton fill="clear" size="small" color="danger" onClick={() => setPermanentDeleteId(quiz.id)}>
+                                <IonIcon icon={trashOutline} />
+                              </IonButton>
+                            </>
+                          ) : (
+                            <>
+                              <IonButton fill="clear" size="small" color="primary" onClick={() => openEdit(quiz)}>
+                                <IonIcon icon={createOutline} />
+                              </IonButton>
+                              <IonButton fill="clear" size="small" color="warning" onClick={() => setArchiveId(quiz.id)}>
+                                <IonIcon icon={archiveOutline} />
+                              </IonButton>
+                            </>
+                          )}
                         </td>
                       </tr>
                     ))}
@@ -232,17 +347,43 @@ const AdminMotionQuiz: React.FC = () => {
           ))
         )}
 
+        {/* Archive Alert */}
         <IonAlert
-          isOpen={!!deleteId}
-          onDidDismiss={() => setDeleteId(null)}
-          header="Confirm Delete"
-          message="Are you sure you want to delete this quiz?"
+          isOpen={!!archiveId}
+          onDidDismiss={() => setArchiveId(null)}
+          header="Confirm Archive"
+          message="Are you sure you want to archive this quiz? It can be restored later."
           buttons={[
             { text: "Cancel", role: "cancel" },
-            { text: "Delete", cssClass: "danger-button", handler: handleDelete },
+            { text: "Archive", cssClass: "warning-button", handler: handleArchive },
           ]}
         />
 
+        {/* Restore Alert */}
+        <IonAlert
+          isOpen={!!restoreId}
+          onDidDismiss={() => setRestoreId(null)}
+          header="Confirm Restore"
+          message="Are you sure you want to restore this quiz?"
+          buttons={[
+            { text: "Cancel", role: "cancel" },
+            { text: "Restore", cssClass: "success-button", handler: handleRestore },
+          ]}
+        />
+
+        {/* Permanent Delete Alert */}
+        <IonAlert
+          isOpen={!!permanentDeleteId}
+          onDidDismiss={() => setPermanentDeleteId(null)}
+          header="Confirm Permanent Delete"
+          message="Are you sure you want to permanently delete this quiz? This action cannot be undone."
+          buttons={[
+            { text: "Cancel", role: "cancel" },
+            { text: "Delete", cssClass: "danger-button", handler: handlePermanentDelete },
+          ]}
+        />
+
+        {/* Edit Modal */}
         <IonModal isOpen={!!editQuiz} onDidDismiss={() => setEditQuiz(null)}>
           <IonHeader>
             <IonToolbar>
@@ -304,4 +445,3 @@ const AdminMotionQuiz: React.FC = () => {
 };
 
 export default AdminMotionQuiz;
- 

@@ -17,7 +17,7 @@ interface ModuleImage {
   subject: string;
   module: string;        // "Who Discovered Arithmetic" | "Arithmetic Sequence"
   submodule: string | null; // "a1" | "d" | "an" | null
-  image_url: string;     // e.g. "module-images/xxxx.png"
+  image_url: string;     // e.g. "xxxx.png" (after fix)
   created_at?: string;
 }
 
@@ -32,7 +32,7 @@ const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 
 // Helper para sa public URL
 const getPublicImageUrl = (path: string) =>
-  `${supabaseUrl}/storage/v1/object/public/${path}`;
+  `${supabaseUrl}/storage/v1/object/public/module-images/${path}`;
 
 const ArithmeticModule: React.FC<ArithmeticModuleProps> = ({ isAdmin = false }) => {
   const [selectedSubmodule, setSelectedSubmodule] = useState<string>("a1");
@@ -65,7 +65,7 @@ const ArithmeticModule: React.FC<ArithmeticModuleProps> = ({ isAdmin = false }) 
     setImages((data || []) as ModuleImage[]);
   };
 
-  // 🔹 Upload image + insert row sa module_images (matched sa SQL)
+  // 🔹 Upload image + insert row sa module_images (FIXED: filePath now just fileName, no bucket prefix)
   const handleUpload = async (moduleName: string, submoduleName: string | null) => {
     if (!file) {
       alert("Select a file to upload.");
@@ -79,7 +79,8 @@ const ArithmeticModule: React.FC<ArithmeticModuleProps> = ({ isAdmin = false }) 
     try {
       const fileExt = file.name.split(".").pop();
       const fileName = `${crypto.randomUUID()}.${fileExt}`;
-      const filePath = `module-images/${fileName}`;
+      // FIX: filePath is now just the fileName (e.g., "xxxx.png") – no 'module-images/' prefix
+      const filePath = fileName;
 
       // 1. upload to bucket
       const { error: uploadError } = await supabase.storage
@@ -88,14 +89,14 @@ const ArithmeticModule: React.FC<ArithmeticModuleProps> = ({ isAdmin = false }) 
 
       if (uploadError) throw uploadError;
 
-      // 2. insert row to table (SQL mo)
+      // 2. insert row to table
       const { error: dbError } = await supabase.from("module_images").insert([
         {
           uploaded_by: userId,
           subject: "Arithmetic",
           module: moduleName,
           submodule: submoduleName,
-          image_url: filePath,
+          image_url: filePath,  // Now just "xxxx.png"
         },
       ]);
 

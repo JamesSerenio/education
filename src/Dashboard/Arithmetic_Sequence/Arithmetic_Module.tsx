@@ -15,9 +15,9 @@ interface ModuleImage {
   id: string;
   uploaded_by: string | null;
   subject: string;
-  module: string; // "Who Discovered Arithmetic" | "Arithmetic Sequence"
+  module: string;           // "Who Discovered Arithmetic" | "Arithmetic Sequence"
   submodule: string | null; // "a1", "d", "an"
-  image_url: string;
+  image_url: string;        // e.g. "module-images/xxx.png"
   created_at?: string;
 }
 
@@ -27,12 +27,12 @@ interface ArithmeticModuleProps {
 
 const submodules = ["a1", "d", "an"];
 
-// ✅ Get Supabase URL from env (same as in supabaseClient)
-const PROJECT_URL = import.meta.env.VITE_SUPABASE_URL;
+// ✅ Gamitin direct env (no need import)
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
 
-// Helper para di ka paulit-ulit
+// helper for public image URL
 const getPublicImageUrl = (path: string) =>
-  `${PROJECT_URL}/storage/v1/object/public/${path}`;
+  `${SUPABASE_URL}/storage/v1/object/public/${path}`;
 
 const ArithmeticModule: React.FC<ArithmeticModuleProps> = ({ isAdmin = false }) => {
   const [selectedSubmodule, setSelectedSubmodule] = useState<string>("a1");
@@ -40,20 +40,16 @@ const ArithmeticModule: React.FC<ArithmeticModuleProps> = ({ isAdmin = false }) 
   const [file, setFile] = useState<File | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
 
-  // Get logged-in user + fetch images
   useEffect(() => {
     const getUserAndImages = async () => {
       const { data, error } = await supabase.auth.getUser();
-      if (!error && data.user) {
-        setUserId(data.user.id);
-      }
+      if (!error && data.user) setUserId(data.user.id);
       await fetchImages();
     };
 
     getUserAndImages();
   }, []);
 
-  // Fetch all Arithmetic images
   const fetchImages = async () => {
     const { data, error } = await supabase
       .from("module_images")
@@ -77,14 +73,14 @@ const ArithmeticModule: React.FC<ArithmeticModuleProps> = ({ isAdmin = false }) 
       const fileName = `${crypto.randomUUID()}.${fileExt}`;
       const filePath = `module-images/${fileName}`;
 
-      // 1️⃣ Upload to storage
+      // upload to storage
       const { error: uploadError } = await supabase.storage
         .from("module-images")
         .upload(filePath, file);
 
       if (uploadError) throw uploadError;
 
-      // 2️⃣ Insert row to module_images
+      // insert to module_images
       const { error: dbError } = await supabase.from("module_images").insert([
         {
           uploaded_by: userId,
@@ -107,12 +103,10 @@ const ArithmeticModule: React.FC<ArithmeticModuleProps> = ({ isAdmin = false }) 
     }
   };
 
-  // Who Discovered Arithmetic (no submodule)
   const whoDiscovered = images.filter(
     (img) => img.module === "Who Discovered Arithmetic"
   );
 
-  // Arithmetic Sequence (a1, d, an)
   const arithmeticSequence = images.filter(
     (img) =>
       img.module === "Arithmetic Sequence" &&
@@ -123,9 +117,8 @@ const ArithmeticModule: React.FC<ArithmeticModuleProps> = ({ isAdmin = false }) 
     <IonPage>
       <IonHeader />
       <IonContent fullscreen>
-        {/* ✅ uses your CSS classes */}
         <div className="arithmetic-module-container">
-          {/* ─────────────── Who Discovered Arithmetic ─────────────── */}
+          {/* Who Discovered Arithmetic */}
           <div className="arithmetic-card">
             <h3>Who Discovered Arithmetic</h3>
             <div className="image-scroll-container">
@@ -160,7 +153,7 @@ const ArithmeticModule: React.FC<ArithmeticModuleProps> = ({ isAdmin = false }) 
             )}
           </div>
 
-          {/* ─────────────── Arithmetic Sequence Module ─────────────── */}
+          {/* Arithmetic Sequence */}
           <div className="arithmetic-card">
             <h3>Arithmetic Sequence Module</h3>
 

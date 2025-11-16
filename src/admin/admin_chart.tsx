@@ -1,18 +1,14 @@
+import React, { useEffect, useRef, useState } from "react";
 import {
   IonPage,
   IonHeader,
   IonContent,
 } from "@ionic/react";
-import { useEffect, useRef, useState } from "react";
 import {
   Chart as ChartJS,
-  RadialLinearScale,
-  PointElement,
-  LineElement,
-  Filler,
+  ArcElement,
   Tooltip,
   Legend,
-  RadarController,
   Title,
 } from "chart.js";
 import ChartDataLabels from "chartjs-plugin-datalabels";
@@ -20,13 +16,9 @@ import * as XLSX from "xlsx";
 import { supabase } from "../utils/supabaseClient";
 
 ChartJS.register(
-  RadialLinearScale,
-  PointElement,
-  LineElement,
-  Filler,
+  ArcElement,
   Tooltip,
   Legend,
-  RadarController,
   Title,
   ChartDataLabels
 );
@@ -62,11 +54,18 @@ interface ScoreWithQuizzes {
   };
 }
 
-const AdminRadar: React.FC = () => {
-  const radarRefArithmetic = useRef<HTMLCanvasElement | null>(null);
-  const radarRefPhysics = useRef<HTMLCanvasElement | null>(null);
+const AdminChart: React.FC = () => {
+  const pieRefArithmetic = useRef<HTMLCanvasElement | null>(null);
+  const pieRefMotion = useRef<HTMLCanvasElement | null>(null);
+  const pieRefTimeComparison = useRef<HTMLCanvasElement | null>(null);
+  const pieRefWordProblem = useRef<HTMLCanvasElement | null>(null);
+  const pieRefProblemSolving = useRef<HTMLCanvasElement | null>(null);
+
   const chartArithmetic = useRef<ChartJS | null>(null);
-  const chartPhysics = useRef<ChartJS | null>(null);
+  const chartMotion = useRef<ChartJS | null>(null);
+  const chartTimeComparison = useRef<ChartJS | null>(null);
+  const chartWordProblem = useRef<ChartJS | null>(null);
+  const chartProblemSolving = useRef<ChartJS | null>(null);
 
   const [arithmeticScore, setArithmeticScore] = useState<UserScore>({
     time: 0,
@@ -78,6 +77,8 @@ const AdminRadar: React.FC = () => {
     solving: 0,
     problemSolving: 0,
   });
+  const [wordProblemScore, setWordProblemScore] = useState<number>(0);
+  const [problemSolvingScore, setProblemSolvingScore] = useState<number>(0);
 
   const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -108,75 +109,112 @@ const AdminRadar: React.FC = () => {
     };
   };
 
-// 🔹 Fetch and calculate averages by subject and category filters (using highest per user)
-const fetchSubjectData = async (subject: string): Promise<UserScore> => {
-  try {
-    const { data, error } = await supabase
-      .from("scores")
-      .select(`
-        id, total_score, time_taken, created_at, quiz_id, user_id,
-        quizzes!inner (id, category, subject)
-      `)
-      .order("created_at", { ascending: false });
+  // 🔹 Fetch and calculate averages by subject and category filters (using highest per user)
+  const fetchSubjectData = async (subject: string): Promise<UserScore> => {
+    try {
+      const { data, error } = await supabase
+        .from("scores")
+        .select(`
+          id, total_score, time_taken, created_at, quiz_id, user_id,
+          quizzes!inner (id, category, subject)
+        `)
+        .order("created_at", { ascending: false });
 
-    if (error) throw error;
+      if (error) throw error;
 
-    // Map data correctly
-    const scores: ScoreWithQuizzes[] = (data || []).map(mapToScoreWithQuizzes);
+      // Map data correctly
+      const scores: ScoreWithQuizzes[] = (data || []).map(mapToScoreWithQuizzes);
 
-    // ✅ Filter only records for the specific subject
-    const subjectScores = scores.filter(
-      (s) => s.quizzes?.subject === subject
-    );
+      // ✅ Filter only records for the specific subject
+      const subjectScores = scores.filter(
+        (s) => s.quizzes?.subject === subject
+      );
 
-    if (subjectScores.length === 0)
+      if (subjectScores.length === 0)
+        return { time: 0, solving: 0, problemSolving: 0 };
+
+      // ✅ Group by user_id and find the best (highest score, lowest time) per user per category
+      const userBests: Record<string, { wordProblem: number; problemSolving: number; time: number }> = {};
+
+      subjectScores.forEach((score) => {
+        const userId = score.user_id;
+        if (!userBests[userId]) {
+          userBests[userId] = { wordProblem: 0, problemSolving: 0, time: MAX_TIME };
+        }
+
+        if (score.quizzes?.category === "Word Problem" && score.total_score !== null) {
+          userBests[userId].wordProblem = Math.max(userBests[userId].wordProblem, score.total_score);
+        }
+        if (score.quizzes?.category === "Problem Solving" && score.total_score !== null) {
+          userBests[userId].problemSolving = Math.max(userBests[userId].problemSolving, score.total_score);
+        }
+        if (score.time_taken !== null) {
+          userBests[userId].time = Math.min(userBests[userId].time, score.time_taken);
+        }
+      });
+
+      // ✅ Compute averages of the bests
+      const users = Object.values(userBests);
+      if (users.length === 0) return { time: 0, solving: 0, problemSolving: 0 };
+
+      const avgWordProblem = users.reduce((sum, u) => sum + u.wordProblem, 0) / users.length;
+      const avgProblemSolving = users.reduce((sum, u) => sum + u.problemSolving, 0) / users.length;
+      const avgTime = users.reduce((sum, u) => sum + u.time, 0) / users.length;
+
+      const timePercent = Math.max(0, Math.min(100, ((MAX_TIME - avgTime) / MAX_TIME) * 100));
+      const solvingPercent = (avgWordProblem / MAX_SCORE) * 100;
+      const problemSolvingPercent = (avgProblemSolving / MAX_SCORE) * 100;
+
+      // ✅ Return averages of highest per user
+      return {
+        time: parseFloat(timePercent.toFixed(2)),
+        solving: parseFloat(solvingPercent.toFixed(2)),
+        problemSolving: parseFloat(problemSolvingPercent.toFixed(2)),
+      };
+    } catch (err) {
+      console.error(`Error fetching ${subject} data:`, err);
       return { time: 0, solving: 0, problemSolving: 0 };
+    }
+  };
 
-    // ✅ Group by user_id and find the best (highest score, lowest time) per user per category
-    const userBests: Record<string, { wordProblem: number; problemSolving: number; time: number }> = {};
+  // 🔹 Fetch average for category
+  const fetchCategoryData = async (category: string): Promise<number> => {
+    try {
+      const { data, error } = await supabase
+        .from("scores")
+        .select(`
+          id, total_score, user_id,
+          quizzes!inner (category)
+        `);
 
-    subjectScores.forEach((score) => {
-      const userId = score.user_id;
-      if (!userBests[userId]) {
-        userBests[userId] = { wordProblem: 0, problemSolving: 0, time: MAX_TIME };
-      }
+      if (error) throw error;
 
-      if (score.quizzes?.category === "Word Problem" && score.total_score !== null) {
-        userBests[userId].wordProblem = Math.max(userBests[userId].wordProblem, score.total_score);
-      }
-      if (score.quizzes?.category === "Problem Solving" && score.total_score !== null) {
-        userBests[userId].problemSolving = Math.max(userBests[userId].problemSolving, score.total_score);
-      }
-      if (score.time_taken !== null) {
-        userBests[userId].time = Math.min(userBests[userId].time, score.time_taken);
-      }
-    });
+      const scores: ScoreWithQuizzes[] = (data || []).map(mapToScoreWithQuizzes);
 
-    // ✅ Compute averages of the bests
-    const users = Object.values(userBests);
-    if (users.length === 0) return { time: 0, solving: 0, problemSolving: 0 };
+      const categoryScores = scores.filter(
+        (s) => s.quizzes?.category === category && s.total_score !== null
+      );
 
-    const avgWordProblem = users.reduce((sum, u) => sum + u.wordProblem, 0) / users.length;
-    const avgProblemSolving = users.reduce((sum, u) => sum + u.problemSolving, 0) / users.length;
-    const avgTime = users.reduce((sum, u) => sum + u.time, 0) / users.length;
+      if (categoryScores.length === 0) return 0;
 
-    const timePercent = Math.max(0, Math.min(100, ((MAX_TIME - avgTime) / MAX_TIME) * 100));
-    const solvingPercent = (avgWordProblem / MAX_SCORE) * 100;
-    const problemSolvingPercent = (avgProblemSolving / MAX_SCORE) * 100;
+      // Group by user_id and take highest score per user
+      const userMaxScores: Record<string, number> = {};
+      categoryScores.forEach((score) => {
+        const userId = score.user_id;
+        if (!userMaxScores[userId] || score.total_score! > userMaxScores[userId]) {
+          userMaxScores[userId] = score.total_score!;
+        }
+      });
 
-    // ✅ Return averages of highest per user
-    return {
-      time: parseFloat(timePercent.toFixed(2)),
-      solving: parseFloat(solvingPercent.toFixed(2)),
-      problemSolving: parseFloat(problemSolvingPercent.toFixed(2)),
-    };
-  } catch (err) {
-    console.error(`Error fetching ${subject} data:`, err);
-    return { time: 0, solving: 0, problemSolving: 0 };
-  }
-};
+      const avgScore = Object.values(userMaxScores).reduce((sum, score) => sum + score, 0) / Object.keys(userMaxScores).length;
+      return parseFloat(((avgScore / MAX_SCORE) * 100).toFixed(2));
+    } catch (err) {
+      console.error(`Error fetching ${category} data:`, err);
+      return 0;
+    }
+  };
 
-  const animateRadarUpdate = (
+  const animateUpdate = (
     setScore: React.Dispatch<React.SetStateAction<UserScore>>,
     newScore: UserScore,
     duration = 1000
@@ -204,12 +242,38 @@ const fetchSubjectData = async (subject: string): Promise<UserScore> => {
     }, interval);
   };
 
+  const animateNumber = (
+    setValue: React.Dispatch<React.SetStateAction<number>>,
+    newValue: number,
+    duration = 1000
+  ) => {
+    const steps = 30;
+    const interval = duration / steps;
+
+    setValue(0);
+    let currentStep = 0;
+    const start = 0;
+
+    const animate = setInterval(() => {
+      currentStep++;
+      const progress = currentStep / steps;
+
+      setValue(start + (newValue - start) * progress);
+
+      if (currentStep >= steps) clearInterval(animate);
+    }, interval);
+  };
+
   const fetchAllData = async () => {
     const arithmetic = await fetchSubjectData("Arithmetic Sequence");
     const physics = await fetchSubjectData("Uniform Motion in Physics");
+    const wordProblem = await fetchCategoryData("Word Problem");
+    const problemSolving = await fetchCategoryData("Problem Solving");
 
-    animateRadarUpdate(setArithmeticScore, arithmetic);
-    animateRadarUpdate(setPhysicsScore, physics);
+    animateUpdate(setArithmeticScore, arithmetic);
+    animateUpdate(setPhysicsScore, physics);
+    animateNumber(setWordProblemScore, wordProblem);
+    animateNumber(setProblemSolvingScore, problemSolving);
   };
 
   const handleRefresh = async () => {
@@ -270,6 +334,14 @@ const fetchSubjectData = async (subject: string): Promise<UserScore> => {
         "🧩 Problem Solving (%)": `${physicsScore.problemSolving}%`,
         "🧮 Word Problem (%)": `${physicsScore.solving}%`,
       },
+      {
+        Category: "Word Problem",
+        "Average Score (%)": `${wordProblemScore}%`,
+      },
+      {
+        Category: "Problem Solving",
+        "Average Score (%)": `${problemSolvingScore}%`,
+      },
       {},
       { "STUDENT QUIZ RESULTS": "" },
     ];
@@ -297,29 +369,29 @@ const fetchSubjectData = async (subject: string): Promise<UserScore> => {
   const formatValue = (value: number): string =>
     Number.isInteger(value) ? `${value}%` : `${value.toFixed(2)}%`;
 
-  const createRadarChart = (
+  const createPieChart = (
     ctx: CanvasRenderingContext2D,
     data: UserScore,
     title: string
   ): ChartJS => {
-    const gradient = ctx.createLinearGradient(0, 0, 0, 400);
-    gradient.addColorStop(0, "rgba(54, 162, 235, 0.3)");
-    gradient.addColorStop(1, "rgba(236, 72, 153, 0.3)");
-
     return new ChartJS(ctx, {
-      type: "radar",
+      type: "pie",
       data: {
         labels: ["⏱ Time", "🧩 Problem Solving", "🧮 Word Problem"],
         datasets: [
           {
-            label: `${title} Average`,
             data: [data.time, data.problemSolving, data.solving],
-            fill: true,
-            backgroundColor: gradient,
-            borderColor: "rgb(54, 162, 235)",
-            borderWidth: 3,
-            pointBackgroundColor: "rgb(236, 72, 153)",
-            pointBorderColor: "#fff",
+            backgroundColor: [
+              "rgba(54, 162, 235, 0.8)",
+              "rgba(255, 99, 132, 0.8)",
+              "rgba(75, 192, 192, 0.8)",
+            ],
+            borderColor: [
+              "rgba(54, 162, 235, 1)",
+              "rgba(255, 99, 132, 1)",
+              "rgba(75, 192, 192, 1)",
+            ],
+            borderWidth: 2,
           },
         ],
       },
@@ -333,21 +405,113 @@ const fetchSubjectData = async (subject: string): Promise<UserScore> => {
           },
           title: {
             display: true,
-            text: `📊 (All Students) ${title}`,
+            text: `📊 ${title}`,
             color: "#111",
             font: { size: 18, weight: "bold" },
           },
           datalabels: {
-            color: "#000",
+            color: "#fff",
             font: { weight: "bold", size: 12 },
             formatter: (val: number) => formatValue(val),
           },
         },
-        scales: {
-          r: {
-            suggestedMin: 0,
-            suggestedMax: 100,
-            ticks: { display: false },
+      },
+      plugins: [ChartDataLabels],
+    });
+  };
+
+  const createTimeComparisonPieChart = (
+    ctx: CanvasRenderingContext2D,
+    arithmeticTime: number,
+    physicsTime: number
+  ): ChartJS => {
+    return new ChartJS(ctx, {
+      type: "pie",
+      data: {
+        labels: ["Arithmetic Sequence Time (%)", "Uniform Motion in Physics Time (%)"],
+        datasets: [
+          {
+            data: [arithmeticTime, physicsTime],
+            backgroundColor: [
+              "rgba(54, 162, 235, 0.8)",
+              "rgba(255, 99, 132, 0.8)",
+            ],
+            borderColor: [
+              "rgba(54, 162, 235, 1)",
+              "rgba(255, 99, 132, 1)",
+            ],
+            borderWidth: 2,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            display: true,
+            labels: { color: "#111", font: { size: 14, weight: "bold" } },
+          },
+          title: {
+            display: true,
+            text: "📊 Arithmetic vs Motion - Time Performance",
+            color: "#111",
+            font: { size: 18, weight: "bold" },
+          },
+          datalabels: {
+            color: "#fff",
+            font: { weight: "bold", size: 12 },
+            formatter: (val: number) => formatValue(val),
+          },
+        },
+      },
+      plugins: [ChartDataLabels],
+    });
+  };
+
+  const createCategoryPieChart = (
+    ctx: CanvasRenderingContext2D,
+    score: number,
+    title: string
+  ): ChartJS => {
+    const remaining = 100 - score;
+    return new ChartJS(ctx, {
+      type: "pie",
+      data: {
+        labels: [`${title} (%)`, "Remaining (%)"],
+        datasets: [
+          {
+            data: [score, remaining],
+            backgroundColor: [
+              "rgba(75, 192, 192, 0.8)",
+              "rgba(255, 206, 86, 0.8)",
+            ],
+            borderColor: [
+              "rgba(75, 192, 192, 1)",
+              "rgba(255, 206, 86, 1)",
+            ],
+            borderWidth: 2,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            display: true,
+            labels: { color: "#111", font: { size: 14, weight: "bold" } },
+          },
+          title: {
+            display: true,
+            text: `📊 ${title}`,
+            color: "#111",
+            font: { size: 18, weight: "bold" },
+          },
+          datalabels: {
+            color: "#fff",
+            font: { weight: "bold", size: 12 },
+            formatter: (val: number) => formatValue(val),
           },
         },
       },
@@ -356,22 +520,35 @@ const fetchSubjectData = async (subject: string): Promise<UserScore> => {
   };
 
   useEffect(() => {
-    if (!radarRefArithmetic.current || !radarRefPhysics.current) return;
-    const ctxA = radarRefArithmetic.current.getContext("2d");
-    const ctxP = radarRefPhysics.current.getContext("2d");
-    if (!ctxA || !ctxP) return;
+    if (!pieRefArithmetic.current || !pieRefMotion.current || !
+      pieRefTimeComparison.current || !pieRefWordProblem.current || !pieRefProblemSolving.current) return;
+    const ctxA = pieRefArithmetic.current.getContext("2d");
+    const ctxM = pieRefMotion.current.getContext("2d");
+    const ctxT = pieRefTimeComparison.current.getContext("2d");
+    const ctxW = pieRefWordProblem.current.getContext("2d");
+    const ctxP = pieRefProblemSolving.current.getContext("2d");
+    if (!ctxA || !ctxM || !ctxT || !ctxW || !ctxP) return;
 
     chartArithmetic.current?.destroy();
-    chartPhysics.current?.destroy();
+    chartMotion.current?.destroy();
+    chartTimeComparison.current?.destroy();
+    chartWordProblem.current?.destroy();
+    chartProblemSolving.current?.destroy();
 
-    chartArithmetic.current = createRadarChart(ctxA, arithmeticScore, "Arithmetic Sequence");
-    chartPhysics.current = createRadarChart(ctxP, physicsScore, "Uniform Motion in Physics");
+    chartArithmetic.current = createPieChart(ctxA, arithmeticScore, "Arithmetic Sequence");
+    chartMotion.current = createPieChart(ctxM, physicsScore, "Uniform Motion in Physics");
+    chartTimeComparison.current = createTimeComparisonPieChart(ctxT, arithmeticScore.time, physicsScore.time);
+    chartWordProblem.current = createCategoryPieChart(ctxW, wordProblemScore, "Word Problem");
+    chartProblemSolving.current = createCategoryPieChart(ctxP, problemSolvingScore, "Problem Solving");
 
     return () => {
       chartArithmetic.current?.destroy();
-      chartPhysics.current?.destroy();
+      chartMotion.current?.destroy();
+      chartTimeComparison.current?.destroy();
+      chartWordProblem.current?.destroy();
+      chartProblemSolving.current?.destroy();
     };
-  }, [arithmeticScore, physicsScore]);
+  }, [arithmeticScore, physicsScore, wordProblemScore, problemSolvingScore]);
 
   useEffect(() => {
     fetchAllData();
@@ -411,29 +588,71 @@ const fetchSubjectData = async (subject: string): Promise<UserScore> => {
             <div
               style={{
                 width: "100%",
-                maxWidth: "500px",
-                height: "60vh",
+                maxWidth: "400px",
+                height: "50vh",
                 background: "white",
                 borderRadius: "16px",
                 boxShadow: "0px 6px 18px rgba(0,0,0,0.08)",
                 padding: "16px",
               }}
             >
-              <canvas ref={radarRefArithmetic} />
+              <canvas ref={pieRefArithmetic} />
             </div>
 
             <div
               style={{
                 width: "100%",
-                maxWidth: "500px",
-                height: "60vh",
+                maxWidth: "400px",
+                height: "50vh",
                 background: "white",
                 borderRadius: "16px",
                 boxShadow: "0px 6px 18px rgba(0,0,0,0.08)",
                 padding: "16px",
               }}
             >
-              <canvas ref={radarRefPhysics} />
+              <canvas ref={pieRefMotion} />
+            </div>
+
+            <div
+              style={{
+                width: "100%",
+                maxWidth: "400px",
+                height: "50vh",
+                background: "white",
+                borderRadius: "16px",
+                boxShadow: "0px 6px 18px rgba(0,0,0,0.08)",
+                padding: "16px",
+              }}
+            >
+              <canvas ref={pieRefTimeComparison} />
+            </div>
+
+            <div
+              style={{
+                width: "100%",
+                maxWidth: "400px",
+                height: "50vh",
+                background: "white",
+                borderRadius: "16px",
+                boxShadow: "0px 6px 18px rgba(0,0,0,0.08)",
+                padding: "16px",
+              }}
+            >
+              <canvas ref={pieRefWordProblem} />
+            </div>
+
+            <div
+              style={{
+                width: "100%",
+                maxWidth: "400px",
+                height: "50vh",
+                background: "white",
+                borderRadius: "16px",
+                boxShadow: "0px 6px 18px rgba(0,0,0,0.08)",
+                padding: "16px",
+              }}
+            >
+              <canvas ref={pieRefProblemSolving} />
             </div>
           </div>
 
@@ -470,7 +689,7 @@ const fetchSubjectData = async (subject: string): Promise<UserScore> => {
             >
               🔄
             </span>
-            {isRefreshing ? "Refreshing..." : "Refresh Both Subjects"}
+            {isRefreshing ? "Refreshing..." : "Refresh All Charts"}
           </button>
 
           {/* 📘 Export Button */}
@@ -489,7 +708,7 @@ const fetchSubjectData = async (subject: string): Promise<UserScore> => {
               maxWidth: "250px",
             }}
           >
-            📘 Export All Students Data
+            📘 Export All Data
           </button>
         </div>
       </IonContent>
@@ -497,4 +716,4 @@ const fetchSubjectData = async (subject: string): Promise<UserScore> => {
   );
 };
 
-export default AdminRadar;
+export default AdminChart;

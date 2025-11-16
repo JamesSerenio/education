@@ -44,7 +44,7 @@ const AdminMotionQuiz: React.FC = () => {
   const [quizzes, setQuizzes] = useState<Quiz[]>([]);
   const [archivedQuizzes, setArchivedQuizzes] = useState<Quiz[]>([]);
   const [loading, setLoading] = useState(true);
-  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [archiveId, setArchiveId] = useState<string | null>(null); // Renamed for clarity
   const [permanentDeleteId, setPermanentDeleteId] = useState<string | null>(null);
   const [restoreId, setRestoreId] = useState<string | null>(null);
   const [editQuiz, setEditQuiz] = useState<Quiz | null>(null);
@@ -91,19 +91,21 @@ const AdminMotionQuiz: React.FC = () => {
   }, []);
 
   // Archive quiz (soft delete)
-  const handleArchive = async (id: string) => {
+  const handleArchive = async () => {
+    if (!archiveId) return;
     const { error } = await supabase
       .from("quizzes")
       .update({ archived: true })
-      .eq("id", id);
+      .eq("id", archiveId);
     if (error) console.error("Error archiving quiz:", error.message);
     else {
-      const quizToArchive = quizzes.find((q) => q.id === id);
+      const quizToArchive = quizzes.find((q) => q.id === archiveId);
       if (quizToArchive) {
-        setQuizzes(quizzes.filter((q) => q.id !== id));
+        setQuizzes(quizzes.filter((q) => q.id !== archiveId));
         setArchivedQuizzes([...archivedQuizzes, { ...quizToArchive, archived: true }]);
       }
     }
+    setArchiveId(null);
   };
 
   // Restore quiz
@@ -296,7 +298,7 @@ const AdminMotionQuiz: React.FC = () => {
                               <IonButton fill="clear" size="small" color="primary" onClick={() => openEdit(quiz)}>
                                 <IonIcon icon={createOutline} />
                               </IonButton>
-                              <IonButton fill="clear" size="small" color="warning" onClick={() => handleArchive(quiz.id)}>
+                              <IonButton fill="clear" size="small" color="warning" onClick={() => setArchiveId(quiz.id)}>
                                 <IonIcon icon={archiveOutline} />
                               </IonButton>
                             </>
@@ -313,13 +315,13 @@ const AdminMotionQuiz: React.FC = () => {
 
         {/* Archive Alert */}
         <IonAlert
-          isOpen={!!deleteId}
-          onDidDismiss={() => setDeleteId(null)}
+          isOpen={!!archiveId}
+          onDidDismiss={() => setArchiveId(null)}
           header="Confirm Archive"
           message="Are you sure you want to archive this quiz? It can be restored later."
           buttons={[
             { text: "Cancel", role: "cancel" },
-            { text: "Archive", cssClass: "warning-button", handler: () => handleArchive(deleteId!) },
+            { text: "Archive", cssClass: "warning-button", handler: handleArchive },
           ]}
         />
 

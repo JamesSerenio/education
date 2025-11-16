@@ -26,7 +26,7 @@
   import AdminRadar from "./admin_radar";
   import AdminArithmeticQuiz from "./admin_arithmetic_quiz";
   import AdminMotionQuiz from "./admin_motion_quiz";
-  import AdminModule from "./admin_addmodule";
+  import AdminModule from "./admin_module";
   import AdminPiechart from "./admin_chart";
 
 

@@ -18,7 +18,7 @@ import {
   IonText,
   IonImg,
 } from "@ionic/react";
-import { createOutline, archiveOutline, trashOutline } from "ionicons/icons";
+import { createOutline, archiveOutline, trashOutline, refreshOutline } from "ionicons/icons";
 import { supabase } from "../utils/supabaseClient";
 
 interface ModuleImage {
@@ -43,7 +43,9 @@ const AdminAddModule: React.FC = () => {
   const [editImage, setEditImage] = useState<ModuleImage | null>(null);
   const [editModule, setEditModule] = useState<string>("");
   const [editSubmodule, setEditSubmodule] = useState<string | null>(null);
+  const [editFile, setEditFile] = useState<File | null>(null);
   const [archiveId, setArchiveId] = useState<string | null>(null);
+  const [restoreId, setRestoreId] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [showArchived, setShowArchived] = useState(false);
 
@@ -143,6 +145,20 @@ const AdminAddModule: React.FC = () => {
     setArchiveId(null);
   };
 
+  // Restore image
+  const handleRestore = async () => {
+    if (!restoreId) return;
+    const { error } = await supabase
+      .from("module_images")
+      .update({ archived: false })
+      .eq("id", restoreId);
+    if (error) console.error("Error restoring image:", error.message);
+    else {
+      setModuleImages(moduleImages.map(img => img.id === restoreId ? { ...img, archived: false } : img));
+    }
+    setRestoreId(null);
+  };
+
   // Permanent delete
   const handleDelete = async () => {
     if (!deleteId) return;
@@ -166,22 +182,55 @@ const AdminAddModule: React.FC = () => {
     setEditImage(image);
     setEditModule(image.module);
     setEditSubmodule(image.submodule);
+    setEditFile(null); // Reset edit file
   };
 
   // Save edit
   const handleEditSave = async () => {
     if (!editImage) return;
+
+    let newImageUrl = editImage.image_url;
+
+    if (editFile) {
+      // Upload new file
+      const fileExt = editFile.name.split(".").pop();
+      const fileName = `${crypto.randomUUID()}.${fileExt}`;
+      const filePath = `module-images/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("module-images")
+        .upload(filePath, editFile);
+
+      if (uploadError) {
+        alert("Error uploading new image: " + uploadError.message);
+        return;
+      }
+
+      newImageUrl = filePath;
+
+      // Delete old file from storage
+      const { error: deleteError } = await supabase.storage
+        .from("module-images")
+        .remove([editImage.image_url]);
+      if (deleteError) console.error("Error deleting old image:", deleteError.message);
+    }
+
     const { error } = await supabase
       .from("module_images")
       .update({
         module: editModule,
         submodule: editSubmodule,
+        image_url: newImageUrl,
       })
       .eq("id", editImage.id);
-    if (error) console.error("Error updating image:", error.message);
-    else {
-      setModuleImages(moduleImages.map(img => img.id === editImage.id ? { ...img, module: editModule, submodule: editSubmodule } : img));
+
+    if (error) {
+      console.error("Error updating image:", error.message);
+      alert("Error updating image");
+    } else {
+      setModuleImages(moduleImages.map(img => img.id === editImage.id ? { ...img, module: editModule, submodule: editSubmodule, image_url: newImageUrl } : img));
       setEditImage(null);
+      setEditFile(null);
     }
   };
 
@@ -292,14 +341,20 @@ const AdminAddModule: React.FC = () => {
                         <IonButton fill="clear" size="small" color="primary" onClick={() => openEdit(img)}>
                           <IonIcon icon={createOutline} />
                         </IonButton>
-                        {!showArchived && (
+                        {showArchived ? (
+                          <>
+                            <IonButton fill="clear" size="small" color="success" onClick={() => setRestoreId(img.id)}>
+                              <IonIcon icon={refreshOutline} />
+                            </IonButton>
+                            <IonButton fill="clear" size="small" color="danger" onClick={() => setDeleteId(img.id)}>
+                              <IonIcon icon={trashOutline} />
+                            </IonButton>
+                          </>
+                        ) : (
                           <IonButton fill="clear" size="small" color="warning" onClick={() => setArchiveId(img.id)}>
                             <IonIcon icon={archiveOutline} />
                           </IonButton>
                         )}
-                        <IonButton fill="clear" size="small" color="danger" onClick={() => setDeleteId(img.id)}>
-                          <IonIcon icon={trashOutline} />
-                        </IonButton>
                       </IonListItem>
                     ))}
                   </IonList>
@@ -318,6 +373,18 @@ const AdminAddModule: React.FC = () => {
           buttons={[
             { text: "Cancel", role: "cancel" },
             { text: "Archive", cssClass: "warning-button", handler: handleArchive },
+          ]}
+        />
+
+        {/* Restore Alert */}
+        <IonAlert
+          isOpen={!!restoreId}
+          onDidDismiss={() => setRestoreId(null)}
+          header="Confirm Restore"
+          message="Are you sure you want to restore this image?"
+          buttons={[
+            { text: "Cancel", role: "cancel" },
+            { text: "Restore", cssClass: "success-button", handler: handleRestore },
           ]}
         />
 
@@ -369,6 +436,11 @@ const AdminAddModule: React.FC = () => {
                 </IonSelect>
               </IonItem>
             )}
+
+            <IonItem>
+              <IonLabel>Replace Image (optional)</IonLabel>
+              <input type="file" onChange={(e) => setEditFile(e.target.files?.[0] ?? null)} />
+            </IonItem>
 
             <IonButton expand="block" style={{ marginTop: "16px" }} onClick={handleEditSave}>
               Save Changes

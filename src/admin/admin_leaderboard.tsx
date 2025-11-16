@@ -40,7 +40,7 @@ interface ScoreWithRelations {
   };
 }
 
-const AdminRadar: React.FC = () => {
+const AdminLeaderboard: React.FC = () => {
   // Shared difficulty state for both leaderboards
   const [selectedDifficulty, setSelectedDifficulty] = useState<string>("All");
 
@@ -329,4 +329,4 @@ const AdminRadar: React.FC = () => {
   );
 };
 
-export default AdminRadar;
+export default AdminLeaderboard;

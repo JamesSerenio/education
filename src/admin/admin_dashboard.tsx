@@ -70,9 +70,9 @@
           return <AdminArithmeticQuiz />;
         case "motion_quiz":
           return <AdminMotionQuiz />;
-        case "leaderboard":
-          return <AdminModule />;
         case "add_module":
+          return <AdminModule />;
+        case "leaderboard":
           return <AdminLeaderboard />;
         case "radar":
           return <AdminRadar />;

@@ -258,9 +258,6 @@ const AdminAddModule: React.FC = () => {
 
   return (
     <IonPage>
-      <IonHeader>
-        <h2></h2>
-      </IonHeader>
       <IonContent fullscreen style={{ padding: "16px" }}>
         {/* Upload Form */}
         <IonItem>

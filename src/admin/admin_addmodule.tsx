@@ -77,7 +77,7 @@ const AdminAddModule: React.FC = () => {
     const { data, error } = await supabase
       .from("module_images")
       .select("*")
-      .order("created_at", { ascending: false });
+      .order("created_at", { ascending: true }); // Changed to ascending (oldest first)
 
     if (error) {
       console.error("Error fetching module images:", error.message);

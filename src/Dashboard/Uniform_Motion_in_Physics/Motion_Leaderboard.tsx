@@ -189,7 +189,9 @@ const UniformMotionLeaderboard: React.FC = () => {
 
   return (
     <IonPage>
-      <IonContent className="ion-padding arithmetic-module-container">
+      <IonContent className="ion-padding"  
+    fullscreen
+    forceOverscroll={true}>
         <div style={{ marginBottom: "1rem" }}>
           <label>Filter by Difficulty:</label>
           <IonSelect

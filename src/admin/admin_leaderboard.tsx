@@ -268,7 +268,9 @@ const AdminLeaderboard: React.FC = () => {
 
   return (
     <IonPage>
-      <IonContent className="ion-padding arithmetic-module-container">
+      <IonContent className="ion-padding"  
+    fullscreen
+    forceOverscroll={true}>
         {/* Single Filter for both leaderboards */}
         <div style={{ marginBottom: "2rem" }}>
           <label>Filter by Difficulty:</label>

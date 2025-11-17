@@ -819,6 +819,10 @@ ion-content {
   }
 }
 
+ion-content {
+  --overflow: auto;
+}
+
 /* --- Arithmetic Radar Section --- */
 .arithmetic-radar-container {
   background: linear-gradient(135deg, #fafffa, #fffde7);

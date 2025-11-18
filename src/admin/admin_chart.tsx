@@ -54,6 +54,18 @@ interface ScoreWithQuizzes {
   };
 }
 
+// For export: best row per user & subject
+interface UserBestRow {
+  subject: string;
+  user_id: string;
+  firstname: string;
+  lastname: string;
+  email: string;
+  word_problem_score: number;
+  problem_solving_score: number;
+  best_time_seconds: number;
+}
+
 const AdminChart: React.FC = () => {
   const [arithmeticScore, setArithmeticScore] = useState<UserScore>({
     time: 0,
@@ -67,6 +79,10 @@ const AdminChart: React.FC = () => {
   });
 
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+
+  // 🔹 I-store natin dito lahat ng best-per-user-per-subject
+  const [userBestRows, setUserBestRows] = useState<UserBestRow[]>([]);
 
   const mapToScoreWithQuizzes = (
     rawData: Record<string, unknown>
@@ -98,14 +114,17 @@ const AdminChart: React.FC = () => {
   };
 
   // 🔹 Fetch and calculate averages by subject and category filters (using highest per user)
-  const fetchSubjectData = async (subject: string): Promise<UserScore> => {
+  const fetchSubjectData = async (
+    subject: string
+  ): Promise<{ avg: UserScore; bestRows: UserBestRow[] }> => {
     try {
       const { data, error } = await supabase
         .from("scores")
         .select(
           `
           id, total_score, time_taken, created_at, quiz_id, user_id,
-          quizzes!inner (id, category, subject)
+          quizzes!inner (id, category, subject),
+          profiles (firstname, lastname, email)
         `
         )
         .order("created_at", { ascending: false });
@@ -120,21 +139,39 @@ const AdminChart: React.FC = () => {
         (s) => s.quizzes?.subject === subject
       );
 
-      if (subjectScores.length === 0)
-        return { time: 0, solving: 0, problemSolving: 0 };
+      if (subjectScores.length === 0) {
+        return {
+          avg: { time: 0, solving: 0, problemSolving: 0 },
+          bestRows: [],
+        };
+      }
 
       const userBests: Record<
         string,
-        { wordProblem: number; problemSolving: number; time: number }
+        {
+          wordProblem: number;
+          problemSolving: number;
+          time: number;
+          firstname: string;
+          lastname: string;
+          email: string;
+        }
       > = {};
 
       subjectScores.forEach((score) => {
         const userId = score.user_id;
+        const firstname = score.profiles?.firstname || "";
+        const lastname = score.profiles?.lastname || "";
+        const email = score.profiles?.email || "";
+
         if (!userBests[userId]) {
           userBests[userId] = {
             wordProblem: 0,
             problemSolving: 0,
             time: MAX_TIME,
+            firstname,
+            lastname,
+            email,
           };
         }
 
@@ -162,18 +199,31 @@ const AdminChart: React.FC = () => {
             score.time_taken
           );
         }
+
+        // Update name/email in case nauna yung walang profile
+        if (firstname || lastname || email) {
+          userBests[userId].firstname = firstname || userBests[userId].firstname;
+          userBests[userId].lastname = lastname || userBests[userId].lastname;
+          userBests[userId].email = email || userBests[userId].email;
+        }
       });
 
-      const users = Object.values(userBests);
-      if (users.length === 0)
-        return { time: 0, solving: 0, problemSolving: 0 };
+      const users = Object.entries(userBests);
+      if (users.length === 0) {
+        return {
+          avg: { time: 0, solving: 0, problemSolving: 0 },
+          bestRows: [],
+        };
+      }
 
       const avgWordProblem =
-        users.reduce((sum, u) => sum + u.wordProblem, 0) / users.length;
+        users.reduce((sum, [, u]) => sum + u.wordProblem, 0) /
+        users.length;
       const avgProblemSolving =
-        users.reduce((sum, u) => sum + u.problemSolving, 0) / users.length;
+        users.reduce((sum, [, u]) => sum + u.problemSolving, 0) /
+        users.length;
       const avgTime =
-        users.reduce((sum, u) => sum + u.time, 0) / users.length;
+        users.reduce((sum, [, u]) => sum + u.time, 0) / users.length;
 
       const timePercent = Math.max(
         0,
@@ -183,14 +233,30 @@ const AdminChart: React.FC = () => {
       const problemSolvingPercent =
         (avgProblemSolving / MAX_SCORE) * 100;
 
-      return {
+      const avg: UserScore = {
         time: parseFloat(timePercent.toFixed(2)),
         solving: parseFloat(solvingPercent.toFixed(2)),
         problemSolving: parseFloat(problemSolvingPercent.toFixed(2)),
       };
+
+      const bestRows: UserBestRow[] = users.map(([user_id, u]) => ({
+        subject,
+        user_id,
+        firstname: u.firstname,
+        lastname: u.lastname,
+        email: u.email,
+        word_problem_score: u.wordProblem,
+        problem_solving_score: u.problemSolving,
+        best_time_seconds: u.time,
+      }));
+
+      return { avg, bestRows };
     } catch (err) {
       console.error(`Error fetching ${subject} data:`, err);
-      return { time: 0, solving: 0, problemSolving: 0 };
+      return {
+        avg: { time: 0, solving: 0, problemSolving: 0 },
+        bestRows: [],
+      };
     }
   };
 
@@ -223,11 +289,14 @@ const AdminChart: React.FC = () => {
   };
 
   const fetchAllData = async () => {
-    const arithmetic = await fetchSubjectData("Arithmetic Sequence");
-    const physics = await fetchSubjectData("Uniform Motion in Physics");
+    const arithmeticResult = await fetchSubjectData("Arithmetic Sequence");
+    const physicsResult = await fetchSubjectData("Uniform Motion in Physics");
 
-    animatePieUpdate(setArithmeticScore, arithmetic);
-    animatePieUpdate(setPhysicsScore, physics);
+    animatePieUpdate(setArithmeticScore, arithmeticResult.avg);
+    animatePieUpdate(setPhysicsScore, physicsResult.avg);
+
+    // I-merge natin lahat ng bestRows para sa export
+    setUserBestRows([...arithmeticResult.bestRows, ...physicsResult.bestRows]);
   };
 
   const handleRefresh = async () => {
@@ -239,6 +308,70 @@ const AdminChart: React.FC = () => {
   useEffect(() => {
     fetchAllData();
   }, []);
+
+  // 🔹 CSV Export
+  const handleExportCSV = () => {
+    if (userBestRows.length === 0) {
+      alert("No data to export yet.");
+      return;
+    }
+
+    setIsExporting(true);
+
+    const headers = [
+      "Subject",
+      "User ID",
+      "First Name",
+      "Last Name",
+      "Email",
+      "Word Problem Score",
+      "Problem Solving Score",
+      "Best Time (seconds)",
+    ];
+
+    const rows = userBestRows.map((row) => [
+      row.subject,
+      row.user_id,
+      row.firstname,
+      row.lastname,
+      row.email,
+      row.word_problem_score,
+      row.problem_solving_score,
+      row.best_time_seconds,
+    ]);
+
+    const csvContent =
+      [headers, ...rows]
+        .map((r) =>
+          r
+            .map((v) => {
+              const value = v !== null && v !== undefined ? String(v) : "";
+              // Escape double quotes
+              const escaped = value.replace(/"/g, '""');
+              return `"${escaped}"`;
+            })
+            .join(",")
+        )
+        .join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    const now = new Date();
+    const fileName = `alas_scores_export_${now
+      .toISOString()
+      .slice(0, 19)
+      .replace(/[:T]/g, "-")}.csv`;
+
+    link.href = url;
+    link.setAttribute("download", fileName);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    setIsExporting(false);
+  };
 
   // 🔹 Top Row: Per-subject pies
   const arithmeticData = {
@@ -324,7 +457,7 @@ const AdminChart: React.FC = () => {
 
   const comparisonOptions = {
     responsive: true,
-    maintainAspectRatio: false, // Allow chart to fit container
+    maintainAspectRatio: false,
     plugins: {
       legend: {
         position: "top" as const,
@@ -385,7 +518,7 @@ const AdminChart: React.FC = () => {
             </IonCol>
           </IonRow>
 
-          {/* 🔹 ROW 2: 3 Comparison Pies */}
+          {/* 🔹 ROW 2: Comparison Pies */}
           <IonRow>
             <IonCol size="12" sizeMd="4">
               <div
@@ -454,13 +587,17 @@ const AdminChart: React.FC = () => {
             </IonCol>
           </IonRow>
 
-          {/* 🔹 Refresh Button */}
+          {/* 🔹 Buttons Row */}
           <IonRow>
-            <IonCol size="12" className="ion-text-center">
+            <IonCol
+              size="12"
+              className="ion-text-center"
+              style={{ marginBottom: "12px" }}
+            >
               <IonButton
                 onClick={handleRefresh}
                 disabled={isRefreshing}
-                style={{ marginTop: "10px" }}
+                style={{ marginTop: "10px", marginRight: "8px" }}
               >
                 {isRefreshing ? (
                   <IonSpinner name="crescent" />
@@ -468,6 +605,19 @@ const AdminChart: React.FC = () => {
                   <IonIcon icon={refresh} />
                 )}
                 {isRefreshing ? "Refreshing..." : "Refresh Both Subjects"}
+              </IonButton>
+
+              <IonButton
+                color="secondary"
+                onClick={handleExportCSV}
+                disabled={isExporting || userBestRows.length === 0}
+                style={{ marginTop: "10px" }}
+              >
+                {isExporting ? (
+                  <IonSpinner name="crescent" />
+                ) : (
+                  <>Export CSV</>
+                )}
               </IonButton>
             </IonCol>
           </IonRow>

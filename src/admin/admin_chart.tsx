@@ -20,6 +20,10 @@ import {
 } from "chart.js";
 import { supabase } from "../utils/supabaseClient";
 
+// ✅ PDF libs
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
+
 // Register Chart.js components
 ChartJS.register(ArcElement, Tooltip, Legend);
 
@@ -54,18 +58,6 @@ interface ScoreWithQuizzes {
   };
 }
 
-// For export: best row per user & subject
-interface UserBestRow {
-  subject: string;
-  user_id: string;
-  firstname: string;
-  lastname: string;
-  email: string;
-  word_problem_score: number;
-  problem_solving_score: number;
-  best_time_seconds: number;
-}
-
 const AdminChart: React.FC = () => {
   const [arithmeticScore, setArithmeticScore] = useState<UserScore>({
     time: 0,
@@ -79,10 +71,7 @@ const AdminChart: React.FC = () => {
   });
 
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [isExporting, setIsExporting] = useState(false);
-
-  // 🔹 I-store natin dito lahat ng best-per-user-per-subject
-  const [userBestRows, setUserBestRows] = useState<UserBestRow[]>([]);
+  const [isExportingPDF, setIsExportingPDF] = useState(false);
 
   const mapToScoreWithQuizzes = (
     rawData: Record<string, unknown>
@@ -114,17 +103,14 @@ const AdminChart: React.FC = () => {
   };
 
   // 🔹 Fetch and calculate averages by subject and category filters (using highest per user)
-  const fetchSubjectData = async (
-    subject: string
-  ): Promise<{ avg: UserScore; bestRows: UserBestRow[] }> => {
+  const fetchSubjectData = async (subject: string): Promise<UserScore> => {
     try {
       const { data, error } = await supabase
         .from("scores")
         .select(
           `
           id, total_score, time_taken, created_at, quiz_id, user_id,
-          quizzes!inner (id, category, subject),
-          profiles (firstname, lastname, email)
+          quizzes!inner (id, category, subject)
         `
         )
         .order("created_at", { ascending: false });
@@ -139,39 +125,21 @@ const AdminChart: React.FC = () => {
         (s) => s.quizzes?.subject === subject
       );
 
-      if (subjectScores.length === 0) {
-        return {
-          avg: { time: 0, solving: 0, problemSolving: 0 },
-          bestRows: [],
-        };
-      }
+      if (subjectScores.length === 0)
+        return { time: 0, solving: 0, problemSolving: 0 };
 
       const userBests: Record<
         string,
-        {
-          wordProblem: number;
-          problemSolving: number;
-          time: number;
-          firstname: string;
-          lastname: string;
-          email: string;
-        }
+        { wordProblem: number; problemSolving: number; time: number }
       > = {};
 
       subjectScores.forEach((score) => {
         const userId = score.user_id;
-        const firstname = score.profiles?.firstname || "";
-        const lastname = score.profiles?.lastname || "";
-        const email = score.profiles?.email || "";
-
         if (!userBests[userId]) {
           userBests[userId] = {
             wordProblem: 0,
             problemSolving: 0,
             time: MAX_TIME,
-            firstname,
-            lastname,
-            email,
           };
         }
 
@@ -199,31 +167,20 @@ const AdminChart: React.FC = () => {
             score.time_taken
           );
         }
-
-        // Update name/email in case nauna yung walang profile
-        if (firstname || lastname || email) {
-          userBests[userId].firstname = firstname || userBests[userId].firstname;
-          userBests[userId].lastname = lastname || userBests[userId].lastname;
-          userBests[userId].email = email || userBests[userId].email;
-        }
       });
 
-      const users = Object.entries(userBests);
-      if (users.length === 0) {
-        return {
-          avg: { time: 0, solving: 0, problemSolving: 0 },
-          bestRows: [],
-        };
-      }
+      const users = Object.values(userBests);
+      if (users.length === 0)
+        return { time: 0, solving: 0, problemSolving: 0 };
 
       const avgWordProblem =
-        users.reduce((sum, [, u]) => sum + u.wordProblem, 0) /
+        users.reduce((sum, u) => sum + u.wordProblem, 0) /
         users.length;
       const avgProblemSolving =
-        users.reduce((sum, [, u]) => sum + u.problemSolving, 0) /
+        users.reduce((sum, u) => sum + u.problemSolving, 0) /
         users.length;
       const avgTime =
-        users.reduce((sum, [, u]) => sum + u.time, 0) / users.length;
+        users.reduce((sum, u) => sum + u.time, 0) / users.length;
 
       const timePercent = Math.max(
         0,
@@ -233,30 +190,14 @@ const AdminChart: React.FC = () => {
       const problemSolvingPercent =
         (avgProblemSolving / MAX_SCORE) * 100;
 
-      const avg: UserScore = {
+      return {
         time: parseFloat(timePercent.toFixed(2)),
         solving: parseFloat(solvingPercent.toFixed(2)),
         problemSolving: parseFloat(problemSolvingPercent.toFixed(2)),
       };
-
-      const bestRows: UserBestRow[] = users.map(([user_id, u]) => ({
-        subject,
-        user_id,
-        firstname: u.firstname,
-        lastname: u.lastname,
-        email: u.email,
-        word_problem_score: u.wordProblem,
-        problem_solving_score: u.problemSolving,
-        best_time_seconds: u.time,
-      }));
-
-      return { avg, bestRows };
     } catch (err) {
       console.error(`Error fetching ${subject} data:`, err);
-      return {
-        avg: { time: 0, solving: 0, problemSolving: 0 },
-        bestRows: [],
-      };
+      return { time: 0, solving: 0, problemSolving: 0 };
     }
   };
 
@@ -289,14 +230,11 @@ const AdminChart: React.FC = () => {
   };
 
   const fetchAllData = async () => {
-    const arithmeticResult = await fetchSubjectData("Arithmetic Sequence");
-    const physicsResult = await fetchSubjectData("Uniform Motion in Physics");
+    const arithmetic = await fetchSubjectData("Arithmetic Sequence");
+    const physics = await fetchSubjectData("Uniform Motion in Physics");
 
-    animatePieUpdate(setArithmeticScore, arithmeticResult.avg);
-    animatePieUpdate(setPhysicsScore, physicsResult.avg);
-
-    // I-merge natin lahat ng bestRows para sa export
-    setUserBestRows([...arithmeticResult.bestRows, ...physicsResult.bestRows]);
+    animatePieUpdate(setArithmeticScore, arithmetic);
+    animatePieUpdate(setPhysicsScore, physics);
   };
 
   const handleRefresh = async () => {
@@ -309,68 +247,61 @@ const AdminChart: React.FC = () => {
     fetchAllData();
   }, []);
 
-  // 🔹 CSV Export
-  const handleExportCSV = () => {
-    if (userBestRows.length === 0) {
-      alert("No data to export yet.");
-      return;
+  // 🔹 Export PDF (full chart dashboard area)
+  const handleExportPDF = async () => {
+    try {
+      setIsExportingPDF(true);
+
+      const container = document.getElementById("chart-container");
+      if (!container) {
+        console.error("Chart container not found");
+        setIsExportingPDF(false);
+        return;
+      }
+
+      // Optional: scroll to top para sigurado na visible lahat
+      window.scrollTo(0, 0);
+
+      const canvas = await html2canvas(container, {
+        scale: 2, // mas malinaw
+        useCORS: true,
+      });
+
+      const imgData = canvas.toDataURL("image/png");
+      const pdf = new jsPDF("landscape", "mm", "a4");
+
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+
+      const imgWidth = pageWidth;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+      let position = 0;
+
+      if (imgHeight <= pageHeight) {
+        // kasya sa isang page
+        pdf.addImage(imgData, "PNG", 0, 0, imgWidth, imgHeight);
+      } else {
+        // kung mahaba yung dashboard – split into multiple pages
+        let heightLeft = imgHeight;
+
+        pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+
+        while (heightLeft > 0) {
+          pdf.addPage();
+          position = heightLeft - imgHeight;
+          pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+          heightLeft -= pageHeight;
+        }
+      }
+
+      pdf.save("alas_dashboard_charts.pdf");
+    } catch (error) {
+      console.error("Error exporting PDF:", error);
+    } finally {
+      setIsExportingPDF(false);
     }
-
-    setIsExporting(true);
-
-    const headers = [
-      "Subject",
-      "User ID",
-      "First Name",
-      "Last Name",
-      "Email",
-      "Word Problem Score",
-      "Problem Solving Score",
-      "Best Time (seconds)",
-    ];
-
-    const rows = userBestRows.map((row) => [
-      row.subject,
-      row.user_id,
-      row.firstname,
-      row.lastname,
-      row.email,
-      row.word_problem_score,
-      row.problem_solving_score,
-      row.best_time_seconds,
-    ]);
-
-    const csvContent =
-      [headers, ...rows]
-        .map((r) =>
-          r
-            .map((v) => {
-              const value = v !== null && v !== undefined ? String(v) : "";
-              // Escape double quotes
-              const escaped = value.replace(/"/g, '""');
-              return `"${escaped}"`;
-            })
-            .join(",")
-        )
-        .join("\n");
-
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    const now = new Date();
-    const fileName = `alas_scores_export_${now
-      .toISOString()
-      .slice(0, 19)
-      .replace(/[:T]/g, "-")}.csv`;
-
-    link.href = url;
-    link.setAttribute("download", fileName);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-
-    setIsExporting(false);
   };
 
   // 🔹 Top Row: Per-subject pies
@@ -472,122 +403,127 @@ const AdminChart: React.FC = () => {
   return (
     <IonPage>
       <IonContent fullscreen>
+        {/* 🔹 Ito yung kukunin ng html2canvas */}
+        <div id="chart-container">
+          <IonGrid>
+            {/* 🔹 ROW 1: Per Subject Averages */}
+            <IonRow>
+              <IonCol size="12" sizeMd="6">
+                <div
+                  style={{
+                    height: "60vh",
+                    background: "white",
+                    borderRadius: "16px",
+                    boxShadow: "0px 6px 18px rgba(0,0,0,0.08)",
+                    padding: "16px",
+                    margin: "10px",
+                    overflow: "hidden",
+                    display: "flex",
+                    flexDirection: "column",
+                  }}
+                >
+                  <h3>Arithmetic Sequence Averages</h3>
+                  <div style={{ flex: 1, position: "relative" }}>
+                    <Pie data={arithmeticData} options={subjectOptions} />
+                  </div>
+                </div>
+              </IonCol>
+
+              <IonCol size="12" sizeMd="6">
+                <div
+                  style={{
+                    height: "60vh",
+                    background: "white",
+                    borderRadius: "16px",
+                    boxShadow: "0px 6px 18px rgba(0,0,0,0.08)",
+                    padding: "16px",
+                    margin: "10px",
+                    overflow: "hidden",
+                    display: "flex",
+                    flexDirection: "column",
+                  }}
+                >
+                  <h3>Uniform Motion in Physics Averages</h3>
+                  <div style={{ flex: 1, position: "relative" }}>
+                    <Pie data={physicsData} options={subjectOptions} />
+                  </div>
+                </div>
+              </IonCol>
+            </IonRow>
+
+            {/* 🔹 ROW 2: Comparison Pies */}
+            <IonRow>
+              <IonCol size="12" sizeMd="4">
+                <div
+                  style={{
+                    height: "50vh",
+                    background: "white",
+                    borderRadius: "16px",
+                    boxShadow: "0px 6px 18px rgba(0,0,0,0.08)",
+                    padding: "16px",
+                    margin: "10px",
+                    overflow: "hidden",
+                    display: "flex",
+                    flexDirection: "column",
+                  }}
+                >
+                  <h3>Word Problem Comparison</h3>
+                  <div style={{ flex: 1, position: "relative" }}>
+                    <Pie data={wordProblemData} options={comparisonOptions} />
+                  </div>
+                </div>
+              </IonCol>
+
+              <IonCol size="12" sizeMd="4">
+                <div
+                  style={{
+                    height: "50vh",
+                    background: "white",
+                    borderRadius: "16px",
+                    boxShadow: "0px 6px 18px rgba(0,0,0,0.08)",
+                    padding: "16px",
+                    margin: "10px",
+                    overflow: "hidden",
+                    display: "flex",
+                    flexDirection: "column",
+                  }}
+                >
+                  <h3>Problem Solving Comparison</h3>
+                  <div style={{ flex: 1, position: "relative" }}>
+                    <Pie
+                      data={problemSolvingData}
+                      options={comparisonOptions}
+                    />
+                  </div>
+                </div>
+              </IonCol>
+
+              <IonCol size="12" sizeMd="4">
+                <div
+                  style={{
+                    height: "50vh",
+                    background: "white",
+                    borderRadius: "16px",
+                    boxShadow: "0px 6px 18px rgba(0,0,0,0.08)",
+                    padding: "16px",
+                    margin: "10px",
+                    overflow: "hidden",
+                    display: "flex",
+                    flexDirection: "column",
+                  }}
+                >
+                  <h3>Time Taken Comparison</h3>
+                  <div style={{ flex: 1, position: "relative" }}>
+                    <Pie data={timeData} options={comparisonOptions} />
+                  </div>
+                </div>
+              </IonCol>
+            </IonRow>
+          </IonGrid>
+        </div>
+
+        {/* 🔹 Buttons Row */}
         <IonGrid>
-          {/* 🔹 ROW 1: Per Subject Averages */}
-          <IonRow>
-            <IonCol size="12" sizeMd="6">
-              <div
-                style={{
-                  height: "60vh",
-                  background: "white",
-                  borderRadius: "16px",
-                  boxShadow: "0px 6px 18px rgba(0,0,0,0.08)",
-                  padding: "16px",
-                  margin: "10px",
-                  overflow: "hidden",
-                  display: "flex",
-                  flexDirection: "column",
-                }}
-              >
-                <h3>Arithmetic Sequence Averages</h3>
-                <div style={{ flex: 1, position: "relative" }}>
-                  <Pie data={arithmeticData} options={subjectOptions} />
-                </div>
-              </div>
-            </IonCol>
-
-            <IonCol size="12" sizeMd="6">
-              <div
-                style={{
-                  height: "60vh",
-                  background: "white",
-                  borderRadius: "16px",
-                  boxShadow: "0px 6px 18px rgba(0,0,0,0.08)",
-                  padding: "16px",
-                  margin: "10px",
-                  overflow: "hidden",
-                  display: "flex",
-                  flexDirection: "column",
-                }}
-              >
-                <h3>Uniform Motion in Physics Averages</h3>
-                <div style={{ flex: 1, position: "relative" }}>
-                  <Pie data={physicsData} options={subjectOptions} />
-                </div>
-              </div>
-            </IonCol>
-          </IonRow>
-
-          {/* 🔹 ROW 2: Comparison Pies */}
-          <IonRow>
-            <IonCol size="12" sizeMd="4">
-              <div
-                style={{
-                  height: "50vh",
-                  background: "white",
-                  borderRadius: "16px",
-                  boxShadow: "0px 6px 18px rgba(0,0,0,0.08)",
-                  padding: "16px",
-                  margin: "10px",
-                  overflow: "hidden",
-                  display: "flex",
-                  flexDirection: "column",
-                }}
-              >
-                <h3>Word Problem Comparison</h3>
-                <div style={{ flex: 1, position: "relative" }}>
-                  <Pie data={wordProblemData} options={comparisonOptions} />
-                </div>
-              </div>
-            </IonCol>
-
-            <IonCol size="12" sizeMd="4">
-              <div
-                style={{
-                  height: "50vh",
-                  background: "white",
-                  borderRadius: "16px",
-                  boxShadow: "0px 6px 18px rgba(0,0,0,0.08)",
-                  padding: "16px",
-                  margin: "10px",
-                  overflow: "hidden",
-                  display: "flex",
-                  flexDirection: "column",
-                }}
-              >
-                <h3>Problem Solving Comparison</h3>
-                <div style={{ flex: 1, position: "relative" }}>
-                  <Pie
-                    data={problemSolvingData}
-                    options={comparisonOptions}
-                  />
-                </div>
-              </div>
-            </IonCol>
-
-            <IonCol size="12" sizeMd="4">
-              <div
-                style={{
-                  height: "50vh",
-                  background: "white",
-                  borderRadius: "16px",
-                  boxShadow: "0px 6px 18px rgba(0,0,0,0.08)",
-                  padding: "16px",
-                  margin: "10px",
-                  overflow: "hidden",
-                  display: "flex",
-                  flexDirection: "column",
-                }}
-              >
-                <h3>Time Taken Comparison</h3>
-                <div style={{ flex: 1, position: "relative" }}>
-                  <Pie data={timeData} options={comparisonOptions} />
-                </div>
-              </div>
-            </IonCol>
-          </IonRow>
-
-          {/* 🔹 Buttons Row */}
           <IonRow>
             <IonCol
               size="12"
@@ -609,14 +545,14 @@ const AdminChart: React.FC = () => {
 
               <IonButton
                 color="secondary"
-                onClick={handleExportCSV}
-                disabled={isExporting || userBestRows.length === 0}
+                onClick={handleExportPDF}
+                disabled={isExportingPDF}
                 style={{ marginTop: "10px" }}
               >
-                {isExporting ? (
+                {isExportingPDF ? (
                   <IonSpinner name="crescent" />
                 ) : (
-                  <>Export CSV</>
+                  <>Export PDF</>
                 )}
               </IonButton>
             </IonCol>

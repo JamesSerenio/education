@@ -20,13 +20,16 @@ import {
 } from "chart.js";
 import { supabase } from "../utils/supabaseClient";
 
+// ✅ PDF libs
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 
+// Register Chart.js components
 ChartJS.register(ArcElement, Tooltip, Legend);
 
-const MAX_SCORE = 15;
-const MAX_TIME = 2700;
+// 🔹 Updated constants
+const MAX_SCORE = 15; // Total max score
+const MAX_TIME = 2700; // Max time in seconds
 
 interface UserScore {
   time: number;
@@ -99,14 +102,17 @@ const AdminChart: React.FC = () => {
     };
   };
 
+  // 🔹 Fetch and calculate averages by subject and category filters (using highest per user)
   const fetchSubjectData = async (subject: string): Promise<UserScore> => {
     try {
       const { data, error } = await supabase
         .from("scores")
-        .select(`
+        .select(
+          `
           id, total_score, time_taken, created_at, quiz_id, user_id,
           quizzes!inner (id, category, subject)
-        `)
+        `
+        )
         .order("created_at", { ascending: false });
 
       if (error) throw error;
@@ -241,79 +247,61 @@ const AdminChart: React.FC = () => {
     fetchAllData();
   }, []);
 
-  // ✅ Export PDF – neatly fitted to one A4 bond paper
+  // 🔹 Export PDF (fit into 1 A4 page, UI unchanged)
   const handleExportPDF = async () => {
     try {
       setIsExportingPDF(true);
 
-      const container = document.getElementById("pdf-root");
+      const container = document.getElementById("chart-container");
       if (!container) {
-        console.error("PDF root container not found");
+        console.error("Chart container not found");
         setIsExportingPDF(false);
         return;
       }
 
-      // temporarily remove scrollbars from container (optional)
-      const originalOverflow = document.body.style.overflow;
-      document.body.style.overflow = "hidden";
+      // Siguraduhin na rendered lahat
+      window.scrollTo(0, 0);
 
       const canvas = await html2canvas(container, {
-        scale: 2,
+        scale: 2, // mas malinaw, pero hindi nagbabago UI
         useCORS: true,
       });
 
-      document.body.style.overflow = originalOverflow;
-
       const imgData = canvas.toDataURL("image/png");
-      const pdf = new jsPDF("portrait", "mm", "a4"); // portrait bond paper
+      const pdf = new jsPDF("landscape", "mm", "a4");
 
-      const pageWidth = pdf.internal.pageSize.getWidth(); // 210mm
-      const pageHeight = pdf.internal.pageSize.getHeight(); // 297mm
+      const pageWidth = pdf.internal.pageSize.getWidth();   // ~297mm
+      const pageHeight = pdf.internal.pageSize.getHeight(); // ~210mm
 
-      // Maglagay ng margin (halimbawa 10mm)
-      const margin = 10;
-      const usableWidth = pageWidth - margin * 2;
-      const usableHeight = pageHeight - margin * 2;
+      // Sukatin canvas (px)
+      const imgPixelWidth = canvas.width;
+      const imgPixelHeight = canvas.height;
 
-      const imgWidth = usableWidth;
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      // Max size sa loob ng page (may margin)
+      const margin = 10; // mm
+      const maxWidth = pageWidth - margin * 2;
+      const maxHeight = pageHeight - margin * 2;
 
-      let renderHeight = imgHeight;
-      let renderY = margin;
+      const widthRatio = maxWidth / imgPixelWidth;
+      const heightRatio = maxHeight / imgPixelHeight;
+      const ratio = Math.min(widthRatio, heightRatio);
 
-      if (imgHeight > usableHeight) {
-        // kung masyadong mataas, i-scale pa para kasya talaga sa isang page
-        const scale = usableHeight / imgHeight;
-        renderHeight = imgHeight * scale;
-      }
+      const imgWidth = imgPixelWidth * ratio;
+      const imgHeight = imgPixelHeight * ratio;
 
-      // optional title
-      pdf.setFontSize(14);
-      pdf.text("ALAS Dashboard – Pie Chart Summary", pageWidth / 2, 12, {
+      // Center sa page
+      const x = (pageWidth - imgWidth) / 2;
+      const y = (pageHeight - imgHeight) / 2;
+
+      // Optional title
+      pdf.setFontSize(12);
+      pdf.text("ALAS Dashboard – Pie Charts", pageWidth / 2, 8, {
         align: "center",
       });
 
-      pdf.setFontSize(10);
-      pdf.text(
-        `Generated: ${new Date().toLocaleString()}`,
-        pageWidth / 2,
-        18,
-        { align: "center" }
-      );
+      const finalY = y < 16 ? 16 : y; // para di tamaan title
 
-      // adjust image a bit lower para di sumabit sa title
-      renderY = 24;
-
-      pdf.addImage(
-        imgData,
-        "PNG",
-        margin,
-        renderY,
-        imgWidth,
-        renderHeight,
-        undefined,
-        "FAST"
-      );
+      pdf.addImage(imgData, "PNG", x, finalY, imgWidth, imgHeight, undefined, "FAST");
 
       pdf.save("alas_dashboard_charts.pdf");
     } catch (error) {
@@ -323,7 +311,7 @@ const AdminChart: React.FC = () => {
     }
   };
 
-  // ─── Chart Data ─────────────────────────────────────────────
+  // 🔹 Top Row: Per-subject pies
   const arithmeticData = {
     labels: ["Word Problem", "Problem Solving", "Time"],
     datasets: [
@@ -368,6 +356,7 @@ const AdminChart: React.FC = () => {
     },
   };
 
+  // 🔹 Bottom Row: 3 comparison pies
   const wordProblemData = {
     labels: ["Arithmetic Sequence", "Uniform Motion in Physics"],
     datasets: [
@@ -418,41 +407,29 @@ const AdminChart: React.FC = () => {
     },
   };
 
-  // ─── UI Layout ─────────────────────────────────────────────
   return (
     <IonPage>
       <IonContent fullscreen>
-        {/* ✅ Ito lang ang kukunin para sa PDF (parang isang bond paper) */}
-        <div
-          id="pdf-root"
-          style={{
-            maxWidth: "900px",
-            margin: "16px auto",
-            background: "#f5f5f5",
-            padding: "12px",
-            borderRadius: "12px",
-          }}
-        >
+        {/* 🔹 Ito yung kukunin ng html2canvas (UI layout unchanged) */}
+        <div id="chart-container">
           <IonGrid>
-            {/* Row 1: dalawang malalaking pie */}
+            {/* 🔹 ROW 1: Per Subject Averages */}
             <IonRow>
               <IonCol size="12" sizeMd="6">
                 <div
                   style={{
-                    height: "260px",
+                    height: "60vh",
                     background: "white",
-                    borderRadius: "12px",
-                    boxShadow: "0px 4px 10px rgba(0,0,0,0.08)",
-                    padding: "12px",
-                    margin: "6px",
+                    borderRadius: "16px",
+                    boxShadow: "0px 6px 18px rgba(0,0,0,0.08)",
+                    padding: "16px",
+                    margin: "10px",
                     overflow: "hidden",
                     display: "flex",
                     flexDirection: "column",
                   }}
                 >
-                  <h4 style={{ margin: "0 0 8px 0" }}>
-                    Arithmetic Sequence Averages
-                  </h4>
+                  <h3>Arithmetic Sequence Averages</h3>
                   <div style={{ flex: 1, position: "relative" }}>
                     <Pie data={arithmeticData} options={subjectOptions} />
                   </div>
@@ -462,20 +439,18 @@ const AdminChart: React.FC = () => {
               <IonCol size="12" sizeMd="6">
                 <div
                   style={{
-                    height: "260px",
+                    height: "60vh",
                     background: "white",
-                    borderRadius: "12px",
-                    boxShadow: "0px 4px 10px rgba(0,0,0,0.08)",
-                    padding: "12px",
-                    margin: "6px",
+                    borderRadius: "16px",
+                    boxShadow: "0px 6px 18px rgba(0,0,0,0.08)",
+                    padding: "16px",
+                    margin: "10px",
                     overflow: "hidden",
                     display: "flex",
                     flexDirection: "column",
                   }}
                 >
-                  <h4 style={{ margin: "0 0 8px 0" }}>
-                    Uniform Motion in Physics Averages
-                  </h4>
+                  <h3>Uniform Motion in Physics Averages</h3>
                   <div style={{ flex: 1, position: "relative" }}>
                     <Pie data={physicsData} options={subjectOptions} />
                   </div>
@@ -483,23 +458,23 @@ const AdminChart: React.FC = () => {
               </IonCol>
             </IonRow>
 
-            {/* Row 2: tatlong smaller pies */}
+            {/* 🔹 ROW 2: Comparison Pies */}
             <IonRow>
               <IonCol size="12" sizeMd="4">
                 <div
                   style={{
-                    height: "220px",
+                    height: "50vh",
                     background: "white",
-                    borderRadius: "12px",
-                    boxShadow: "0px 4px 10px rgba(0,0,0,0.08)",
-                    padding: "12px",
-                    margin: "6px",
+                    borderRadius: "16px",
+                    boxShadow: "0px 6px 18px rgba(0,0,0,0.08)",
+                    padding: "16px",
+                    margin: "10px",
                     overflow: "hidden",
                     display: "flex",
                     flexDirection: "column",
                   }}
                 >
-                  <h5 style={{ margin: "0 0 6px 0" }}>Word Problem Comparison</h5>
+                  <h3>Word Problem Comparison</h3>
                   <div style={{ flex: 1, position: "relative" }}>
                     <Pie data={wordProblemData} options={comparisonOptions} />
                   </div>
@@ -509,20 +484,18 @@ const AdminChart: React.FC = () => {
               <IonCol size="12" sizeMd="4">
                 <div
                   style={{
-                    height: "220px",
+                    height: "50vh",
                     background: "white",
-                    borderRadius: "12px",
-                    boxShadow: "0px 4px 10px rgba(0,0,0,0.08)",
-                    padding: "12px",
-                    margin: "6px",
+                    borderRadius: "16px",
+                    boxShadow: "0px 6px 18px rgba(0,0,0,0.08)",
+                    padding: "16px",
+                    margin: "10px",
                     overflow: "hidden",
                     display: "flex",
                     flexDirection: "column",
                   }}
                 >
-                  <h5 style={{ margin: "0 0 6px 0" }}>
-                    Problem Solving Comparison
-                  </h5>
+                  <h3>Problem Solving Comparison</h3>
                   <div style={{ flex: 1, position: "relative" }}>
                     <Pie
                       data={problemSolvingData}
@@ -535,18 +508,18 @@ const AdminChart: React.FC = () => {
               <IonCol size="12" sizeMd="4">
                 <div
                   style={{
-                    height: "220px",
+                    height: "50vh",
                     background: "white",
-                    borderRadius: "12px",
-                    boxShadow: "0px 4px 10px rgba(0,0,0,0.08)",
-                    padding: "12px",
-                    margin: "6px",
+                    borderRadius: "16px",
+                    boxShadow: "0px 6px 18px rgba(0,0,0,0.08)",
+                    padding: "16px",
+                    margin: "10px",
                     overflow: "hidden",
                     display: "flex",
                     flexDirection: "column",
                   }}
                 >
-                  <h5 style={{ margin: "0 0 6px 0" }}>Time Taken Comparison</h5>
+                  <h3>Time Taken Comparison</h3>
                   <div style={{ flex: 1, position: "relative" }}>
                     <Pie data={timeData} options={comparisonOptions} />
                   </div>
@@ -556,7 +529,7 @@ const AdminChart: React.FC = () => {
           </IonGrid>
         </div>
 
-        {/* Buttons Row (hindi sinasama sa PDF) */}
+        {/* 🔹 Buttons Row */}
         <IonGrid>
           <IonRow>
             <IonCol

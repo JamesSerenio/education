@@ -247,7 +247,7 @@ const AdminChart: React.FC = () => {
     fetchAllData();
   }, []);
 
-  // 🔹 Export PDF (fit into 1 A4 page, UI unchanged)
+  // 🔹 Export PDF (desktop-like layout even on mobile)
   const handleExportPDF = async () => {
     try {
       setIsExportingPDF(true);
@@ -259,25 +259,51 @@ const AdminChart: React.FC = () => {
         return;
       }
 
-      // Siguraduhin na rendered lahat
+      // ✅ Save original inline styles
+      const originalWidth = container.style.width;
+      const originalHeight = container.style.height;
+      const originalTransform = container.style.transform;
+      const originalTransformOrigin = container.style.transformOrigin;
+      const originalPosition = container.style.position;
+      const originalLeft = container.style.left;
+      const originalTop = container.style.top;
+
+      // ✅ Force desktop-like layout for capture (works on mobile & laptop)
+      container.style.width = "1200px";      // adjust if gusto mo mas lapad
+      container.style.height = "auto";
+      container.style.position = "relative";
+      container.style.left = "0";
+      container.style.top = "0";
+      container.style.transformOrigin = "top left";
+      container.style.transform = "scale(1)";
+
+      // Make sure everything is visible
       window.scrollTo(0, 0);
 
       const canvas = await html2canvas(container, {
-        scale: 2, // mas malinaw, pero hindi nagbabago UI
+        scale: 2,   // clearer image
         useCORS: true,
       });
 
+      // ✅ Restore original styles
+      container.style.width = originalWidth;
+      container.style.height = originalHeight;
+      container.style.transform = originalTransform;
+      container.style.transformOrigin = originalTransformOrigin;
+      container.style.position = originalPosition;
+      container.style.left = originalLeft;
+      container.style.top = originalTop;
+
+      // 🔹 Create PDF
       const imgData = canvas.toDataURL("image/png");
       const pdf = new jsPDF("landscape", "mm", "a4");
 
       const pageWidth = pdf.internal.pageSize.getWidth();   // ~297mm
       const pageHeight = pdf.internal.pageSize.getHeight(); // ~210mm
 
-      // Sukatin canvas (px)
       const imgPixelWidth = canvas.width;
       const imgPixelHeight = canvas.height;
 
-      // Max size sa loob ng page (may margin)
       const margin = 10; // mm
       const maxWidth = pageWidth - margin * 2;
       const maxHeight = pageHeight - margin * 2;
@@ -289,20 +315,17 @@ const AdminChart: React.FC = () => {
       const imgWidth = imgPixelWidth * ratio;
       const imgHeight = imgPixelHeight * ratio;
 
-      // Center sa page
       const x = (pageWidth - imgWidth) / 2;
       const y = (pageHeight - imgHeight) / 2;
 
-      // Optional title
       pdf.setFontSize(12);
       pdf.text("ALAS Dashboard – Pie Charts", pageWidth / 2, 8, {
         align: "center",
       });
 
-      const finalY = y < 16 ? 16 : y; // para di tamaan title
+      const finalY = y < 16 ? 16 : y; // para di tamaan ng title
 
       pdf.addImage(imgData, "PNG", x, finalY, imgWidth, imgHeight, undefined, "FAST");
-
       pdf.save("alas_dashboard_charts.pdf");
     } catch (error) {
       console.error("Error exporting PDF:", error);

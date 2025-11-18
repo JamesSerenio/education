@@ -2,9 +2,6 @@
 import React, { useEffect, useState } from 'react';
 import {
   IonPage,
-  IonHeader,
-  IonToolbar,
-  IonTitle,
   IonContent,
   IonGrid,
   IonRow,
@@ -13,7 +10,7 @@ import {
   IonIcon,
   IonSpinner,
 } from "@ionic/react";
-import { refresh } from "ionicons/icons"; // Removed download icon
+import { refresh } from "ionicons/icons";
 import { Pie } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
@@ -21,7 +18,6 @@ import {
   Tooltip,
   Legend,
 } from 'chart.js';
-// Removed XLSX import
 import { supabase } from "../utils/supabaseClient";
 
 // Register Chart.js components
@@ -95,7 +91,7 @@ const AdminChart: React.FC = () => {
             lastname: (profiles.lastname as string) || "",
             email: (profiles.email as string) || "",
           }
-        : undefined, // Fixed: removed trailing comma and set to undefined
+        : undefined, // Fixed syntax error
     };
   };
 
@@ -209,32 +205,42 @@ const AdminChart: React.FC = () => {
     setTimeout(() => setIsRefreshing(false), 1200);
   };
 
-  // Removed fetchAllScores and exportAllToExcel functions
-
   useEffect(() => {
     fetchAllData();
   }, []);
 
-  // Data for Arithmetic Sequence Pie Chart
-  const arithmeticData = {
-    labels: ['Word Problem', 'Problem Solving', 'Time'],
+  // Data for Word Problem Pie Chart (Arithmetic vs Physics)
+  const wordProblemData = {
+    labels: ['Arithmetic Sequence', 'Uniform Motion in Physics'],
     datasets: [
       {
-        data: [arithmeticScore.solving, arithmeticScore.problemSolving, arithmeticScore.time],
-        backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56'],
-        hoverBackgroundColor: ['#FF6384', '#36A2EB', '#FFCE56'],
+        data: [arithmeticScore.solving, physicsScore.solving],
+        backgroundColor: ['#FF6384', '#36A2EB'],
+        hoverBackgroundColor: ['#FF6384', '#36A2EB'],
       },
     ],
   };
 
-  // Data for Physics Pie Chart
-  const physicsData = {
-    labels: ['Word Problem', 'Problem Solving', 'Time'],
+  // Data for Problem Solving Pie Chart (Arithmetic vs Physics)
+  const problemSolvingData = {
+    labels: ['Arithmetic Sequence', 'Uniform Motion in Physics'],
     datasets: [
       {
-        data: [physicsScore.solving, physicsScore.problemSolving, physicsScore.time],
-        backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56'],
-        hoverBackgroundColor: ['#FF6384', '#36A2EB', '#FFCE56'],
+        data: [arithmeticScore.problemSolving, physicsScore.problemSolving],
+        backgroundColor: ['#FF6384', '#36A2EB'],
+        hoverBackgroundColor: ['#FF6384', '#36A2EB'],
+      },
+    ],
+  };
+
+  // Data for Time Taken Pie Chart (Arithmetic vs Physics)
+  const timeData = {
+    labels: ['Arithmetic Sequence', 'Uniform Motion in Physics'],
+    datasets: [
+      {
+        data: [arithmeticScore.time, physicsScore.time],
+        backgroundColor: ['#FF6384', '#36A2EB'],
+        hoverBackgroundColor: ['#FF6384', '#36A2EB'],
       },
     ],
   };
@@ -248,58 +254,73 @@ const AdminChart: React.FC = () => {
       },
       title: {
         display: true,
-        text: 'Averages',
+        text: 'Comparison',
       },
     },
   };
 
   return (
     <IonPage>
-      <IonHeader>
-        <IonToolbar>
-          <IonTitle>Admin Charts</IonTitle>
-        </IonToolbar>
-      </IonHeader>
       <IonContent fullscreen>
         <IonGrid>
           <IonRow>
-            <IonCol size="12" sizeMd="6">
+            <IonCol size="12" sizeMd="4">
               <div
                 style={{
-                  height: "60vh",
+                  height: "50vh",
                   background: "white",
                   borderRadius: "16px",
                   boxShadow: "0px 6px 18px rgba(0,0,0,0.08)",
                   padding: "16px",
                   margin: "10px",
-                  overflow: "hidden", // Prevent overflow
+                  overflow: "hidden",
                   display: "flex",
                   flexDirection: "column",
                 }}
               >
-                <h3>Arithmetic Sequence Averages</h3>
+                <h3>Word Problem Comparison</h3>
                 <div style={{ flex: 1, position: "relative" }}>
-                  <Pie data={arithmeticData} options={options} />
+                  <Pie data={wordProblemData} options={options} />
                 </div>
               </div>
             </IonCol>
-            <IonCol size="12" sizeMd="6">
+            <IonCol size="12" sizeMd="4">
               <div
                 style={{
-                  height: "60vh",
+                  height: "50vh",
                   background: "white",
                   borderRadius: "16px",
                   boxShadow: "0px 6px 18px rgba(0,0,0,0.08)",
                   padding: "16px",
                   margin: "10px",
-                  overflow: "hidden", // Prevent overflow
+                  overflow: "hidden",
                   display: "flex",
                   flexDirection: "column",
                 }}
               >
-                <h3>Uniform Motion in Physics Averages</h3>
+                <h3>Problem Solving Comparison</h3>
                 <div style={{ flex: 1, position: "relative" }}>
-                  <Pie data={physicsData} options={options} />
+                  <Pie data={problemSolvingData} options={options} />
+                </div>
+              </div>
+            </IonCol>
+            <IonCol size="12" sizeMd="4">
+              <div
+                style={{
+                  height: "50vh",
+                  background: "white",
+                  borderRadius: "16px",
+                  boxShadow: "0px 6px 18px rgba(0,0,0,0.08)",
+                  padding: "16px",
+                  margin: "10px",
+                  overflow: "hidden",
+                  display: "flex",
+                  flexDirection: "column",
+                }}
+              >
+                <h3>Time Taken Comparison</h3>
+                <div style={{ flex: 1, position: "relative" }}>
+                  <Pie data={timeData} options={options} />
                 </div>
               </div>
             </IonCol>
@@ -318,7 +339,6 @@ const AdminChart: React.FC = () => {
               </IonButton>
             </IonCol>
           </IonRow>
-          {/* Removed the IonRow and IonCol for the export button */}
         </IonGrid>
       </IonContent>
     </IonPage>

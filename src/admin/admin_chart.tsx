@@ -1,35 +1,31 @@
+// admin_chart.tsx
+import React, { useEffect, useState } from 'react';
 import {
   IonPage,
   IonHeader,
+  IonToolbar,
+  IonTitle,
   IonContent,
+  IonGrid,
+  IonRow,
+  IonCol,
+  IonButton,
+  IonIcon,
+  IonSpinner,
 } from "@ionic/react";
-import { useEffect, useRef, useState } from "react";
+import { refresh, download } from "ionicons/icons";
+import { Pie } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
-  RadialLinearScale,
-  PointElement,
-  LineElement,
-  Filler,
+  ArcElement,
   Tooltip,
   Legend,
-  RadarController,
-  Title,
-} from "chart.js";
-import ChartDataLabels from "chartjs-plugin-datalabels";
+} from 'chart.js';
 import * as XLSX from "xlsx";
 import { supabase } from "../utils/supabaseClient";
 
-ChartJS.register(
-  RadialLinearScale,
-  PointElement,
-  LineElement,
-  Filler,
-  Tooltip,
-  Legend,
-  RadarController,
-  Title,
-  ChartDataLabels
-);
+// Register Chart.js components
+ChartJS.register(ArcElement, Tooltip, Legend);
 
 // 🔹 Updated constants
 const MAX_SCORE = 15; // Total max score
@@ -62,12 +58,7 @@ interface ScoreWithQuizzes {
   };
 }
 
-const AdminRadar: React.FC = () => {
-  const radarRefArithmetic = useRef<HTMLCanvasElement | null>(null);
-  const radarRefPhysics = useRef<HTMLCanvasElement | null>(null);
-  const chartArithmetic = useRef<ChartJS | null>(null);
-  const chartPhysics = useRef<ChartJS | null>(null);
-
+const AdminChart: React.FC = () => {
   const [arithmeticScore, setArithmeticScore] = useState<UserScore>({
     time: 0,
     solving: 0,
@@ -108,75 +99,75 @@ const AdminRadar: React.FC = () => {
     };
   };
 
-// 🔹 Fetch and calculate averages by subject and category filters (using highest per user)
-const fetchSubjectData = async (subject: string): Promise<UserScore> => {
-  try {
-    const { data, error } = await supabase
-      .from("scores")
-      .select(`
-        id, total_score, time_taken, created_at, quiz_id, user_id,
-        quizzes!inner (id, category, subject)
-      `)
-      .order("created_at", { ascending: false });
+  // 🔹 Fetch and calculate averages by subject and category filters (using highest per user)
+  const fetchSubjectData = async (subject: string): Promise<UserScore> => {
+    try {
+      const { data, error } = await supabase
+        .from("scores")
+        .select(`
+          id, total_score, time_taken, created_at, quiz_id, user_id,
+          quizzes!inner (id, category, subject)
+        `)
+        .order("created_at", { ascending: false });
 
-    if (error) throw error;
+      if (error) throw error;
 
-    // Map data correctly
-    const scores: ScoreWithQuizzes[] = (data || []).map(mapToScoreWithQuizzes);
+      // Map data correctly
+      const scores: ScoreWithQuizzes[] = (data || []).map(mapToScoreWithQuizzes);
 
-    // ✅ Filter only records for the specific subject
-    const subjectScores = scores.filter(
-      (s) => s.quizzes?.subject === subject
-    );
+      // ✅ Filter only records for the specific subject
+      const subjectScores = scores.filter(
+        (s) => s.quizzes?.subject === subject
+      );
 
-    if (subjectScores.length === 0)
+      if (subjectScores.length === 0)
+        return { time: 0, solving: 0, problemSolving: 0 };
+
+      // ✅ Group by user_id and find the best (highest score, lowest time) per user per category
+      const userBests: Record<string, { wordProblem: number; problemSolving: number; time: number }> = {};
+
+      subjectScores.forEach((score) => {
+        const userId = score.user_id;
+        if (!userBests[userId]) {
+          userBests[userId] = { wordProblem: 0, problemSolving: 0, time: MAX_TIME };
+        }
+
+        if (score.quizzes?.category === "Word Problem" && score.total_score !== null) {
+          userBests[userId].wordProblem = Math.max(userBests[userId].wordProblem, score.total_score);
+        }
+        if (score.quizzes?.category === "Problem Solving" && score.total_score !== null) {
+          userBests[userId].problemSolving = Math.max(userBests[userId].problemSolving, score.total_score);
+        }
+        if (score.time_taken !== null) {
+          userBests[userId].time = Math.min(userBests[userId].time, score.time_taken);
+        }
+      });
+
+      // ✅ Compute averages of the bests
+      const users = Object.values(userBests);
+      if (users.length === 0) return { time: 0, solving: 0, problemSolving: 0 };
+
+      const avgWordProblem = users.reduce((sum, u) => sum + u.wordProblem, 0) / users.length;
+      const avgProblemSolving = users.reduce((sum, u) => sum + u.problemSolving, 0) / users.length;
+      const avgTime = users.reduce((sum, u) => sum + u.time, 0) / users.length;
+
+      const timePercent = Math.max(0, Math.min(100, ((MAX_TIME - avgTime) / MAX_TIME) * 100));
+      const solvingPercent = (avgWordProblem / MAX_SCORE) * 100;
+      const problemSolvingPercent = (avgProblemSolving / MAX_SCORE) * 100;
+
+      // ✅ Return averages of highest per user
+      return {
+        time: parseFloat(timePercent.toFixed(2)),
+        solving: parseFloat(solvingPercent.toFixed(2)),
+        problemSolving: parseFloat(problemSolvingPercent.toFixed(2)),
+      };
+    } catch (err) {
+      console.error(`Error fetching ${subject} data:`, err);
       return { time: 0, solving: 0, problemSolving: 0 };
+    }
+  };
 
-    // ✅ Group by user_id and find the best (highest score, lowest time) per user per category
-    const userBests: Record<string, { wordProblem: number; problemSolving: number; time: number }> = {};
-
-    subjectScores.forEach((score) => {
-      const userId = score.user_id;
-      if (!userBests[userId]) {
-        userBests[userId] = { wordProblem: 0, problemSolving: 0, time: MAX_TIME };
-      }
-
-      if (score.quizzes?.category === "Word Problem" && score.total_score !== null) {
-        userBests[userId].wordProblem = Math.max(userBests[userId].wordProblem, score.total_score);
-      }
-      if (score.quizzes?.category === "Problem Solving" && score.total_score !== null) {
-        userBests[userId].problemSolving = Math.max(userBests[userId].problemSolving, score.total_score);
-      }
-      if (score.time_taken !== null) {
-        userBests[userId].time = Math.min(userBests[userId].time, score.time_taken);
-      }
-    });
-
-    // ✅ Compute averages of the bests
-    const users = Object.values(userBests);
-    if (users.length === 0) return { time: 0, solving: 0, problemSolving: 0 };
-
-    const avgWordProblem = users.reduce((sum, u) => sum + u.wordProblem, 0) / users.length;
-    const avgProblemSolving = users.reduce((sum, u) => sum + u.problemSolving, 0) / users.length;
-    const avgTime = users.reduce((sum, u) => sum + u.time, 0) / users.length;
-
-    const timePercent = Math.max(0, Math.min(100, ((MAX_TIME - avgTime) / MAX_TIME) * 100));
-    const solvingPercent = (avgWordProblem / MAX_SCORE) * 100;
-    const problemSolvingPercent = (avgProblemSolving / MAX_SCORE) * 100;
-
-    // ✅ Return averages of highest per user
-    return {
-      time: parseFloat(timePercent.toFixed(2)),
-      solving: parseFloat(solvingPercent.toFixed(2)),
-      problemSolving: parseFloat(problemSolvingPercent.toFixed(2)),
-    };
-  } catch (err) {
-    console.error(`Error fetching ${subject} data:`, err);
-    return { time: 0, solving: 0, problemSolving: 0 };
-  }
-};
-
-  const animateRadarUpdate = (
+  const animatePieUpdate = (
     setScore: React.Dispatch<React.SetStateAction<UserScore>>,
     newScore: UserScore,
     duration = 1000
@@ -208,8 +199,8 @@ const fetchSubjectData = async (subject: string): Promise<UserScore> => {
     const arithmetic = await fetchSubjectData("Arithmetic Sequence");
     const physics = await fetchSubjectData("Uniform Motion in Physics");
 
-    animateRadarUpdate(setArithmeticScore, arithmetic);
-    animateRadarUpdate(setPhysicsScore, physics);
+    animatePieUpdate(setArithmeticScore, arithmetic);
+    animatePieUpdate(setPhysicsScore, physics);
   };
 
   const handleRefresh = async () => {
@@ -294,207 +285,117 @@ const fetchSubjectData = async (subject: string): Promise<UserScore> => {
     await fetchAllData();
   };
 
-  const formatValue = (value: number): string =>
-    Number.isInteger(value) ? `${value}%` : `${value.toFixed(2)}%`;
-
-  const createRadarChart = (
-    ctx: CanvasRenderingContext2D,
-    data: UserScore,
-    title: string
-  ): ChartJS => {
-    const gradient = ctx.createLinearGradient(0, 0, 0, 400);
-    gradient.addColorStop(0, "rgba(54, 162, 235, 0.3)");
-    gradient.addColorStop(1, "rgba(236, 72, 153, 0.3)");
-
-    return new ChartJS(ctx, {
-      type: "radar",
-      data: {
-        labels: ["⏱ Time", "🧩 Problem Solving", "🧮 Word Problem"],
-        datasets: [
-          {
-            label: `${title} Average`,
-            data: [data.time, data.problemSolving, data.solving],
-            fill: true,
-            backgroundColor: gradient,
-            borderColor: "rgb(54, 162, 235)",
-            borderWidth: 3,
-            pointBackgroundColor: "rgb(236, 72, 153)",
-            pointBorderColor: "#fff",
-          },
-        ],
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: {
-            display: true,
-            labels: { color: "#111", font: { size: 14, weight: "bold" } },
-          },
-          title: {
-            display: true,
-            text: `📊 (All Students) ${title}`,
-            color: "#111",
-            font: { size: 18, weight: "bold" },
-          },
-          datalabels: {
-            color: "#000",
-            font: { weight: "bold", size: 12 },
-            formatter: (val: number) => formatValue(val),
-          },
-        },
-        scales: {
-          r: {
-            suggestedMin: 0,
-            suggestedMax: 100,
-            ticks: { display: false },
-          },
-        },
-      },
-      plugins: [ChartDataLabels],
-    });
-  };
-
-  useEffect(() => {
-    if (!radarRefArithmetic.current || !radarRefPhysics.current) return;
-    const ctxA = radarRefArithmetic.current.getContext("2d");
-    const ctxP = radarRefPhysics.current.getContext("2d");
-    if (!ctxA || !ctxP) return;
-
-    chartArithmetic.current?.destroy();
-    chartPhysics.current?.destroy();
-
-    chartArithmetic.current = createRadarChart(ctxA, arithmeticScore, "Arithmetic Sequence");
-    chartPhysics.current = createRadarChart(ctxP, physicsScore, "Uniform Motion in Physics");
-
-    return () => {
-      chartArithmetic.current?.destroy();
-      chartPhysics.current?.destroy();
-    };
-  }, [arithmeticScore, physicsScore]);
-
   useEffect(() => {
     fetchAllData();
   }, []);
 
+  // Data for Arithmetic Sequence Pie Chart
+  const arithmeticData = {
+    labels: ['Word Problem', 'Problem Solving', 'Time'],
+    datasets: [
+      {
+        data: [arithmeticScore.solving, arithmeticScore.problemSolving, arithmeticScore.time],
+        backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56'],
+        hoverBackgroundColor: ['#FF6384', '#36A2EB', '#FFCE56'],
+      },
+    ],
+  };
+
+  // Data for Physics Pie Chart
+  const physicsData = {
+    labels: ['Word Problem', 'Problem Solving', 'Time'],
+    datasets: [
+      {
+        data: [physicsScore.solving, physicsScore.problemSolving, physicsScore.time],
+        backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56'],
+        hoverBackgroundColor: ['#FF6384', '#36A2EB', '#FFCE56'],
+      },
+    ],
+  };
+
+  const options = {
+    responsive: true,
+    plugins: {
+      legend: {
+        position: 'top' as const,
+      },
+      title: {
+        display: true,
+        text: 'Averages',
+      },
+    },
+  };
+
   return (
     <IonPage>
-      <IonHeader />
+      <IonHeader>
+        <IonToolbar>
+          <IonTitle>Admin Charts</IonTitle>
+        </IonToolbar>
+      </IonHeader>
       <IonContent fullscreen>
-        <style>
-          {`
-            @keyframes spin {
-              from { transform: rotate(0deg); }
-              to { transform: rotate(360deg); }
-            }
-          `}
-        </style>
-
-        <div
-          style={{
-            padding: "20px",
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            gap: "20px",
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              flexWrap: "wrap",
-              justifyContent: "center",
-              gap: "20px",
-              width: "100%",
-            }}
-          >
-            <div
-              style={{
-                width: "100%",
-                maxWidth: "500px",
-                height: "60vh",
-                background: "white",
-                borderRadius: "16px",
-                boxShadow: "0px 6px 18px rgba(0,0,0,0.08)",
-                padding: "16px",
-              }}
-            >
-              <canvas ref={radarRefArithmetic} />
-            </div>
-
-            <div
-              style={{
-                width: "100%",
-                maxWidth: "500px",
-                height: "60vh",
-                background: "white",
-                borderRadius: "16px",
-                boxShadow: "0px 6px 18px rgba(0,0,0,0.08)",
-                padding: "16px",
-              }}
-            >
-              <canvas ref={radarRefPhysics} />
-            </div>
-          </div>
-
-          {/* 🔄 Refresh Button */}
-          <button
-            onClick={handleRefresh}
-            disabled={isRefreshing}
-            style={{
-              padding: "12px 24px",
-              background: "linear-gradient(90deg, #6366F1, #EC4899)",
-              color: "white",
-              fontSize: "16px",
-              fontWeight: "bold",
-              borderRadius: "12px",
-              border: "none",
-              cursor: isRefreshing ? "wait" : "pointer",
-              width: "100%",
-              maxWidth: "250px",
-              marginTop: "10px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: "8px",
-              opacity: isRefreshing ? 0.8 : 1,
-              transition: "all 0.3s ease",
-            }}
-          >
-            <span
-              style={{
-                display: "inline-block",
-                animation: isRefreshing ? "spin 1s linear infinite" : "none",
-                fontSize: "18px",
-              }}
-            >
-              🔄
-            </span>
-            {isRefreshing ? "Refreshing..." : "Refresh Both Subjects"}
-          </button>
-
-          {/* 📘 Export Button */}
-          <button
-            onClick={exportAllToExcel}
-            style={{
-              padding: "12px 24px",
-              background: "linear-gradient(90deg, #0EA5E9, #2563EB)",
-              color: "white",
-              fontSize: "16px",
-              fontWeight: "bold",
-              borderRadius: "12px",
-              border: "none",
-              cursor: "pointer",
-              width: "100%",
-              maxWidth: "250px",
-            }}
-          >
-            📘 Export All Students Data
-          </button>
-        </div>
+        <IonGrid>
+          <IonRow>
+            <IonCol size="12" sizeMd="6">
+              <div
+                style={{
+                  height: "60vh",
+                  background: "white",
+                  borderRadius: "16px",
+                  boxShadow: "0px 6px 18px rgba(0,0,0,0.08)",
+                  padding: "16px",
+                  margin: "10px",
+                }}
+              >
+                <h3>Arithmetic Sequence Averages</h3>
+                <Pie data={arithmeticData} options={options} />
+              </div>
+            </IonCol>
+            <IonCol size="12" sizeMd="6">
+              <div
+                style={{
+                  height: "60vh",
+                  background: "white",
+                  borderRadius: "16px",
+                  boxShadow: "0px 6px 18px rgba(0,0,0,0.08)",
+                  padding: "16px",
+                  margin: "10px",
+                }}
+              >
+                <h3>Uniform Motion in Physics Averages</h3>
+                <Pie data={physicsData} options={options} />
+              </div>
+            </IonCol>
+          </IonRow>
+          <IonRow>
+            <IonCol size="12" className="ion-text-center">
+              <IonButton
+                onClick={handleRefresh}
+                disabled={isRefreshing}
+                style={{
+                  marginTop: "10px",
+                }}
+              >
+                {isRefreshing ? <IonSpinner name="crescent" /> : <IonIcon icon={refresh} />}
+                {isRefreshing ? "Refreshing..." : "Refresh Both Subjects"}
+              </IonButton>
+            </IonCol>
+          </IonRow>
+          <IonRow>
+            <IonCol size="12" className="ion-text-center">
+              <IonButton
+                onClick={exportAllToExcel}
+                color="secondary"
+              >
+                <IonIcon icon={download} />
+                Export All Students Data
+              </IonButton>
+            </IonCol>
+          </IonRow>
+        </IonGrid>
       </IonContent>
     </IonPage>
   );
 };
 
-export default AdminRadar;
+export default AdminChart;

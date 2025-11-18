@@ -13,7 +13,7 @@ import {
   IonIcon,
   IonSpinner,
 } from "@ionic/react";
-import { refresh, download } from "ionicons/icons";
+import { refresh } from "ionicons/icons"; // Removed download icon
 import { Pie } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
@@ -21,7 +21,7 @@ import {
   Tooltip,
   Legend,
 } from 'chart.js';
-import * as XLSX from "xlsx";
+// Removed XLSX import
 import { supabase } from "../utils/supabaseClient";
 
 // Register Chart.js components
@@ -95,7 +95,7 @@ const AdminChart: React.FC = () => {
             lastname: (profiles.lastname as string) || "",
             email: (profiles.email as string) || "",
           }
-        : undefined,
+        : undefined, // Fixed: removed trailing comma and set to undefined
     };
   };
 
@@ -209,81 +209,7 @@ const AdminChart: React.FC = () => {
     setTimeout(() => setIsRefreshing(false), 1200);
   };
 
-  const fetchAllScores = async (): Promise<ScoreWithQuizzes[]> => {
-    try {
-      const { data, error } = await supabase
-        .from("scores")
-        .select(`
-          id,
-          total_score,
-          time_taken,
-          created_at,
-          quiz_id,
-          user_id,
-          quizzes!quiz_id (subject, category),
-          profiles!user_id (firstname, lastname, email)
-        `)
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-      return (data || []).map(mapToScoreWithQuizzes);
-    } catch (err) {
-      console.error("Error fetching all scores:", err);
-      return [];
-    }
-  };
-
-  const exportAllToExcel = async () => {
-    const allScores = await fetchAllScores();
-    if (allScores.length === 0) return;
-
-    const formatted = allScores.map((item) => ({
-      "Full Name": `${item.profiles?.lastname || ""}, ${item.profiles?.firstname || ""}`.trim() || "N/A",
-      Email: item.profiles?.email || "N/A",
-      Subject: item.quizzes?.subject || "N/A",
-      Category: item.quizzes?.category || "N/A",
-      Score: item.total_score ?? 0,
-      "Time Taken (s)": item.time_taken ?? 0,
-      "Date Taken": new Date(item.created_at).toLocaleString(),
-    }));
-
-    const summarySection = [
-      { "📊 AVERAGE SUMMARY": "" },
-      {
-        Subject: "Arithmetic Sequence",
-        "⏱ Time (%)": `${arithmeticScore.time}%`,
-        "🧩 Problem Solving (%)": `${arithmeticScore.problemSolving}%`,
-        "🧮 Word Problem (%)": `${arithmeticScore.solving}%`,
-      },
-      {
-        Subject: "Uniform Motion in Physics",
-        "⏱ Time (%)": `${physicsScore.time}%`,
-        "🧩 Problem Solving (%)": `${physicsScore.problemSolving}%`,
-        "🧮 Word Problem (%)": `${physicsScore.solving}%`,
-      },
-      {},
-      { "STUDENT QUIZ RESULTS": "" },
-    ];
-
-    const ws = XLSX.utils.json_to_sheet([...summarySection, {}, ...formatted]);
-    ws["!cols"] = [
-      { wch: 30 },
-      { wch: 25 },
-      { wch: 25 },
-      { wch: 20 },
-      { wch: 10 },
-      { wch: 15 },
-      { wch: 25 }
-    ];
-  
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "All Results");
-
-    const dateStr = new Date().toISOString().split("T")[0];
-    XLSX.writeFile(wb, `All_Student_Results_${dateStr}.xlsx`);
-
-    await fetchAllData();
-  };
+  // Removed fetchAllScores and exportAllToExcel functions
 
   useEffect(() => {
     fetchAllData();
@@ -315,6 +241,7 @@ const AdminChart: React.FC = () => {
 
   const options = {
     responsive: true,
+    maintainAspectRatio: false, // Allow chart to fit container
     plugins: {
       legend: {
         position: 'top' as const,
@@ -345,10 +272,15 @@ const AdminChart: React.FC = () => {
                   boxShadow: "0px 6px 18px rgba(0,0,0,0.08)",
                   padding: "16px",
                   margin: "10px",
+                  overflow: "hidden", // Prevent overflow
+                  display: "flex",
+                  flexDirection: "column",
                 }}
               >
                 <h3>Arithmetic Sequence Averages</h3>
-                <Pie data={arithmeticData} options={options} />
+                <div style={{ flex: 1, position: "relative" }}>
+                  <Pie data={arithmeticData} options={options} />
+                </div>
               </div>
             </IonCol>
             <IonCol size="12" sizeMd="6">
@@ -360,10 +292,15 @@ const AdminChart: React.FC = () => {
                   boxShadow: "0px 6px 18px rgba(0,0,0,0.08)",
                   padding: "16px",
                   margin: "10px",
+                  overflow: "hidden", // Prevent overflow
+                  display: "flex",
+                  flexDirection: "column",
                 }}
               >
                 <h3>Uniform Motion in Physics Averages</h3>
-                <Pie data={physicsData} options={options} />
+                <div style={{ flex: 1, position: "relative" }}>
+                  <Pie data={physicsData} options={options} />
+                </div>
               </div>
             </IonCol>
           </IonRow>
@@ -381,17 +318,7 @@ const AdminChart: React.FC = () => {
               </IonButton>
             </IonCol>
           </IonRow>
-          <IonRow>
-            <IonCol size="12" className="ion-text-center">
-              <IonButton
-                onClick={exportAllToExcel}
-                color="secondary"
-              >
-                <IonIcon icon={download} />
-                Export All Students Data
-              </IonButton>
-            </IonCol>
-          </IonRow>
+          {/* Removed the IonRow and IonCol for the export button */}
         </IonGrid>
       </IonContent>
     </IonPage>

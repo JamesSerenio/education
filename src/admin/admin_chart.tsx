@@ -1,5 +1,5 @@
 // admin_chart.tsx
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from "react";
 import {
   IonPage,
   IonContent,
@@ -11,13 +11,13 @@ import {
   IonSpinner,
 } from "@ionic/react";
 import { refresh } from "ionicons/icons";
-import { Pie } from 'react-chartjs-2';
+import { Pie } from "react-chartjs-2";
 import {
   Chart as ChartJS,
   ArcElement,
   Tooltip,
   Legend,
-} from 'chart.js';
+} from "chart.js";
 import { supabase } from "../utils/supabaseClient";
 
 // Register Chart.js components
@@ -45,7 +45,7 @@ interface ScoreWithQuizzes {
   time_taken: number | null;
   created_at: string;
   quiz_id: string;
-  user_id: string; // Added user_id
+  user_id: string;
   quizzes: Quiz | null;
   profiles?: {
     firstname?: string;
@@ -68,7 +68,9 @@ const AdminChart: React.FC = () => {
 
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  const mapToScoreWithQuizzes = (rawData: Record<string, unknown>): ScoreWithQuizzes => {
+  const mapToScoreWithQuizzes = (
+    rawData: Record<string, unknown>
+  ): ScoreWithQuizzes => {
     const quiz = rawData.quizzes as Record<string, unknown> | null;
     const profiles = rawData.profiles as Record<string, unknown> | null;
     return {
@@ -77,7 +79,7 @@ const AdminChart: React.FC = () => {
       time_taken: (rawData.time_taken as number) ?? null,
       created_at: (rawData.created_at as string) || new Date().toISOString(),
       quiz_id: (rawData.quiz_id as string) || "",
-      user_id: (rawData.user_id as string) || "", // Added user_id
+      user_id: (rawData.user_id as string) || "",
       quizzes: quiz
         ? {
             id: (quiz.id as string) || "",
@@ -91,7 +93,7 @@ const AdminChart: React.FC = () => {
             lastname: (profiles.lastname as string) || "",
             email: (profiles.email as string) || "",
           }
-        : undefined, // Fixed syntax error
+        : undefined,
     };
   };
 
@@ -100,18 +102,20 @@ const AdminChart: React.FC = () => {
     try {
       const { data, error } = await supabase
         .from("scores")
-        .select(`
+        .select(
+          `
           id, total_score, time_taken, created_at, quiz_id, user_id,
           quizzes!inner (id, category, subject)
-        `)
+        `
+        )
         .order("created_at", { ascending: false });
 
       if (error) throw error;
 
-      // Map data correctly
-      const scores: ScoreWithQuizzes[] = (data || []).map(mapToScoreWithQuizzes);
+      const scores: ScoreWithQuizzes[] = (data || []).map(
+        mapToScoreWithQuizzes
+      );
 
-      // ✅ Filter only records for the specific subject
       const subjectScores = scores.filter(
         (s) => s.quizzes?.subject === subject
       );
@@ -119,39 +123,66 @@ const AdminChart: React.FC = () => {
       if (subjectScores.length === 0)
         return { time: 0, solving: 0, problemSolving: 0 };
 
-      // ✅ Group by user_id and find the best (highest score, lowest time) per user per category
-      const userBests: Record<string, { wordProblem: number; problemSolving: number; time: number }> = {};
+      const userBests: Record<
+        string,
+        { wordProblem: number; problemSolving: number; time: number }
+      > = {};
 
       subjectScores.forEach((score) => {
         const userId = score.user_id;
         if (!userBests[userId]) {
-          userBests[userId] = { wordProblem: 0, problemSolving: 0, time: MAX_TIME };
+          userBests[userId] = {
+            wordProblem: 0,
+            problemSolving: 0,
+            time: MAX_TIME,
+          };
         }
 
-        if (score.quizzes?.category === "Word Problem" && score.total_score !== null) {
-          userBests[userId].wordProblem = Math.max(userBests[userId].wordProblem, score.total_score);
+        if (
+          score.quizzes?.category === "Word Problem" &&
+          score.total_score !== null
+        ) {
+          userBests[userId].wordProblem = Math.max(
+            userBests[userId].wordProblem,
+            score.total_score
+          );
         }
-        if (score.quizzes?.category === "Problem Solving" && score.total_score !== null) {
-          userBests[userId].problemSolving = Math.max(userBests[userId].problemSolving, score.total_score);
+        if (
+          score.quizzes?.category === "Problem Solving" &&
+          score.total_score !== null
+        ) {
+          userBests[userId].problemSolving = Math.max(
+            userBests[userId].problemSolving,
+            score.total_score
+          );
         }
         if (score.time_taken !== null) {
-          userBests[userId].time = Math.min(userBests[userId].time, score.time_taken);
+          userBests[userId].time = Math.min(
+            userBests[userId].time,
+            score.time_taken
+          );
         }
       });
 
-      // ✅ Compute averages of the bests
       const users = Object.values(userBests);
-      if (users.length === 0) return { time: 0, solving: 0, problemSolving: 0 };
+      if (users.length === 0)
+        return { time: 0, solving: 0, problemSolving: 0 };
 
-      const avgWordProblem = users.reduce((sum, u) => sum + u.wordProblem, 0) / users.length;
-      const avgProblemSolving = users.reduce((sum, u) => sum + u.problemSolving, 0) / users.length;
-      const avgTime = users.reduce((sum, u) => sum + u.time, 0) / users.length;
+      const avgWordProblem =
+        users.reduce((sum, u) => sum + u.wordProblem, 0) / users.length;
+      const avgProblemSolving =
+        users.reduce((sum, u) => sum + u.problemSolving, 0) / users.length;
+      const avgTime =
+        users.reduce((sum, u) => sum + u.time, 0) / users.length;
 
-      const timePercent = Math.max(0, Math.min(100, ((MAX_TIME - avgTime) / MAX_TIME) * 100));
+      const timePercent = Math.max(
+        0,
+        Math.min(100, ((MAX_TIME - avgTime) / MAX_TIME) * 100)
+      );
       const solvingPercent = (avgWordProblem / MAX_SCORE) * 100;
-      const problemSolvingPercent = (avgProblemSolving / MAX_SCORE) * 100;
+      const problemSolvingPercent =
+        (avgProblemSolving / MAX_SCORE) * 100;
 
-      // ✅ Return averages of highest per user
       return {
         time: parseFloat(timePercent.toFixed(2)),
         solving: parseFloat(solvingPercent.toFixed(2)),
@@ -209,52 +240,98 @@ const AdminChart: React.FC = () => {
     fetchAllData();
   }, []);
 
-  // Data for Word Problem Pie Chart (Arithmetic vs Physics)
+  // 🔹 Top Row: Per-subject pies
+  const arithmeticData = {
+    labels: ["Word Problem", "Problem Solving", "Time"],
+    datasets: [
+      {
+        data: [
+          arithmeticScore.solving,
+          arithmeticScore.problemSolving,
+          arithmeticScore.time,
+        ],
+        backgroundColor: ["#FF6384", "#36A2EB", "#FFCE56"],
+        hoverBackgroundColor: ["#FF6384", "#36A2EB", "#FFCE56"],
+      },
+    ],
+  };
+
+  const physicsData = {
+    labels: ["Word Problem", "Problem Solving", "Time"],
+    datasets: [
+      {
+        data: [
+          physicsScore.solving,
+          physicsScore.problemSolving,
+          physicsScore.time,
+        ],
+        backgroundColor: ["#FF6384", "#36A2EB", "#FFCE56"],
+        hoverBackgroundColor: ["#FF6384", "#36A2EB", "#FFCE56"],
+      },
+    ],
+  };
+
+  const subjectOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        position: "top" as const,
+      },
+      title: {
+        display: true,
+        text: "Averages",
+      },
+    },
+  };
+
+  // 🔹 Bottom Row: 3 comparison pies
   const wordProblemData = {
-    labels: ['Arithmetic Sequence', 'Uniform Motion in Physics'],
+    labels: ["Arithmetic Sequence", "Uniform Motion in Physics"],
     datasets: [
       {
         data: [arithmeticScore.solving, physicsScore.solving],
-        backgroundColor: ['#FF6384', '#36A2EB'],
-        hoverBackgroundColor: ['#FF6384', '#36A2EB'],
+        backgroundColor: ["#FF6384", "#36A2EB"],
+        hoverBackgroundColor: ["#FF6384", "#36A2EB"],
       },
     ],
   };
 
-  // Data for Problem Solving Pie Chart (Arithmetic vs Physics)
   const problemSolvingData = {
-    labels: ['Arithmetic Sequence', 'Uniform Motion in Physics'],
+    labels: ["Arithmetic Sequence", "Uniform Motion in Physics"],
     datasets: [
       {
-        data: [arithmeticScore.problemSolving, physicsScore.problemSolving],
-        backgroundColor: ['#FF6384', '#36A2EB'],
-        hoverBackgroundColor: ['#FF6384', '#36A2EB'],
+        data: [
+          arithmeticScore.problemSolving,
+          physicsScore.problemSolving,
+        ],
+        backgroundColor: ["#FF6384", "#36A2EB"],
+        hoverBackgroundColor: ["#FF6384", "#36A2EB"],
       },
     ],
   };
 
-  // Data for Time Taken Pie Chart (Arithmetic vs Physics)
   const timeData = {
-    labels: ['Arithmetic Sequence', 'Uniform Motion in Physics'],
+    labels: ["Arithmetic Sequence", "Uniform Motion in Physics"],
     datasets: [
       {
         data: [arithmeticScore.time, physicsScore.time],
-        backgroundColor: ['#FF6384', '#36A2EB'],
-        hoverBackgroundColor: ['#FF6384', '#36A2EB'],
+        backgroundColor: ["#FF6384", "#36A2EB"],
+        hoverBackgroundColor: ["#FF6384", "#36A2EB"],
       },
     ],
   };
 
-  const options = {
+  const comparisonOptions = {
     responsive: true,
     maintainAspectRatio: false, // Allow chart to fit container
     plugins: {
       legend: {
-        position: 'top' as const,
+        position: "top" as const,
       },
       title: {
         display: true,
-        text: 'Comparison',
+        text: "Comparison",
       },
     },
   };
@@ -263,6 +340,52 @@ const AdminChart: React.FC = () => {
     <IonPage>
       <IonContent fullscreen>
         <IonGrid>
+          {/* 🔹 ROW 1: Per Subject Averages */}
+          <IonRow>
+            <IonCol size="12" sizeMd="6">
+              <div
+                style={{
+                  height: "60vh",
+                  background: "white",
+                  borderRadius: "16px",
+                  boxShadow: "0px 6px 18px rgba(0,0,0,0.08)",
+                  padding: "16px",
+                  margin: "10px",
+                  overflow: "hidden",
+                  display: "flex",
+                  flexDirection: "column",
+                }}
+              >
+                <h3>Arithmetic Sequence Averages</h3>
+                <div style={{ flex: 1, position: "relative" }}>
+                  <Pie data={arithmeticData} options={subjectOptions} />
+                </div>
+              </div>
+            </IonCol>
+
+            <IonCol size="12" sizeMd="6">
+              <div
+                style={{
+                  height: "60vh",
+                  background: "white",
+                  borderRadius: "16px",
+                  boxShadow: "0px 6px 18px rgba(0,0,0,0.08)",
+                  padding: "16px",
+                  margin: "10px",
+                  overflow: "hidden",
+                  display: "flex",
+                  flexDirection: "column",
+                }}
+              >
+                <h3>Uniform Motion in Physics Averages</h3>
+                <div style={{ flex: 1, position: "relative" }}>
+                  <Pie data={physicsData} options={subjectOptions} />
+                </div>
+              </div>
+            </IonCol>
+          </IonRow>
+
+          {/* 🔹 ROW 2: 3 Comparison Pies */}
           <IonRow>
             <IonCol size="12" sizeMd="4">
               <div
@@ -280,10 +403,11 @@ const AdminChart: React.FC = () => {
               >
                 <h3>Word Problem Comparison</h3>
                 <div style={{ flex: 1, position: "relative" }}>
-                  <Pie data={wordProblemData} options={options} />
+                  <Pie data={wordProblemData} options={comparisonOptions} />
                 </div>
               </div>
             </IonCol>
+
             <IonCol size="12" sizeMd="4">
               <div
                 style={{
@@ -300,10 +424,14 @@ const AdminChart: React.FC = () => {
               >
                 <h3>Problem Solving Comparison</h3>
                 <div style={{ flex: 1, position: "relative" }}>
-                  <Pie data={problemSolvingData} options={options} />
+                  <Pie
+                    data={problemSolvingData}
+                    options={comparisonOptions}
+                  />
                 </div>
               </div>
             </IonCol>
+
             <IonCol size="12" sizeMd="4">
               <div
                 style={{
@@ -320,21 +448,25 @@ const AdminChart: React.FC = () => {
               >
                 <h3>Time Taken Comparison</h3>
                 <div style={{ flex: 1, position: "relative" }}>
-                  <Pie data={timeData} options={options} />
+                  <Pie data={timeData} options={comparisonOptions} />
                 </div>
               </div>
             </IonCol>
           </IonRow>
+
+          {/* 🔹 Refresh Button */}
           <IonRow>
             <IonCol size="12" className="ion-text-center">
               <IonButton
                 onClick={handleRefresh}
                 disabled={isRefreshing}
-                style={{
-                  marginTop: "10px",
-                }}
+                style={{ marginTop: "10px" }}
               >
-                {isRefreshing ? <IonSpinner name="crescent" /> : <IonIcon icon={refresh} />}
+                {isRefreshing ? (
+                  <IonSpinner name="crescent" />
+                ) : (
+                  <IonIcon icon={refresh} />
+                )}
                 {isRefreshing ? "Refreshing..." : "Refresh Both Subjects"}
               </IonButton>
             </IonCol>

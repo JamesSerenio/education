@@ -31,9 +31,9 @@ ChartJS.register(
   ChartDataLabels
 );
 
-// 🔹 Updated constants
-const MAX_SCORE = 15; // Total max score
-const MAX_TIME = 2700; // Max time in seconds
+// 🔹 Constants
+const MAX_SCORE = 15;  // 15 items
+const MAX_TIME = 2700; // 45 minutes (in seconds)
 
 interface UserScore {
   time: number;
@@ -53,7 +53,7 @@ interface ScoreWithQuizzes {
   time_taken: number | null;
   created_at: string;
   quiz_id: string;
-  user_id: string; // Added user_id
+  user_id: string;
   quizzes: Quiz | null;
   profiles?: {
     firstname?: string;
@@ -81,16 +81,19 @@ const AdminRadar: React.FC = () => {
 
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  const mapToScoreWithQuizzes = (rawData: Record<string, unknown>): ScoreWithQuizzes => {
+  const mapToScoreWithQuizzes = (
+    rawData: Record<string, unknown>
+  ): ScoreWithQuizzes => {
     const quiz = rawData.quizzes as Record<string, unknown> | null;
     const profiles = rawData.profiles as Record<string, unknown> | null;
+
     return {
       id: (rawData.id as string) || "",
       total_score: (rawData.total_score as number) ?? null,
       time_taken: (rawData.time_taken as number) ?? null,
       created_at: (rawData.created_at as string) || new Date().toISOString(),
       quiz_id: (rawData.quiz_id as string) || "",
-      user_id: (rawData.user_id as string) || "", // Added user_id
+      user_id: (rawData.user_id as string) || "",
       quizzes: quiz
         ? {
             id: (quiz.id as string) || "",
@@ -108,73 +111,101 @@ const AdminRadar: React.FC = () => {
     };
   };
 
-// 🔹 Fetch and calculate averages by subject and category filters (using highest per user)
-const fetchSubjectData = async (subject: string): Promise<UserScore> => {
-  try {
-    const { data, error } = await supabase
-      .from("scores")
-      .select(`
-        id, total_score, time_taken, created_at, quiz_id, user_id,
-        quizzes!inner (id, category, subject)
-      `)
-      .order("created_at", { ascending: false });
+  // 🔹 Get averages per subject (best per user per category)
+  const fetchSubjectData = async (subject: string): Promise<UserScore> => {
+    try {
+      const { data, error } = await supabase
+        .from("scores")
+        .select(`
+          id, total_score, time_taken, created_at, quiz_id, user_id,
+          quizzes!inner (id, category, subject)
+        `)
+        .order("created_at", { ascending: false });
 
-    if (error) throw error;
+      if (error) throw error;
 
-    // Map data correctly
-    const scores: ScoreWithQuizzes[] = (data || []).map(mapToScoreWithQuizzes);
+      const scores: ScoreWithQuizzes[] = (data || []).map(mapToScoreWithQuizzes);
 
-    // ✅ Filter only records for the specific subject
-    const subjectScores = scores.filter(
-      (s) => s.quizzes?.subject === subject
-    );
+      const subjectScores = scores.filter(
+        (s) => s.quizzes?.subject === subject
+      );
 
-    if (subjectScores.length === 0)
+      if (subjectScores.length === 0)
+        return { time: 0, solving: 0, problemSolving: 0 };
+
+      const userBests: Record<
+        string,
+        { wordProblem: number; problemSolving: number; time: number }
+      > = {};
+
+      subjectScores.forEach((score) => {
+        const userId = score.user_id;
+
+        if (!userBests[userId]) {
+          userBests[userId] = {
+            wordProblem: 0,
+            problemSolving: 0,
+            time: MAX_TIME,
+          };
+        }
+
+        if (
+          score.quizzes?.category === "Word Problem" &&
+          score.total_score !== null
+        ) {
+          userBests[userId].wordProblem = Math.max(
+            userBests[userId].wordProblem,
+            score.total_score
+          );
+        }
+
+        if (
+          score.quizzes?.category === "Problem Solving" &&
+          score.total_score !== null
+        ) {
+          userBests[userId].problemSolving = Math.max(
+            userBests[userId].problemSolving,
+            score.total_score
+          );
+        }
+
+        if (score.time_taken !== null) {
+          userBests[userId].time = Math.min(
+            userBests[userId].time,
+            score.time_taken
+          );
+        }
+      });
+
+      const users = Object.values(userBests);
+      if (users.length === 0)
+        return { time: 0, solving: 0, problemSolving: 0 };
+
+      const avgWordProblem =
+        users.reduce((sum, u) => sum + u.wordProblem, 0) / users.length;
+      const avgProblemSolving =
+        users.reduce((sum, u) => sum + u.problemSolving, 0) / users.length;
+      const avgTime =
+        users.reduce((sum, u) => sum + u.time, 0) / users.length;
+
+      const timePercent = Math.max(
+        0,
+        Math.min(100, ((MAX_TIME - avgTime) / MAX_TIME) * 100)
+      );
+      const solvingPercent = (avgWordProblem / MAX_SCORE) * 100;
+      const problemSolvingPercent =
+        (avgProblemSolving / MAX_SCORE) * 100;
+
+      return {
+        time: parseFloat(timePercent.toFixed(2)),
+        solving: parseFloat(solvingPercent.toFixed(2)),
+        problemSolving: parseFloat(problemSolvingPercent.toFixed(2)),
+      };
+    } catch (err) {
+      console.error(`Error fetching ${subject} data:`, err);
       return { time: 0, solving: 0, problemSolving: 0 };
-
-    // ✅ Group by user_id and find the best (highest score, lowest time) per user per category
-    const userBests: Record<string, { wordProblem: number; problemSolving: number; time: number }> = {};
-
-    subjectScores.forEach((score) => {
-      const userId = score.user_id;
-      if (!userBests[userId]) {
-        userBests[userId] = { wordProblem: 0, problemSolving: 0, time: MAX_TIME };
-      }
-
-      if (score.quizzes?.category === "Word Problem" && score.total_score !== null) {
-        userBests[userId].wordProblem = Math.max(userBests[userId].wordProblem, score.total_score);
-      }
-      if (score.quizzes?.category === "Problem Solving" && score.total_score !== null) {
-        userBests[userId].problemSolving = Math.max(userBests[userId].problemSolving, score.total_score);
-      }
-      if (score.time_taken !== null) {
-        userBests[userId].time = Math.min(userBests[userId].time, score.time_taken);
-      }
-    });
-
-    // ✅ Compute averages of the bests
-    const users = Object.values(userBests);
-    if (users.length === 0) return { time: 0, solving: 0, problemSolving: 0 };
-
-    const avgWordProblem = users.reduce((sum, u) => sum + u.wordProblem, 0) / users.length;
-    const avgProblemSolving = users.reduce((sum, u) => sum + u.problemSolving, 0) / users.length;
-    const avgTime = users.reduce((sum, u) => sum + u.time, 0) / users.length;
-
-    const timePercent = Math.max(0, Math.min(100, ((MAX_TIME - avgTime) / MAX_TIME) * 100));
-    const solvingPercent = (avgWordProblem / MAX_SCORE) * 100;
-    const problemSolvingPercent = (avgProblemSolving / MAX_SCORE) * 100;
-
-    // ✅ Return averages of highest per user
-    return {
-      time: parseFloat(timePercent.toFixed(2)),
-      solving: parseFloat(solvingPercent.toFixed(2)),
-      problemSolving: parseFloat(problemSolvingPercent.toFixed(2)),
-    };
-  } catch (err) {
-    console.error(`Error fetching ${subject} data:`, err);
-    return { time: 0, solving: 0, problemSolving: 0 };
-  }
-};
+    }
+  };
 
   const animateRadarUpdate = (
     setScore: React.Dispatch<React.SetStateAction<UserScore>>,
@@ -188,7 +219,7 @@ const fetchSubjectData = async (subject: string): Promise<UserScore> => {
     let currentStep = 0;
     const start = { time: 0, solving: 0, problemSolving: 0 };
 
-    const animate = setInterval(() => {
+    const timer = setInterval(() => {
       currentStep++;
       const progress = currentStep / steps;
 
@@ -200,7 +231,7 @@ const fetchSubjectData = async (subject: string): Promise<UserScore> => {
           (newScore.problemSolving - start.problemSolving) * progress,
       });
 
-      if (currentStep >= steps) clearInterval(animate);
+      if (currentStep >= steps) clearInterval(timer);
     }, interval);
   };
 
@@ -247,7 +278,10 @@ const fetchSubjectData = async (subject: string): Promise<UserScore> => {
     if (allScores.length === 0) return;
 
     const formatted = allScores.map((item) => ({
-      "Full Name": `${item.profiles?.lastname || ""}, ${item.profiles?.firstname || ""}`.trim() || "N/A",
+      "Full Name":
+        `${item.profiles?.lastname || ""}, ${
+          item.profiles?.firstname || ""
+        }`.trim() || "N/A",
       Email: item.profiles?.email || "N/A",
       Subject: item.quizzes?.subject || "N/A",
       Category: item.quizzes?.category || "N/A",
@@ -282,9 +316,9 @@ const fetchSubjectData = async (subject: string): Promise<UserScore> => {
       { wch: 20 },
       { wch: 10 },
       { wch: 15 },
-      { wch: 25 }
+      { wch: 25 },
     ];
-  
+
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "All Results");
 
@@ -364,8 +398,16 @@ const fetchSubjectData = async (subject: string): Promise<UserScore> => {
     chartArithmetic.current?.destroy();
     chartPhysics.current?.destroy();
 
-    chartArithmetic.current = createRadarChart(ctxA, arithmeticScore, "Arithmetic Sequence");
-    chartPhysics.current = createRadarChart(ctxP, physicsScore, "Uniform Motion in Physics");
+    chartArithmetic.current = createRadarChart(
+      ctxA,
+      arithmeticScore,
+      "Arithmetic Sequence"
+    );
+    chartPhysics.current = createRadarChart(
+      ctxP,
+      physicsScore,
+      "Uniform Motion in Physics"
+    );
 
     return () => {
       chartArithmetic.current?.destroy();

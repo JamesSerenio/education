@@ -1,3 +1,4 @@
+// src/pages/AdminRadar.tsx
 import {
   IonPage,
   IonHeader,
@@ -31,9 +32,9 @@ ChartJS.register(
   ChartDataLabels
 );
 
-// 🔹 Constants
-const MAX_SCORE = 15;  // 15 items
-const MAX_TIME = 2700; // 45 minutes (in seconds)
+// 🔹 Updated constants
+const MAX_SCORE = 15; // Total max score
+const MAX_TIME = 2700; // Max time in seconds
 
 interface UserScore {
   time: number;
@@ -86,7 +87,6 @@ const AdminRadar: React.FC = () => {
   ): ScoreWithQuizzes => {
     const quiz = rawData.quizzes as Record<string, unknown> | null;
     const profiles = rawData.profiles as Record<string, unknown> | null;
-
     return {
       id: (rawData.id as string) || "",
       total_score: (rawData.total_score as number) ?? null,
@@ -111,7 +111,7 @@ const AdminRadar: React.FC = () => {
     };
   };
 
-  // 🔹 Get averages per subject (best per user per category)
+  // 🔹 Fetch and calculate averages by subject (highest per user per category)
   const fetchSubjectData = async (subject: string): Promise<UserScore> => {
     try {
       const { data, error } = await supabase
@@ -140,7 +140,6 @@ const AdminRadar: React.FC = () => {
 
       subjectScores.forEach((score) => {
         const userId = score.user_id;
-
         if (!userBests[userId]) {
           userBests[userId] = {
             wordProblem: 0,
@@ -158,7 +157,6 @@ const AdminRadar: React.FC = () => {
             score.total_score
           );
         }
-
         if (
           score.quizzes?.category === "Problem Solving" &&
           score.total_score !== null
@@ -168,7 +166,6 @@ const AdminRadar: React.FC = () => {
             score.total_score
           );
         }
-
         if (score.time_taken !== null) {
           userBests[userId].time = Math.min(
             userBests[userId].time,
@@ -219,7 +216,7 @@ const AdminRadar: React.FC = () => {
     let currentStep = 0;
     const start = { time: 0, solving: 0, problemSolving: 0 };
 
-    const timer = setInterval(() => {
+    const animate = setInterval(() => {
       currentStep++;
       const progress = currentStep / steps;
 
@@ -231,7 +228,7 @@ const AdminRadar: React.FC = () => {
           (newScore.problemSolving - start.problemSolving) * progress,
       });
 
-      if (currentStep >= steps) clearInterval(timer);
+      if (currentStep >= steps) clearInterval(animate);
     }, interval);
   };
 
@@ -273,11 +270,48 @@ const AdminRadar: React.FC = () => {
     }
   };
 
+  // 🔹 Export Excel with ordered layout:
+  //   Arithmetic Sequence (Word Problem → Problem Solving)
+  //   Uniform Motion in Physics (Word Problem → Problem Solving)
   const exportAllToExcel = async () => {
     const allScores = await fetchAllScores();
     if (allScores.length === 0) return;
 
-    const formatted = allScores.map((item) => ({
+    // Order for subjects
+    const subjectOrder: Record<string, number> = {
+      "Arithmetic Sequence": 1,
+      "Uniform Motion in Physics": 2,
+    };
+
+    // Order for categories
+    const categoryOrder: Record<string, number> = {
+      "Word Problem": 1,
+      "Problem Solving": 2,
+    };
+
+    const sortedScores = [...allScores].sort((a, b) => {
+      const subjectA = a.quizzes?.subject || "";
+      const subjectB = b.quizzes?.subject || "";
+      const subjRankA = subjectOrder[subjectA] ?? 999;
+      const subjRankB = subjectOrder[subjectB] ?? 999;
+
+      if (subjRankA !== subjRankB) return subjRankA - subjRankB;
+
+      const catA = a.quizzes?.category || "";
+      const catB = b.quizzes?.category || "";
+      const catRankA = categoryOrder[catA] ?? 999;
+      const catRankB = categoryOrder[catB] ?? 999;
+
+      if (catRankA !== catRankB) return catRankA - catRankB;
+
+      // optional: latest first
+      return (
+        new Date(b.created_at).getTime() -
+        new Date(a.created_at).getTime()
+      );
+    });
+
+    const formatted = sortedScores.map((item) => ({
       "Full Name":
         `${item.profiles?.lastname || ""}, ${
           item.profiles?.firstname || ""
@@ -308,7 +342,12 @@ const AdminRadar: React.FC = () => {
       { "STUDENT QUIZ RESULTS": "" },
     ];
 
-    const ws = XLSX.utils.json_to_sheet([...summarySection, {}, ...formatted]);
+    const ws = XLSX.utils.json_to_sheet([
+      ...summarySection,
+      {},
+      ...formatted,
+    ]);
+
     ws["!cols"] = [
       { wch: 30 },
       { wch: 25 },
@@ -363,7 +402,10 @@ const AdminRadar: React.FC = () => {
         plugins: {
           legend: {
             display: true,
-            labels: { color: "#111", font: { size: 14, weight: "bold" } },
+            labels: {
+              color: "#111",
+              font: { size: 14, weight: "bold" },
+            },
           },
           title: {
             display: true,
@@ -450,6 +492,7 @@ const AdminRadar: React.FC = () => {
               width: "100%",
             }}
           >
+            {/* 🔼 Arithmetic (top) */}
             <div
               style={{
                 width: "100%",
@@ -464,6 +507,7 @@ const AdminRadar: React.FC = () => {
               <canvas ref={radarRefArithmetic} />
             </div>
 
+            {/* 🔽 Physics (bottom / right on desktop) */}
             <div
               style={{
                 width: "100%",

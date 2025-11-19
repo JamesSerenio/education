@@ -1,4 +1,3 @@
-// src/pages/AdminRadar.tsx
 import {
   IonPage,
   IonHeader,
@@ -270,20 +269,16 @@ const AdminRadar: React.FC = () => {
     }
   };
 
-  // 🔹 Export Excel with ordered layout:
-  //   Arithmetic Sequence (Word Problem → Problem Solving)
-  //   Uniform Motion in Physics (Word Problem → Problem Solving)
+  // 🔹 Export Excel with clear ARITHMETIC / MOTION headings
   const exportAllToExcel = async () => {
     const allScores = await fetchAllScores();
     if (allScores.length === 0) return;
 
-    // Order for subjects
     const subjectOrder: Record<string, number> = {
       "Arithmetic Sequence": 1,
       "Uniform Motion in Physics": 2,
     };
 
-    // Order for categories
     const categoryOrder: Record<string, number> = {
       "Word Problem": 1,
       "Problem Solving": 2,
@@ -304,14 +299,22 @@ const AdminRadar: React.FC = () => {
 
       if (catRankA !== catRankB) return catRankA - catRankB;
 
-      // optional: latest first
       return (
         new Date(b.created_at).getTime() -
         new Date(a.created_at).getTime()
       );
     });
 
-    const formatted = sortedScores.map((item) => ({
+    // 🔹 Hiwalay na list para sa Arithmetic at Motion
+    const arithmeticRows = sortedScores.filter(
+      (s) => s.quizzes?.subject === "Arithmetic Sequence"
+    );
+    const motionRows = sortedScores.filter(
+      (s) => s.quizzes?.subject === "Uniform Motion in Physics"
+    );
+
+    // 🔹 Header format function
+    const formatRow = (item: ScoreWithQuizzes) => ({
       "Full Name":
         `${item.profiles?.lastname || ""}, ${
           item.profiles?.firstname || ""
@@ -322,7 +325,10 @@ const AdminRadar: React.FC = () => {
       Score: item.total_score ?? 0,
       "Time Taken (s)": item.time_taken ?? 0,
       "Date Taken": new Date(item.created_at).toLocaleString(),
-    }));
+    });
+
+    const arithmeticBlock = arithmeticRows.map(formatRow);
+    const motionBlock = motionRows.map(formatRow);
 
     const summarySection = [
       { "📊 AVERAGE SUMMARY": "" },
@@ -342,14 +348,21 @@ const AdminRadar: React.FC = () => {
       { "STUDENT QUIZ RESULTS": "" },
     ];
 
-    const ws = XLSX.utils.json_to_sheet([
+    // 🔹 Final data with section labels
+    const excelData = [
       ...summarySection,
       {},
-      ...formatted,
-    ]);
+      { Section: "🔷 ARITHMETIC SEQUENCE (Word Problem → Problem Solving)" },
+      ...arithmeticBlock,
+      {},
+      { Section: "🔶 UNIFORM MOTION IN PHYSICS (Word Problem → Problem Solving)" },
+      ...motionBlock,
+    ];
+
+    const ws = XLSX.utils.json_to_sheet(excelData);
 
     ws["!cols"] = [
-      { wch: 30 },
+      { wch: 30 }, // Full Name / Section / Summary col
       { wch: 25 },
       { wch: 25 },
       { wch: 20 },
@@ -507,7 +520,7 @@ const AdminRadar: React.FC = () => {
               <canvas ref={radarRefArithmetic} />
             </div>
 
-            {/* 🔽 Physics (bottom / right on desktop) */}
+            {/* 🔽 Physics */}
             <div
               style={{
                 width: "100%",
